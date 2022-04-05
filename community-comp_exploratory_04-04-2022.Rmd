@@ -48,7 +48,7 @@ unique(full_cover$trt)
 unique(full_cover$functional_group)
 unique(full_cover$live)
 unique(full_cover$ps_path)
-
+unique(full_cover$local_lifespan)
 
 
 ```
@@ -72,7 +72,7 @@ Make some plot level aggregate values
 -percent grass
 -percent forb
 ```{r}
-full_cover$functional_group <- ifelse(full_cover$functional_group == "GRASS", "GRAMINOID", withFG$FunctionalGroup)
+full_cover$functional_group <- ifelse(full_cover$functional_group == "GRASS", "GRAMINOID", full_cover$functional_group)
 
 
 comb.by.plot <- full_cover%>%
@@ -81,13 +81,13 @@ comb.by.plot <- full_cover%>%
   ddply(.(site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days, n_treat_years, trt),
         function(x)data.frame(
           species_richness = length(x$Taxon),
-          cover = sum(x$max_cover),
-        EQ = community_structure(
-          x,
-          time.var = NULL,
-          abundance.var = "cover",
-          replicate.var = NULL,
-          metric = c("EQ"))$EQ
+          cover = sum(x$max_cover)#,
+        #EQ = community_structure(
+        #  x,
+        #  time.var = NULL,
+        #  abundance.var = "cover",
+        #  replicate.var = NULL,
+        #  metric = c("EQ"))$EQ
           
           
         ))
