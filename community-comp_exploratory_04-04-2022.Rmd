@@ -86,7 +86,7 @@ comb.by.plot <- full_cover%>%
   subset(trt == "Control" | trt == "Drought")%>%
   ddply(.(site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days, trt),
         function(x)data.frame(
-          #species_richness = length(x$Taxon),
+          species_richness = length(x$Taxon),
           cover = sum(x$max_cover)#,
         #EQ = community_structure(
         #  x,
@@ -272,10 +272,30 @@ ggplot(comb.by.site.clim, aes(precip, temp))+
 
 ```{r}
 
+hist(comb.by.plot.clim$cover)
+hist(comb.by.plot.clim$species_richness)
+
+brookdale.ca <- subset(full_cover, site_code == "brookdale.ca")
+
 ```
 
 
 
+```{r}
+
+year1.richness <- comb.by.plot.clim%>%
+                  subset(trt == "Control")%>%
+                  subset(n_treat_years == 1)%>%
+                  ddply(.(site_code, n_treat_years),
+                        function(x)data.frame(
+                          average.richness = mean(x$species_richness)
+                        ))
+  
+
+
+write.csv(year1.richness, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_year1_richness.csv")
+
+```
 
 
 
