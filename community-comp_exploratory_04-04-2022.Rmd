@@ -91,9 +91,10 @@ comb.by.plot <- full_cover%>%
         #EQ = community_structure(
         #  x,
         #  time.var = NULL,
-        #  abundance.var = "cover",
+        #  abundance.var = "max_cover",
         #  replicate.var = NULL,
         #  metric = c("EQ"))$EQ
+        
           
           
         ))
@@ -114,7 +115,7 @@ comb.by.plot$n_treat_days <- as.numeric(comb.by.plot$n_treat_days)
 #Early cutoff is within a week of 120 days
 data.anpp2 <- comb.by.plot%>%
   dplyr::group_by(site_code)%>%
-  dplyr::filter(n_treat_days >= 113 & n_treat_days <= 657)%>%
+  dplyr::filter(n_treat_days >= 113 & n_treat_days <= 450)%>%
   dplyr::as_tibble()
 
 #Now checking to see which sites have different n_treat_days 
@@ -158,7 +159,7 @@ datayr1b<-datayr1%>%
 #Merge back with dataframe that has other years
 data.anpp3 <- comb.by.plot%>%
   dplyr::group_by(site_code)%>%
-  dplyr::filter(n_treat_days > 657)%>%
+  dplyr::filter(n_treat_days > 450)%>%
   dplyr::as_tibble()
 
 #Select out unique values
@@ -293,15 +294,100 @@ year1.richness <- comb.by.plot.clim%>%
   
 
 
-write.csv(year1.richness, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_year1_richness.csv")
+#write.csv(year1.richness, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_year1_richness.csv")
 
 ```
 
 
 
 
+```{r}
+
+
+full.cover.focal <- site_list%>%
+          merge(full_cover, by = "site_code", all.x = TRUE)%>%
+          subset(live == 1)%>%
+          subset(trt == "Control" | trt == "Drought")%>%
+          merge(datayr1.4, by = c("site_code", "year", "n_treat_days", "block", "plot", "subplot", "trt"))%>%
+          dplyr::select(-species_richness)%>%
+          dplyr::select(-cover)
+
+full.cover.focal <- unite(full.cover.focal, "replicate",  c("block", "plot", "subplot") , sep = "::", remove = FALSE)
+
+
+full.cover.sum <- full.cover.focal%>%
+  ddply( .(site_code,  replicate, block, plot, subplot, trt, Taxon, n_treat_years),function(x)data.frame(
+  max_cover = max(x$max_cover)
+))%>%
+  subset(site_code != "eea.br" & site_code != "hoide.de" & site_code != "hyide.de")#no data from control plots? might be removed in replicate filter?
+
+
+k <- 1
+#cover_list <- list()
+rac_master <- {}
+
+for(site in unique(full.cover.sum$site_code)){
+    
+  
+df <-  subset(full.cover.sum, site_code == site)
+  
+function.output<- RAC_difference(
+                  df = df,
+                  time.var = "n_treat_years",
+                  species.var = "Taxon",
+                  abundance.var = "max_cover",
+                  replicate.var = "replicate",
+                  treatment.var = "trt",
+            pool = FALSE,
+            block.var = NULL,
+            reference.treatment = "Control"
+)
+
+function.output$site_code <- site
+
+rac_master <- rbind(rac_master, function.output )
+ rm(df, function.output)
+#cover_list[[k]] <- function.output
+k <- k+1
+
+}
+
+```
+
+
+
+```{r}
+library(lmerTest)
+library(visreg)
+
+temp <- subset(rac_master, n_treat_years < 5)
+mod <- lmer(rank_diff~n_treat_years + (1|site_code/replicate2), data = temp)
+summary(mod)
+visreg(mod)
+
+
+rac.by.site <- ddply(rac_master, .(n_treat_years, site_code), function(x)data.frame(
+                richness_diff = mean(x$richness_diff),
+                evenness_diff = mean(x$evenness_diff),
+                rank_diff = mean(x$rank_diff),
+                species_diff = mean(x$species_diff)
+  
+))
+
+
+
+ggplot(rac.by.site, aes(n_treat_years, rank_diff))+
+      geom_point()+
+  geom_line(aes(group = site_code))+
+      theme_base()
 
 
 
 
+
+```
+
+```{r}
+for(i in 1:length(trt_type_vector)) {
+```
 
