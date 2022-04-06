@@ -1,0 +1,307 @@
+---
+title: "community-comp_exploratory_04-04-2022"
+author: "Tim Ohlert"
+date: "4/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##load packages
+```{r}
+library(tidyverse)
+library(plyr)
+library(codyn)
+library(ggthemes)
+
+
+
+```
+
+
+##load data
+```{r}
+full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/full_cover_04-04-2022.csv")
+
+full_cover <- full_cover %>%
+  dplyr::select(-n_treat_years)
+
+
+site_elev_disturb <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
+```
+
+
+```{r}
+summary(full_cover)
+```
+
+```{r}
+summary(full_cover$max_cover)
+
+```
+
+
+
+```{r}
+hist(full_cover$max_cover)
+```
+
+```{r}
+unique(full_cover$trt)
+unique(full_cover$functional_group)
+unique(full_cover$live)
+unique(full_cover$ps_path)
+unique(full_cover$local_lifespan)
+
+
+```
+
+
+```{r}
+grass <- subset(full_cover, functional_group == "GRASS")
+summary(grass)
+graminoid <- subset(full_cover, functional_group == "GRAMINOID")
+summary(graminoid)
+null <- subset(full_cover, functional_group == "NULL")
+summary(null)
+```
+
+
+
+
+Make some plot level aggregate values
+-species richness
+-evenness
+-percent grass
+-percent forb
+```{r}
+full_cover$functional_group <- ifelse(full_cover$functional_group == "GRASS", "GRAMINOID", full_cover$functional_group)
+
+
+comb.by.plot <- full_cover%>%
+  subset(live == 1)%>%
+  subset(trt == "Control" | trt == "Drought")%>%
+  ddply(.(site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days, trt),
+        function(x)data.frame(
+          species_richness = length(x$Taxon),
+          cover = sum(x$max_cover)#,
+        #EQ = community_structure(
+        #  x,
+        #  time.var = NULL,
+        #  abundance.var = "cover",
+        #  replicate.var = NULL,
+        #  metric = c("EQ"))$EQ
+          
+          
+        ))
+
+comb.by.plot$n_treat_days <- as.numeric(comb.by.plot$n_treat_days)
+
+```
+
+
+###Create different column identifying treatment years
+```{r}
+
+
+
+
+#Year one will now just filter the lower end since many sites had 2nd year 
+#caught in 113-657
+#Early cutoff is within a week of 120 days
+data.anpp2 <- comb.by.plot%>%
+  dplyr::group_by(site_code)%>%
+  dplyr::filter(n_treat_days >= 113 & n_treat_days <= 657)%>%
+  dplyr::as_tibble()
+
+#Now checking to see which sites have different n_treat_days 
+#for different plots in the same year and making a different column to change those to be the within the same trt year
+uniq.trtdays<- data.anpp2 %>% 
+  dplyr::select(site_code,year,n_treat_days,plot,trt)%>%
+  dplyr::distinct(site_code,year,n_treat_days)%>%
+  dplyr::as_tibble()
+
+#Calculate difference in days across site_code to filter out multiple
+#observations within the 113-657 day time frame
+uniq.trtdays2<-uniq.trtdays%>%
+  dplyr::group_by(site_code) %>%
+  dplyr::mutate(day_diff = n_treat_days - lag(n_treat_days, default = n_treat_days[1]))%>%
+  dplyr::as_tibble()
+
+#Australian sites have early and late season sampling that differs for some plots
+#by ~100 days, but keeping these- currently not filtered by code below
+#The filter below takes care of most sites with multiple years within 113-657,
+#except syferkuil.za 
+uniq.trtdays3<-uniq.trtdays2%>%
+  dplyr::filter(day_diff<100)%>%
+  dplyr::as_tibble()
+
+#Remove second instance of syferkuil
+uniq.trtdays4<-uniq.trtdays3%>%
+  dplyr::filter(!(site_code=='syferkuil.za' & year=="2017"))%>%
+  dplyr::as_tibble()
+
+
+#Merge back with anpp data frame
+datayr1<-merge(data.anpp2,uniq.trtdays4,by=c("site_code","year","n_treat_days")) %>% 
+  dplyr::as_tibble()
+
+datayr1$n_treat_years<-1 #Label this as year one
+
+datayr1b<-datayr1%>%
+  dplyr::select(-c(day_diff))%>%
+  dplyr::as_tibble()
+
+#Merge back with dataframe that has other years
+data.anpp3 <- comb.by.plot%>%
+  dplyr::group_by(site_code)%>%
+  dplyr::filter(n_treat_days > 657)%>%
+  dplyr::as_tibble()
+
+#Select out unique values
+uniq.trtdays5<- data.anpp3 %>% 
+  dplyr::select(site_code,year,plot,trt)%>%
+  dplyr::distinct(site_code,year)%>%
+  dplyr::as_tibble()
+
+#Counting number of years
+uniq.trtyrs <- uniq.trtdays5%>%                        
+  dplyr::group_by(site_code) %>%
+  dplyr::mutate(n_treat_years = (row_number()+1)) %>% #adding one since year 1 in diff dataframe
+  dplyr::as_tibble()
+
+datayr2.4<-merge(data.anpp3,uniq.trtyrs,by=c("site_code","year")) %>% 
+  dplyr::as_tibble()
+
+#datayr2.4 <- datayr2.4[,c(1:13)]
+#datayr2.4 <- dplyr::rename(datayr2.4, n_treat_years = n_treat_years.x)
+#Rbind year 1 and years 2-4 together
+datayr1.4<-rbind(datayr1b,datayr2.4)
+
+presummary <- unique(datayr1.4[,c("site_code", "n_treat_years")])
+
+
+summary<- ddply(presummary, .(n_treat_years),
+                function(x)data.frame(
+                  num_of_sites = length(x$site_code)
+                ))
+
+year2 <- subset(presummary, n_treat_years == 2)
+
+year3 <- subset(presummary, n_treat_years == 3)
+
+temp <- merge(year2, year3, by = "site_code", all = TRUE)
+
+
+
+
+```
+
+
+
+
+
+
+
+
+###Make sure each site has 3 treatment and 3 control per year
+
+
+```{r}
+
+rep_count <- ddply(datayr1.4, .(site_code, n_treat_years, trt),
+         function(x)data.frame(
+           rep_num = length(x$plot)
+           ))
+
+site_list <- rep_count%>%
+          subset(rep_num >=3)%>%
+          dplyr::select(site_code)%>%
+          unique()
+
+focal_datayr1.4 <- merge(site_list, datayr1.4, by = "site_code", all.x = TRUE)
+
+
+
+
+
+```
+
+
+
+
+
+```{r}
+comb.by.plot.clim <- merge(focal_datayr1.4, site_elev_disturb, by = c("site_code"), all.x = TRUE)
+
+comb.by.site.clim <- merge(site_list, site_elev_disturb, by = "site_code", all.x = "TRUE")
+
+```
+
+
+
+```{r}
+habitat.type.summary <- comb.by.plot.clim%>%
+  dplyr::select(site_code, habitat.type, n_treat_years)%>%
+  unique()%>%
+  ddply(.(habitat.type, n_treat_years),
+        function(x)data.frame(
+          num.sites = length(x$site_code)
+        ))
+
+
+
+
+
+```
+
+
+
+```{r}
+ggplot(comb.by.site.clim, aes(precip, temp))+
+  geom_point(aes(color = continent, shape = habitat.type), size = 4)+
+  theme_base()
+  
+  
+```
+
+
+
+```{r}
+
+hist(comb.by.plot.clim$cover)
+hist(comb.by.plot.clim$species_richness)
+
+brookdale.ca <- subset(full_cover, site_code == "brookdale.ca")
+
+```
+
+
+
+```{r}
+
+year1.richness <- comb.by.plot.clim%>%
+                  subset(trt == "Control")%>%
+                  subset(n_treat_years == 1)%>%
+                  ddply(.(site_code, n_treat_years),
+                        function(x)data.frame(
+                          average.richness = mean(x$species_richness)
+                        ))
+  
+
+
+write.csv(year1.richness, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_year1_richness.csv")
+
+```
+
+
+
+
+
+
+
+
+
