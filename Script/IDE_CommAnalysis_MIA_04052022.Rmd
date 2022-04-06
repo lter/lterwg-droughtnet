@@ -1,0 +1,274 @@
+---
+title: "IDE_CommAnalysis_MIA_04052022"
+author: "Maggie Anderson"
+date: "4/5/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Goal: sythesize plant community cover data from IDE
+# Contributors: Tim Ohlert, Kate Wilkins, Maggie Anderson
+
+# Tim's code 
+
+### 1) setup
+```{r setup, include=FALSE}
+# clear workspace
+  rm(list = ls()) 
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# load packages
+pacman::p_load(codyn,         # diversity metrics
+               ggthemes,
+               plyr,
+               RColorBrewer,  # fun colors for plots
+               tidyverse,     # wrangling
+               )         
+```
+
+### 2) load data, summaries
+```{r}
+full_cover <- read.csv("~/Dropbox/IDE/data_processed/full_cover_04-04-2022.csv")
+
+summary(full_cover)
+
+summary(full_cover$max_cover)
+
+hist(full_cover$max_cover) 
+```
+
+### 3) unique column values (facors)
+```{r}
+unique(full_cover$trt)
+unique(full_cover$functional_group)
+unique(full_cover$live)
+unique(full_cover$ps_path)
+unique(full_cover$local_lifespan)
+unique(full_cover$n_treat_years)
+
+length(unique(full_cover$Taxon))
+```
+
+### 4) subset data
+```{r}
+grass <- subset(full_cover, functional_group == "GRASS")
+summary(grass)
+graminoid <- subset(full_cover, functional_group == "GRAMINOID")
+summary(graminoid)
+null <- subset(full_cover, functional_group == "NULL")
+summary(null)
+```
+
+### 5) make some plot level aggregate values for SR, H, %grass/forb
+```{r}
+# Make some plot level aggregate values
+# -species richness
+# -evenness
+# -percent grass
+# -percent forb
+
+full_cover$functional_group <- ifelse(full_cover$functional_group == "GRASS", "GRAMINOID", full_cover$functional_group)
+comb.by.plot <- full_cover%>%
+  subset(live == 1)%>%
+  subset(trt == "Control" | trt == "Drought")%>%
+  ddply(.(site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days, n_treat_years, trt),
+        function(x)data.frame(
+          species_richness = length(x$Taxon),
+          cover = sum(x$max_cover),
+        EQ = community_structure(
+          x,
+          time.var = NULL,
+          abundance.var = "max_cover",
+          replicate.var = NULL,
+          metric = c("EQ"))$EQ
+          
+          
+        ))
+head(full_cover)
+```
+
+# Kate's code
+
+### 6) limit to sites with suffucuent no. of reps (community data)
+```{r}
+uniq.plot<- comb.by.plot %>% 
+  dplyr::filter(trt %in% c("Drought","Control"))%>%
+  dplyr::select(site_code,year,plot,trt)%>%
+  dplyr::distinct(site_code,year,plot,trt)%>%
+  dplyr::as_tibble()
+
+Plot.trt.ct <- uniq.plot%>% dplyr::group_by(site_code,trt,year) %>% dplyr::summarise(Plot.count=n())
+
+#Making to wide format to see which sites do not have both treatments in a year
+Plottrt_wide<-spread(Plot.trt.ct,trt,Plot.count)
+Plottrt_wide[is.na(Plottrt_wide)] <- 0
+
+#Remove sites and years that don't have both control and drought plots
+  #OR that only have one rep of drought
+  #brokenh.au in 2018 and 2019 (0 drought plots)
+  #chacra.ar in 2016 (1 control plot) #Keeping
+  #chilcasdrt.ar in 2016 and 2020 (0 drought plots)
+  #charleville.au in 2017 (1 control plot) #Keeping
+  #charleville.au in 2019 (1 drought plot)
+  #cobar.au in 2018 (1 control plot) #keeping
+
+Plottrt_wide1<-Plottrt_wide%>%
+  dplyr::filter(Drought>=2 & Control>=1)%>%
+  dplyr::as_tibble()
+
+#Switch back to long format for merge
+Plot.trt.ct2<-gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
+
+#Merge unique trt count back with data frame to filter
+comb.by.plot<-merge(comb.by.plot,Plot.trt.ct2,by=c("site_code","trt","year"))
+```
+
+### 7) calculate drought severity
+```{r}
+# read in precip data
+ppt_data<-read.csv("~/Dropbox/IDE MS_Single year extreme/Data/precip/precip_by_trmt_year_with_percentiles_2021-05-12.csv")
+head(ppt_data)
+
+# pull precip in drought plots and WorldClim values for each YEAR (maybe change this later)
+ppt_data_yr <- ppt_data[,c(1,2,10:14)]
+
+# remove duplicate site_year plots
+ppt_data_yr$site_code_yr <- paste(ppt_data_yr$site_code, ppt_data_yr$year, sep = "_")
+ppt_data_yr <- ppt_data_yr[!duplicated(ppt_data_yr$site_code_yr),] # remove duplicate cover dates
+
+# drought severity calculation
+ppt_data_yr$drtpct_map<-((ppt_data_yr$ppt_drought-ppt_data_yr$wc_map)/ppt_data_yr$wc_map)
+  # ppt_drought = precip in drought plot
+  # wc_map = MAP data from WorldClim
+
+
+# merge with cover dataset to get year-specific values
+#test <- left_join(full_cover1, ppt_data_yr[,c()])
+
+
+# join datasets
+comb.by.plot <- left_join(comb.by.plot,ppt_data_yr[,c(1:2,9)], by = c("site_code","year")) # STILL WORKING ON THIS
+```
+
+# Maggie's code
+
+### 8) calculate richness and evenness response
+```{r}
+# calculate species richness response
+comb.wide.sr <- comb.by.plot %>%
+  pivot_wider(names_from = trt,
+              values_from = species_richness) %>%
+  select(site_code,year,Control,Drought) %>%
+  group_by(site_code, year) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_each(funs(sum)) %>%
+  mutate(sr_response = log(Drought/Control)) 
+
+comb.wide.sr <- left_join(comb.wide.sr,
+            distinct(comb.by.plot[,c(1,3,11,15:16)]), 
+            by = c("site_code","year")) # join to get n_treat_years, Plot.count, & drtpcp_map
+
+# calculate evenness response
+comb.wide.eq <- comb.by.plot %>%
+  pivot_wider(names_from = trt,
+              values_from = EQ) %>%
+  select(site_code,year,Control,Drought) %>%
+  group_by(site_code, year) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_each(funs(sum)) %>%
+  mutate(eq_response = log(Drought/Control))
+
+comb.wide.eq <- left_join(comb.wide.eq,  
+            distinct(comb.by.plot[,c(1,3,11,15:16)]), 
+            by = c("site_code","year"))
+
+# combine into the single dataframe
+comb_rr <- left_join(comb.wide.sr, distinct(comb.wide.eq[,c(1:2,5)]), by = c("site_code","year"))
+```
+
+### 9) re-add site information 
+```{r}
+# add site_level information to the dataframe
+site_info <- read.csv("~/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
+head(site_info)
+
+# join with comb_rr dataset
+comb_rr <- left_join(comb_rr, distinct(site_info[,c(2:9)]), by = "site_code")
+```
+
+### 10) plots: total richness and evenness response ratio (RR) by drought severity
+```{r}
+comb_rr %>%
+  filter(n_treat_years %in% (1:4)) %>%
+ggplot(aes(x=drtpct_map, y = sr_response)) +
+  geom_point(alpha = 0.5, width = 0.1, size=1) +
+  geom_smooth(method = "lm") +
+  theme_bw() +
+  #facet_wrap(~n_treat_years) +
+  theme(panel.grid.major.x = element_blank(),
+         panel.grid.major.y = element_line(size=.1, color="grey")) +
+  xlab("Drought Severity") +
+  ylab("Species Richness Response") +
+  geom_vline(xintercept = 0, linetype="dashed", 
+                color = "black", size=1) 
+
+# negative numbers: less SR in drought vs control plots
+
+comb_rr %>%
+  filter(n_treat_years %in% (1:4)) %>%
+ggplot(aes(x=drtpct_map, y = eq_response)) +
+  geom_point(alpha = 0.5, width = 0.1, size=1) +
+  geom_smooth(method = "lm") +
+  theme_bw() +
+  #facet_wrap(~n_treat_years) +
+  theme(panel.grid.major.x = element_blank(),
+         panel.grid.major.y = element_line(size=.1, color="grey")) +
+  xlab("Drought Severity") +
+  ylab("Evenness Response") +
+ geom_vline(xintercept = 0, linetype="dashed", 
+                color = "black", size=1)
+```
+
+### separate RR out by habitat type and treatment years
+```{r}
+# separate each by year: species richness
+comb_rr %>%
+  filter(n_treat_years %in% (1:4)) %>%
+  filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+ggplot(aes(x=drtpct_map, y = sr_response)) +
+  geom_point(aes(col = habitat.type, shape = habitat.type),alpha = 0.5, width = 0.1, size=2) +
+  geom_smooth(method = "lm") +
+  scale_color_manual(name="Ecosystem Type",labels = c('Grassland','Shrubland'),values=c("mediumseagreen","wheat3"))+
+  facet_grid(~n_treat_years) +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank(),
+         panel.grid.major.y = element_line(size=.1, color="grey")) +
+  geom_vline(xintercept = 0, linetype="dashed", 
+                color = "black", size=1) +
+  xlab("Drought Severity") +
+  ylab("Species Richness Response")
+
+# separate each by year: evenness
+comb_rr %>%
+  filter(n_treat_years %in% (1:4)) %>%
+  filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+ggplot(aes(x=drtpct_map, y = eq_response)) +
+  geom_point(aes(col = habitat.type, shape = habitat.type),alpha = 0.5, width = 0.1, size=2) +
+  geom_smooth(method = "lm") +
+  scale_color_manual(name="Ecosystem Type",labels = c('Grassland','Shrubland'),values=c("mediumseagreen","wheat3"))+
+  facet_grid(~n_treat_years) +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank(),
+         panel.grid.major.y = element_line(size=.1, color="grey")) +
+  geom_vline(xintercept = 0, linetype="dashed", 
+                color = "black", size=1) +
+  xlab("Drought Severity") +
+  ylab("Evenness Response")
+```
+
+
+
+_______________________________________
+
