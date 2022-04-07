@@ -93,7 +93,7 @@ comb.by.plot <- full_cover%>%
         #  time.var = NULL,
         #  abundance.var = "max_cover",
         #  replicate.var = NULL,
-        #  metric = c("EQ"))$EQ
+        #  metric = c("EQ"))$EQ,
         
           
           
@@ -276,7 +276,6 @@ ggplot(comb.by.site.clim, aes(precip, temp))+
 hist(comb.by.plot.clim$cover)
 hist(comb.by.plot.clim$species_richness)
 
-brookdale.ca <- subset(full_cover, site_code == "brookdale.ca")
 
 ```
 
@@ -312,11 +311,13 @@ full.cover.focal <- site_list%>%
           dplyr::select(-species_richness)%>%
           dplyr::select(-cover)
 
+full.cover.focal$functional_group <- ifelse(full.cover.focal$functional_group == "GRASS", "GRAMINOID", full.cover.focal$functional_group)
+
 full.cover.focal <- unite(full.cover.focal, "replicate",  c("block", "plot", "subplot") , sep = "::", remove = FALSE)
 
 
 full.cover.sum <- full.cover.focal%>%
-  ddply( .(site_code,  replicate, block, plot, subplot, trt, Taxon, n_treat_years),function(x)data.frame(
+  ddply( .(site_code,  replicate, block, plot, subplot, trt, Taxon, n_treat_years, functional_group),function(x)data.frame(
   max_cover = max(x$max_cover)
 ))%>%
   subset(site_code != "eea.br" & site_code != "hoide.de" & site_code != "hyide.de")#no data from control plots? might be removed in replicate filter?
@@ -388,22 +389,6 @@ ggplot(rac.by.site, aes(n_treat_years, rank_diff))+
 ```
 
 ```{r}
-antelope.us <- subset(rac_master, site_code == "antelope.us")
-
-
-antelope.conf <- antelope.us%>%
-  ddply(.(n_treat_years), function(x)data.frame(
-    rank_diff_mean = mean(x$rank_diff),
-    rank_diff_error = qt(0.975, df=length(x$n_treat_years)-1)*sd(x$rank_diff, na.rm=TRUE)/sqrt(length(x$n_treat_years)-1)
-  ))
-
-
-ggplot(antelope.conf, aes(n_treat_years, rank_diff_mean))+
-  geom_pointrange(aes(ymin = rank_diff_mean-rank_diff_error, ymax = rank_diff_mean+rank_diff_error), size = 1.5)+
-  theme_bw()
-
-
-
 
 site_vector <- unique(rac_master$site_code)
 
@@ -462,7 +447,7 @@ ggsave(temp.plot, file=paste0("speciesplot_", site_vector[i],".png"), width = 14
 ppt_data<-read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/precip/precip_by_trmt_year_with_percentiles_2022-04-06.csv")
 head(ppt_data)
 # pull precip in drought plots and WorldClim values for each YEAR (maybe change this later)
-ppt_data_yr <- ppt_data[,c(1,2,10:15)]
+ppt_data_yr <- ppt_data[,c(1,2,12:16)]
 # remove duplicate site_year plots
 ppt_data_yr$site_code_yr <- paste(ppt_data_yr$site_code, ppt_data_yr$year, sep = "_")
 ppt_data_yr <- ppt_data_yr[!duplicated(ppt_data_yr$site_code_yr),] # remove duplicate cover dates
@@ -478,7 +463,7 @@ temp <- focal_datayr1.4%>%
         select(site_code, year, n_treat_years) %>%
         unique()
 
-precip.dat <- merge(temp,ppt_data_yr, by = c("site_code","year")) # STILL WORKING ON THIS
+precip.dat <- merge(temp,ppt_data_yr, by = c("site_code","year")) 
 
 
 rac.by.site.clim <- merge(rac.by.site, precip.dat, by = c("site_code", "n_treat_years"))
@@ -511,4 +496,199 @@ ggplot(subset(rac.by.site.clim, n_treat_years <= 4), aes(drtpct_map, species_dif
 
 ```
 
+
+```{r}
+
+
+full_cover$functional_group <- ifelse(full_cover$functional_group == "GRASS", "GRAMINOID", full_cover$functional_group)
+
+
+func.group.sum <- full.cover.sum%>%
+  ddply(.(site_code, replicate, block, plot, subplot, trt, n_treat_years, functional_group), 
+        function(x)data.frame(
+        sum_cover = sum(x$max_cover)
+
+        ))
+
+graminoid <- func.group.sum %>%
+  subset(functional_group == "GRAMINOID")%>%
+  pivot_wider(names_from = trt,
+              values_from = sum_cover) %>%
+  select(site_code,n_treat_years,Control,Drought) %>%
+  group_by(site_code, n_treat_years) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_each(funs(sum)) %>%
+  mutate(cover_response = log(Drought/Control)) 
+
+graminoid$functional_group <- "GRAMINOID"
+
+
+forb <- func.group.sum %>%
+  subset(functional_group == "FORB")%>%
+  pivot_wider(names_from = trt,
+              values_from = sum_cover) %>%
+  select(site_code,n_treat_years,Control,Drought) %>%
+  group_by(site_code, n_treat_years) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_each(funs(sum)) %>%
+  mutate(cover_response = log(Drought/Control)) 
+
+forb$functional_group <- "FORB"
+
+
+legume <- func.group.sum %>%
+  subset(functional_group == "LEGUME")%>%
+  pivot_wider(names_from = trt,
+              values_from = sum_cover) %>%
+  select(site_code,n_treat_years,Control,Drought) %>%
+  group_by(site_code, n_treat_years) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_each(funs(sum)) %>%
+  mutate(cover_response = log(Drought/Control)) 
+
+legume$functional_group <- "LEGUME"
+
+
+
+woody <- func.group.sum %>%
+  subset(functional_group == "WOODY")%>%
+  pivot_wider(names_from = trt,
+              values_from = sum_cover) %>%
+  select(site_code,n_treat_years,Control,Drought) %>%
+  group_by(site_code, n_treat_years) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_each(funs(sum)) %>%
+  mutate(cover_response = log(Drought/Control)) 
+
+woody$functional_group <- "WOODY"
+
+
+all <- func.group.sum %>%
+  ddply(.(site_code, replicate, trt, n_treat_years),function(x)data.frame(sum_cover = sum(x$sum_cover)))%>%
+  pivot_wider(names_from = trt,
+              values_from = sum_cover) %>%
+  select(site_code,n_treat_years,Control,Drought) %>%
+  group_by(site_code, n_treat_years) %>% 
+  replace(is.na(.), 0) %>%
+  summarise_each(funs(sum)) %>%
+  mutate(cover_response = log(Drought/Control)) 
+
+all <- func.group.sum %>%
+  ddply(.(site_code, replicate, trt, n_treat_years),function(x)data.frame(sum_cover = sum(x$sum_cover)))%>%
+  #pivot_wider(names_from = trt,
+  #            values_from = sum_cover) %>%
+  
+  #select(site_code,n_treat_years,Control,Drought) %>%
+  #group_by(site_code, n_treat_years) %>% 
+ # 
+  #replace(is.na(.), 0) %>%
+  #summarise_each(funs(sum)) %>%
+  #mutate(cover_response = log(Drought/Control)) 
+
+  ddply( .(site_code, n_treat_years),
+                   function(x)data.frame(
+                     cover_response = log(x$sum_cover[x$trt %in% "Drought"] / x$sum_cover[x$trt %in% "Control"])))
+                                  
+
+
+func.group.responses <- rbind(graminoid, forb, legume, woody)
+
+func.group.responses.clim <- func.group.responses%>%
+            merge( precip.dat, by = c("site_code", "n_treat_years"))%>%
+            subset(n_treat_years <= 4)%>%
+            subset(cover_response != "-Inf" & cover_response != "Inf")
+
+all.clim <- all%>%
+            merge( precip.dat, by = c("site_code", "n_treat_years"))%>%
+            subset(n_treat_years <= 4)%>%
+            subset(cover_response != "-Inf" & cover_response != "Inf")
+
+```
+
+
+```{r}
+
+ggplot(func.group.responses.clim, aes(drtpct_map, cover_response, color = functional_group))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  ylab("LRR cover")+
+  xlab("Drought severity")+
+  theme_base()
+
+ggplot(all.clim, aes(drtpct_map, cover_response))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+    ylab("LRR cover")+
+  xlab("Drought severity")+
+  theme_base()
+
+
+ggplot(subset(func.group.responses.clim, site_map < 1500), aes(site_map, cover_response, color = functional_group))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  geom_hline(yintercept = 0)+
+    ylab("LRR cover")+
+  xlab("MAP")+
+  theme_base()
+
+ggplot(subset(all.clim, site_map < 1500), aes(site_map, cover_response))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  geom_hline(yintercept = 0)+
+    ylab("LRR cover")+
+  xlab("MAP")+
+  theme_base()
+
+
+ggplot(func.group.responses.clim, aes(functional_group, cover_response, color = functional_group))+
+  facet_wrap(~n_treat_years)+
+  geom_boxplot()+
+    ylab("LRR cover")+
+  theme_base()
+
+```
+
+###Does drought in previous year matter?
+```{r}
+
+cover_response <- all.clim%>%
+  select(site_code, n_treat_years, cover_response)%>%
+  subset(n_treat_years == 2)
+  #group_by(site_code)%>%
+  #pivot_wider(names_from = n_treat_years,
+   #           values_from = cover_response)
+
+
+drought_sev <- all.clim%>%
+  select(site_code, n_treat_years, drtpct_map)%>%
+  unique()%>%
+  pivot_wider(names_from = n_treat_years,
+              values_from = drtpct_map)
+
+  #pivot_longer(cols = c("cover_response", "drtpct_map"), names_to = "variable", values_to = "values")%>%
+  #unite( "temp",  c("variable", "n_treat_years", ) , sep = ".", remove = TRUE)%>%
+  
+trial <- merge(cover_response, drought_sev, by = "site_code")
+
+
+mod <- lmer(cover_response ~ trial[,5] + (1|site_code), data = trial)
+summary(mod)
+
+mod <- lmer(trial[,5]~trial[,4] + (1|site_code), data = trial )
+summary(mod)
+cor(trial[,5],trial[,4], na.rm = TRUE)
+
+ggplot(trial, aes(trial[,4], trial[,5]))+
+  geom_point()+
+  theme_base()
+
+```
 
