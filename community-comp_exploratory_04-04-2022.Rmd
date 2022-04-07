@@ -388,6 +388,127 @@ ggplot(rac.by.site, aes(n_treat_years, rank_diff))+
 ```
 
 ```{r}
-for(i in 1:length(trt_type_vector)) {
+antelope.us <- subset(rac_master, site_code == "antelope.us")
+
+
+antelope.conf <- antelope.us%>%
+  ddply(.(n_treat_years), function(x)data.frame(
+    rank_diff_mean = mean(x$rank_diff),
+    rank_diff_error = qt(0.975, df=length(x$n_treat_years)-1)*sd(x$rank_diff, na.rm=TRUE)/sqrt(length(x$n_treat_years)-1)
+  ))
+
+
+ggplot(antelope.conf, aes(n_treat_years, rank_diff_mean))+
+  geom_pointrange(aes(ymin = rank_diff_mean-rank_diff_error, ymax = rank_diff_mean+rank_diff_error), size = 1.5)+
+  theme_bw()
+
+
+
+
+site_vector <- unique(rac_master$site_code)
+
+for(i in 1:length(site_vector)) {
+  
+  site <- subset(rac_master, site_code == site_vector[i])
+
+
+temp.conf <- site%>%
+  ddply(.(n_treat_years), function(x)data.frame(
+    rank_diff_mean = mean(x$rank_diff),
+    rank_diff_error = qt(0.975, df=length(x$n_treat_years)-1)*sd(x$rank_diff, na.rm=TRUE)/sqrt(length(x$n_treat_years)-1)
+  ))
+
+
+temp.plot <- ggplot(temp.conf, aes(n_treat_years, rank_diff_mean))+
+  geom_pointrange(aes(ymin = rank_diff_mean-rank_diff_error, ymax = rank_diff_mean+rank_diff_error), size = 1.5)+
+  xlim(0,4)+
+  theme_bw()
+  
+ggsave(temp.plot, file=paste0("plot_", site_vector[i],".png"), width = 14, height = 10, units = "cm")
+       
+
+  rm(site, temp.conf, temp.plot)
+}
 ```
+
+```{r}
+site_vector <- unique(rac_master$site_code)
+
+for(i in 1:length(site_vector)) {
+  
+  site <- subset(rac_master, site_code == site_vector[i])
+
+
+temp.conf <- site%>%
+  ddply(.(n_treat_years), function(x)data.frame(
+    species_diff_mean = mean(x$species_diff),
+    species_diff_error = qt(0.975, df=length(x$n_treat_years)-1)*sd(x$species_diff, na.rm=TRUE)/sqrt(length(x$n_treat_years)-1)
+  ))
+
+
+temp.plot <- ggplot(temp.conf, aes(n_treat_years, species_diff_mean))+
+  geom_pointrange(aes(ymin = species_diff_mean-species_diff_error, ymax = species_diff_mean+species_diff_error), size = 1.5)+
+  theme_bw()
+  
+ggsave(temp.plot, file=paste0("speciesplot_", site_vector[i],".png"), width = 14, height = 10, units = "cm")
+       
+
+  rm(site, temp.conf, temp.plot)
+}
+```
+
+```{r}
+# read in precip data
+ppt_data<-read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/precip/precip_by_trmt_year_with_percentiles_2022-04-06.csv")
+head(ppt_data)
+# pull precip in drought plots and WorldClim values for each YEAR (maybe change this later)
+ppt_data_yr <- ppt_data[,c(1,2,10:15)]
+# remove duplicate site_year plots
+ppt_data_yr$site_code_yr <- paste(ppt_data_yr$site_code, ppt_data_yr$year, sep = "_")
+ppt_data_yr <- ppt_data_yr[!duplicated(ppt_data_yr$site_code_yr),] # remove duplicate cover dates
+# drought severity calculation
+ppt_data_yr$drtpct_map<-((ppt_data_yr$ppt_drought-ppt_data_yr$site_map)/ppt_data_yr$site_map)
+  # ppt_drought = precip in drought plot
+  # wc_map = MAP data from WorldClim
+# merge with cover dataset to get year-specific values
+#test <- left_join(full_cover1, ppt_data_yr[,c()])
+# join datasets
+
+temp <- focal_datayr1.4%>%
+        select(site_code, year, n_treat_years) %>%
+        unique()
+
+precip.dat <- merge(temp,ppt_data_yr, by = c("site_code","year")) # STILL WORKING ON THIS
+
+
+rac.by.site.clim <- merge(rac.by.site, precip.dat, by = c("site_code", "n_treat_years"))
+
+```
+
+
+```{r}
+
+
+
+ggplot(subset(rac.by.site.clim, n_treat_years <= 4), aes(drtpct_map, rank_diff))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  ylim(0, .5)+
+  xlab("Drought severity")+
+  ylab("Rank differences")+
+  theme_base()
+
+ggplot(subset(rac.by.site.clim, n_treat_years <= 4), aes(drtpct_map, species_diff))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  ylim(0, 1)+
+    xlab("Drought severity")+
+  ylab("Species differences")+
+  theme_base()
+
+
+```
+
 
