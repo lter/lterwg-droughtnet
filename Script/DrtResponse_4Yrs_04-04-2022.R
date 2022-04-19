@@ -22,7 +22,7 @@ source("C:\\Users\\Kwilks86\\Dropbox\\IDE MS_Single year extreme\\Code\\anpp_dat
 
 # Load data exported from SQL for full biomass merged with survey results 
 # All sites kept in merge, even for sites with no survey
-full_biomass<-read.csv("C:\\Users\\Kwilks86\\Dropbox\\IDE_3-4Yrs_Drt\\Data\\Full_Biomass-SurveyResults_03-28-2022.csv")
+full_biomass<-read.csv("C:\\Users\\Kwilks86\\Dropbox\\IDE_3-4Yrs_Drt\\Data\\Full_Biomass-SurveyResults_04-06-2022.csv")
 site_code<-as.data.frame(unique(full_biomass$site_code))
 #write.csv(site_code,"C:\\Users\\katew\\Dropbox\\IDE MS_Single year extreme\\Data\\sitecode-check.csv",row.names=FALSE)
 #setdiff(full_biomass$site_code,anpp_data.frame$site_code)
@@ -119,7 +119,7 @@ data.anpp<-data.noforest[which(data.noforest$site_code!="lcnorth.cl" #Doesn't re
                                &data.noforest$site_code!="ethadb.au" #ANPP outside range for biome
                                &data.noforest$site_code!="ethadn.au"
                                &data.noforest$site_code!="swift.ca" #did not follow IDE protocols (drought plots did not exclude water- see Jillian email)
-                               &data.noforest$site_code!="plattev.us"),] #Cannot confirm low biomass in one plot (filed under not following protocols)
+                               ),] #Cannot confirm low biomass in one plot (filed under not following protocols)
 
 length(unique(data.anpp$site_code)) #106
 #setdiff(full_biomass$site_code,data.noforest$site_code)
@@ -267,8 +267,10 @@ sites.year<-data.allb %>%
   dplyr::summarise(Unique = n_distinct(site_code)) 
 sites.year
 
+datayr1.4b<-datayr1.4%>%dplyr::filter(!c(year %in% 2017 & site_code %in% 'plattev.us' & plot %in% 6))
+
 #For new look at data with ANPP averaged by treatment
-condrt_anpp.all<-datayr1.4%>%
+condrt_anpp.all<-datayr1.4b%>%
   dplyr::filter(trt %in% c("Control","Drought"))%>% 
   dplyr::group_by(site_code,year,trt,habitat.type,n_treat_years,wc_map)%>%
   dplyr::summarize(mass=mean(mass))%>%
@@ -278,10 +280,10 @@ length(unique(condrt_anpp.all$site_code)) #99
 #AVERAGE ANPP by drought and control plots
 
 #Concatenate site_code with wc_map
-datayr1.4$site_codeMAP <- paste(datayr1.4$site_code, datayr1.4$wc_map)
+datayr1.4$site_codeMAP <- paste(datayr1.4$site_code, datayr1.4$precip)
 
 #Mean ANPP with CIs
-condrt_anpp.all2<-datayr1.4%>%
+condrt_anpp.all2<-datayr1.4b%>%
   dplyr::filter(trt %in% c("Control","Drought"))%>% 
   dplyr::group_by(site_code,site_codeMAP,trt,habitat.type,n_treat_years,wc_map)%>%  
   dplyr::summarize(ave.mass=mean(mass), n = n(),sd = sd(mass,na.rm=T), se = sd/sqrt(n),
@@ -290,7 +292,7 @@ condrt_anpp.all2<-datayr1.4%>%
   as_tibble()
 
 #Mean no CIs
-condrt_anpp.all3<-condrt_anpp.all %>%
+condrt_anpp.all3<-condrt_anpp.all2 %>%
   dplyr::filter(trt %in% c("Control","Drought"))%>% 
   dplyr::group_by(site_code,site_codeMAP,trt,habitat.type,n_treat_years,wc_map)%>%
   dplyr::summarize(ave.mass=mean(mass))%>%
@@ -304,10 +306,10 @@ site_codes<-as.data.frame(unique(condrt_anpp.all2$site_code))
 
 #write.csv(site_codes,"C:\\Users\\Kwilks86\\Dropbox\\IDE_3-4Yrs_Drt\\Data\\site_codes100.csv",row.names=FALSE)
 
-file.choose()
+#file.choose()
 setwd("C:\\Users\\Kwilks86\\Dropbox\\IDE Meeting_April2022\\Figures\\ANPP_check")
 
-#ALL 99 sites
+#ALL 100 sites
 uniq_siteMAP = unique(condrt_anpp.all2$site_codeMAP)
 
 for (i in uniq_siteMAP) {
