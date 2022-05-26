@@ -163,73 +163,12 @@ bio_v2 <- bio_v1 %>%
   # Return a dataframe
   as.data.frame()
 
-# Wrangle the Taxa / Species Columns -----------------------
-
-# The coalesced columns for taxa & species are useful because we have fewer columns to contend with now but have extremly mixed uses among files.
-# They need to be mined to separate functional group, live vs. dead, and species
-
-
-test <- bio_v3 %>%
-  select(filename, functional_group, functional_group_temp,
-         mixed_taxa_col, mixed_spp_col) %>%
-  unique()
-
-
-
-
-bio_v3 <- bio_v2 %>%
-  dplyr::mutate(
-    # Assemble true functional group column
-    functional_group_temp = dplyr::case_when(
-      !mixed_taxa_col %in% c("Dead", "Dry material", "litter") ~ mixed_taxa_col,
-      stringr::str_detect(string = mixed_spp_col,
-                          pattern = "Unknown tree") ~ mixed_spp_col,
-      stringr::str_detect(string = mixed_spp_col,
-                          pattern = "unknown_forb") ~ mixed_spp_col,
-      mixed_spp_col %in% c("above ground", "ANPP","dead forb", "Dead forb",
-                           "Dead Graminoids", "Dead Graminoids ", "dead grass",
-                           "dead herb-forb-woody", "Dead Wood", "exotic_forb",
-                           "exotic_grass", "forb", "Forb", "FORB", "forb_dead",
-                           "forb_live", "forbs", "Forbs",
-                           "forbs and annual grasses", "Graminoid", "GRAMINOID",
-                           "Graminoid: grass and Carex", "Graminoids",
-                           "Graminoids ", "grass", "Grass", "Grass ",
-                           "Grass and graminoid", "Grass Dead", "Grass Live",
-                           "grass_dead", "grass_live", "Grasses", "Green", 
-                           "Herb", "Herb Dead", "Herb Live", "herbs", "legme",
-                           "legume", "Legume", "LEGUME", "legume_live", 
-                           "legumes", "Legumes", "litter", "Litter", "LITTER",
-                           "Litter ", "Live forb", "live grass", 
-                           "Live grass", "live herb-forb", "live woody", 
-                           "mix", "Mix", "Mix ", "Mixed", "Mixed plant",
-                           "native_forb", "native_grass", "Non-leguminous forb",
-                           "non-leguminous forbs", "Non-leguminous forbs",
-                           "others", "short grasses", "shrub", "Shrub", "SHRUB",
-                           "Shrub ", "Shrub Dead", "Shrub leaves", "Shrub Live",
-                           "Shrubs", "shrubs and trees", "Tree", "Wood", "woody",
-                           "Woody", "WOODY", "woody plants", "woody_dead") ~ mixed_spp_col)) %>%
-  # If the column is still NA, fill with species
-  dplyr::mutate(functional_group = ifelse(test = is.na(functional_group_temp) |
-                                            nchar(functional_group_temp) == 0,
-                                           yes = mixed_spp_col,
-                                           no =  functional_group_temp))
-
-
-  # And remove the 'mixed' columns now that they've been mined
-  dplyr::select(-mixed_taxa_col, -mixed_spp_col, -functional_group_temp)
-
-# Check to see if that improved things
-plyr::count(is.na(bio_v3$functional_group))
-sort(unique(bio_v3$functional_group))
-
-sort(unique(bio_v2$mixed_taxa_col))
-
 # Handle Differing Biomass Metrics ----------------------
 
 # Many different (and overlapping) styles for measuring biomass
 # We need to resolve that before we continue
 
-bio_v4 <- bio_v3 %>%
+bio_v3 <- bio_v2 %>%
   # Rotating to long format preserves all different biomass metrics while still yielding a single value for "biomass" that we can count the number of iterations of within a given grouping structures
   tidyr::pivot_longer(cols = dplyr::contains("biomass"),
                       names_to = "biomass_metrics",
