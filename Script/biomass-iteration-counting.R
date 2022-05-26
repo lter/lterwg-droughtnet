@@ -170,8 +170,8 @@ bio_v2 <- bio_v1 %>%
 
 bio_v3 <- bio_v2 %>%
   # Rotating to long format preserves all different biomass metrics while still yielding a single value for "biomass" that we can count the number of iterations of within a given grouping structures
-  tidyr::pivot_longer(cols = dplyr::contains("biomass"),
-                      names_to = "biomass_metrics",
+  tidyr::pivot_longer(cols = dplyr::starts_with("biomass"),
+                      names_to = "biomass_metric",
                       values_to = "biomass_measurements") %>%
   # Drop any NAs in biomass_measurements (these are created by pivoting columns that didn't have a value for a given file)
   dplyr::filter(!is.na(biomass_measurements)) %>%
@@ -179,21 +179,23 @@ bio_v3 <- bio_v2 %>%
   as.data.frame()
 
 # Take a look!
-head(bio_v4)
-str(bio_v4)
+head(bio_v3)
+str(bio_v3)
 
 # Count Biomass Samples Per Group -----------------------
 
 # Do it
-bio_v5 <- bio_v4 %>%
+bio_v4 <- bio_v3 %>%
   # Count biomass samples within desired groups
-  dplyr::group_by(filename, site, plot, year, functional_group) %>%
-  dplyr::mutate(biomass_sample_ct = n()) %>%
+  dplyr::group_by(filename, site, year, date, block, plot,
+                  taxa_composite, biomass_metric) %>%
+  dplyr::mutate(biomass_sample_ct = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Keep only rows with more than 1 per group
   dplyr::filter(biomass_sample_ct > 1) %>%
   # Retain only filename and biomass sample count
-  dplyr::select(filename, biomass_sample_ct) %>%
+  dplyr::select(filename, site, year, date, block, plot,
+                taxa_composite, biomass_metric, biomass_sample_ct) %>%
   # And keep only unique values (i.e., one row per file)
   base::unique()
 
@@ -206,7 +208,7 @@ setwd(myWD); getwd()
 dir.create("Data", showWarnings = F)
 
 # Write out "final" files
-write.csv(x = bio_v3, row.names = F,
+write.csv(x = bio_v4, row.names = F,
           file = file.path("Data", "drought_biomass-iter-count.csv"))
 
 # End ----
