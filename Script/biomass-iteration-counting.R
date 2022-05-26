@@ -48,10 +48,11 @@ data_codes <- data.frame(filename = unlist(relevant_names)) %>%
   mutate(filecode = as.character(seq_along(filename)))
 
 # Now use that list to read in all those csvs
-bio_v1 <- relevant_names %>%
+bio_v0 <- relevant_names %>%
   # Read in data
-  purrr::map(.f = read.csv, colClasses = "character",
-             blank.lines.skip = T, row.names = NULL) %>%
+  # purrr::map(.f = read.csv, colClasses = "character",
+             # blank.lines.skip = T, row.names = NULL) %>%
+  purrr::map(.f = readr::read_csv, col_types = cols(.default = "c")) %>%
   # Bind them together preserving unique columns
   dplyr::bind_rows(.id = "filecode") %>%
   # Get file names into a column
@@ -68,77 +69,97 @@ setwd(myWD); getwd()
 
 # Handle Redundant Columns ------------------------------
 
-# Some wrangling must be done before we can advance to our ultimate task
+# Drop columns that are completely empty
+bio_v1 <- bio_v0 %>%
+  dplyr::select(-dplyr::starts_with("..."), -Art, -Datum,
+                -`General Note: Plots K refer to controls, plots R refer to rain-out (=drought)`)
+  
+# Check what was lost
+setdiff(names(bio_v0), names(bio_v1)) # that's fine
+ 
+# Now combine synonymous columns
 bio_v2 <- bio_v1 %>%
-  # Drop columns that are completely empty
-  dplyr::select(-Datum, -Art,
-                -General.Note..Plots.K.refer.to.controls..plots.R.refer.to.rain.out...drought.) %>%
-  # Coalesce some duplicate columns
   ## All manually checked to ensure that they never contain competing information
   dplyr::mutate(
     filename = filename,
-    site = dplyr::coalesce(site, Site),
-    site_label = row.names,
-    block = dplyr::coalesce(block, Block),
-    block_label = block_label,
-    plot = dplyr::coalesce(plot, Plot, Plot..),
-    plot_label = dplyr::coalesce(plot_label, plot_id, plot.1),
-    subplot = dplyr::coalesce(subplot, Subplot),
-    mixed_taxa_col = dplyr::coalesce(date.or.note, functional_type, functional.group, Taxa, growth.form..see.taxa.table., taxa_meaning, taxa.Group),
-    mixed_spp_col = dplyr::coalesce(taxa, taxa.1, Species, species),
-    taxa_code = taxa_code,
-    replicate = dplyr::coalesce(replicate, repeat.),
-    treatment = dplyr::coalesce(treatment, Treatment, trat,
-                                Drought, treatment_type_following_DN),
-    fertilization = fertilization,
-    precipitation = dplyr::coalesce(precipitation, Rainfall),
     year = dplyr::coalesce(year, Year),
     date = dplyr::coalesce(date, Date, DATE),
     season = Season,
-    # Many variants on mass column
-    biomass_gm2 = dplyr::coalesce(mass, biomass, Biomass..g.m.2., mass.per.m2,
-                                  mass..g.m2., mass..g.m2..,
-                                  vorhergesagteBiomasse2018.in.g),
-    biomass_kgha = Kg.ha,
-    biomass_kgm2 = mass_kgm2,
-    summed_biomass_gm2 = dplyr::coalesce(total.biomass..g.m.2., Sums,
-                                         Total.aboveground.mass..g.),
-    biomass_living = dplyr::coalesce(alive_mass, mass_green, mass_live,
-                                     Mass_live, live.mass),
+    site = dplyr::coalesce(site, Site, plot...1),
+    block = dplyr::coalesce(block, Block),
+    block_label = block_label,
+    plot = dplyr::coalesce(plot, Plot, `Plot #`),
+    plot_label = dplyr::coalesce(plot_id, plot_label, plot...2, plot...8),
+    subplot = dplyr::coalesce(subplot, Subplot),
+    replicate = dplyr::coalesce(`repeat`, replicate),
+    # Treatment information
+    treatment = dplyr::coalesce(treatment, Treatment, Drought, trat,
+                                treatment_type_following_DN),
+    fertilization = fertilization,
+    precipitation = dplyr::coalesce(precipitation, Rainfall),
+    rainout_shelter = `rainout shelter (yes/no)`,
+    snow_removal = `snow removal (yes/no)`,
+    # Taxon information
+    functional_group_temp = dplyr::coalesce(Taxa, `taxa Group`, `functional group`,
+                                            functional_type, `growth form (see taxa table)`,
+                                            `date or note`, taxa_meaning, taxa_code),
+    mixed_taxa_temp = taxa,
+    species_temp = dplyr::coalesce(species, Species, taxa...5, taxa...6),
+    # Living vs. Dead info
+    live_or_dead = dplyr::coalesce(status, Type, taxa_condition),
+    proportion_dead_tissue = `proportion of dead tissue`,
+    # Biomass information
+    ## Only columns with identical unit specification are combined
+    ## Manual checking revealed this to be necessary, not a hypothetical precaution
+    biomass = dplyr::coalesce(biomass, mass),
+    biomass_g = vorhergesagteBiomasse2018.in.g,
+    biomass_m2 = `mass per m2`,
+    biomass_g_m2 = dplyr::coalesce(`Biomass (g/m^2)`, `mass (g/m2 )`, `mass (g/m2)`),
+    biomass_kg_ha = `Kg/ha`,
+    biomass_kg_m2 = mass_kgm2,
+    biomass_live = dplyr::coalesce(alive_mass, `live mass`, mass_green,
+                                   mass_live, Mass_live),
+    biomass_standing = `standing biomass`,
     biomass_dead = mass_dead,
     biomass_dry = Mass_dry,
-    biomass_dry_g = dry.mass..g.,
-    biomass_dry_gm2 = dplyr::coalesce(dry.mass..g.m.2.,
-                                      dry.mass..g.per.square.meter.),
-    biomass_dry_per_sample = Dry.mass.Weight.Per.Sample,
-    biomass_roots_g = Roots..g.,
-    biomass_standing = standing.biomass,
-    biomass_dead_prev_year = dead_mass.of.previous.year,
-    biomass_prev_season = previous.growth.season..g.,
-    biomass_current_season = current.growth.season..g.,
-    proportion_dead_tissue = proportion.of.dead.tissue,
-    live_or_dead = dplyr::coalesce(taxa_condition, status, Type),
+    biomass_dry_g = `dry mass [g]`,
+    biomass_dry_g_m2 = dplyr::coalesce(`dry mass (g per square meter)`, `dry mass [g m-2]`),
+    biomass_dry_weight = `Dry mass Weight Per Sample`,
+    biomass_current_season_g = `current growth season (g)`,
+    biomass_prev_season_g = `previous growth season (g)`,
+    biomass_dead_prev_year = `dead_mass of previous year`,
+    biomass_roots_g = `Roots (g)`,
+    biomass_sums = Sums,
+    biomass_total_aboveground_g = `Total aboveground mass (g)`,
+    biomass_total_g_m2 = `total biomass [g m-2]`,
     # Combining the notes columns is a little more finnicky
-    notes_temp = dplyr::coalesce(notes, note, note_biomass, note.on.taxa),
+    notes_temp = dplyr::coalesce(notes, note, note_biomass, `note on taxa`),
     notes = dplyr::case_when(
       !is.na(notes_temp) & !is.na(note_treatment) ~ paste(notes_temp,
                                                           note_treatment,
                                                           sep = "; "),
       !is.na(notes_temp) & is.na(note_treatment) ~ notes_temp,
       is.na(notes_temp) & !is.na(note_treatment) ~ note_treatment,
-      TRUE ~ ' ') ) %>%
-  # Keep only the columns we just created
-  dplyr::select(filename, site, site_label, block, block_label,
-    plot, plot_label, subplot, mixed_taxa_col, mixed_spp_col, taxa_code,
-    replicate, treatment, fertilization, precipitation,
-    year, date, season,
-    # Many variants on mass column
-    biomass_gm2, biomass_kgha, biomass_kgm2,
-    summed_biomass_gm2, biomass_living, biomass_dead,
-    biomass_dry, biomass_dry_g, biomass_dry_gm2, biomass_dry_per_sample,
-    biomass_roots_g, biomass_standing, biomass_dead_prev_year,
-    biomass_prev_season, biomass_current_season, proportion_dead_tissue,
-    live_or_dead, notes) %>%
+      TRUE ~ ' ')) %>%
+  # Combine taxa columns selectively to get as few NAs as possible
+  dplyr::mutate(taxa_composite = dplyr::case_when(
+    # If functional group has a value, use that!
+    !is.na(functional_group_temp) ~ functional_group_temp,
+    # If functional group is NA but 'mixed taxa' isn't, use mixed taxa
+    is.na(functional_group_temp) &
+      !is.na(mixed_taxa_temp) ~ mixed_taxa_temp,
+    # If both functional group & mixed taxa are NA, use species
+    is.na(functional_group_temp) &
+      is.na(mixed_taxa_temp) &
+      !is.na(species_temp) ~ species_temp)) %>%
+  # Keep only columns we just created
+  dplyr::select(filename, year, date, season, site, block, block_label,
+                plot, plot_label, subplot, replicate,
+                treatment, fertilization, precipitation, rainout_shelter, snow_removal,
+                taxa_composite, functional_group_temp, mixed_taxa_temp, species_temp, 
+                live_or_dead, proportion_dead_tissue,
+                biomass, dplyr::starts_with("biomass_"),
+                notes) %>%
   # Return a dataframe
   as.data.frame()
 
@@ -148,10 +169,18 @@ bio_v2 <- bio_v1 %>%
 # They need to be mined to separate functional group, live vs. dead, and species
 
 
+test <- bio_v3 %>%
+  select(filename, functional_group, functional_group_temp,
+         mixed_taxa_col, mixed_spp_col) %>%
+  unique()
+
+
+
+
 bio_v3 <- bio_v2 %>%
   dplyr::mutate(
     # Assemble true functional group column
-    functional_group = dplyr::case_when(
+    functional_group_temp = dplyr::case_when(
       !mixed_taxa_col %in% c("Dead", "Dry material", "litter") ~ mixed_taxa_col,
       stringr::str_detect(string = mixed_spp_col,
                           pattern = "Unknown tree") ~ mixed_spp_col,
@@ -178,66 +207,22 @@ bio_v3 <- bio_v2 %>%
                            "others", "short grasses", "shrub", "Shrub", "SHRUB",
                            "Shrub ", "Shrub Dead", "Shrub leaves", "Shrub Live",
                            "Shrubs", "shrubs and trees", "Tree", "Wood", "woody",
-                           "Woody", "WOODY", "woody plants", "woody_dead") ~ mixed_spp_col),
-    # Now true species column
-    species = dplyr::case_when(
-      !mixed_spp_col %in% c("above ground", "ANPP","dead forb", "Dead forb",
-                            "Dead Graminoids", "Dead Graminoids ", "dead grass",
-                            "dead herb-forb-woody", "Dead Wood", "exotic_forb",
-                            "exotic_grass", "forb", "Forb", "FORB", "forb_dead",
-                            "forb_live", "forbs", "Forbs",
-                            "forbs and annual grasses", "Graminoid", "GRAMINOID",
-                            "Graminoid: grass and Carex", "Graminoids",
-                            "Graminoids ", "grass", "Grass", "Grass ",
-                            "Grass and graminoid", "Grass Dead", "Grass Live",
-                            "grass_dead", "grass_live", "Grasses", "Green", 
-                            "Herb", "Herb Dead", "Herb Live", "herbs", "legme",
-                            "legume", "Legume", "LEGUME", "legume_live", 
-                            "legumes", "Legumes", "litter", "Litter", "LITTER",
-                            "Litter ", "LIVE", "Live forb", "live grass", 
-                            "Live grass", "live herb-forb", "live woody", 
-                            "mix", "Mix", "Mix ", "Mixed", "Mixed plant",
-                            "native_forb", "native_grass", "Non-leguminous forb",
-                            "non-leguminous forbs", "Non-leguminous forbs",
-                            "others", "short grasses", "shrub", "Shrub", "SHRUB",
-                            "Shrub ", "Shrub Dead", "Shrub leaves", "Shrub Live",
-                            "Shrubs", "shrubs and trees", "Tree", "Wood", "woody",
-                            "Woody", "WOODY", "woody plants", "woody_dead")  ~ mixed_spp_col),
-    live_or_dead = dplyr::case_when(
-      is.na(live_or_dead) &
-        mixed_taxa_col %in% c("Dead", "dead grass", "dead herb-forb-woody",
-                              "litter", "live grass",
-                              "live herb-forb", "live woody") ~ mixed_taxa_col,
-      is.na(live_or_dead) & stringr::str_detect(string = mixed_spp_col,
-                          pattern = "dead") ~ mixed_spp_col,
-      is.na(live_or_dead) & stringr::str_detect(string = mixed_spp_col,
-                          pattern = "Dead") ~ mixed_spp_col,
-      is.na(live_or_dead) & stringr::str_detect(string = mixed_spp_col,
-                          pattern = "(green)") ~ mixed_spp_col,
-      is.na(live_or_dead) &
-        mixed_spp_col %in% c("dead forb", "Dead forb", "Dead Graminoids",
-                             "Dead Graminoids ", "dead grass",
-                             "dead herb-forb-woody", "Dead Wood", "forb_dead",
-                             "forb_live", "Grass Dead", "Grass Live",
-                             "grass_dead", "grass_live", "Green", 
-                             "Herb Dead", "Herb Live", "legume_live",
-                             "litter", "Litter", "LITTER", "Litter ",
-                             "LIVE", "Live forb", "live grass", 
-                             "Live grass", "live herb-forb", "live woody", 
-                             "Shrub Dead", "Shrub Live", "woody_dead") ~ mixed_spp_col,
-      TRUE ~ live_or_dead)) %>%
+                           "Woody", "WOODY", "woody plants", "woody_dead") ~ mixed_spp_col)) %>%
+  # If the column is still NA, fill with species
+  dplyr::mutate(functional_group = ifelse(test = is.na(functional_group_temp) |
+                                            nchar(functional_group_temp) == 0,
+                                           yes = mixed_spp_col,
+                                           no =  functional_group_temp))
+
+
   # And remove the 'mixed' columns now that they've been mined
-  dplyr::select(-mixed_taxa_col, -mixed_spp_col)
+  dplyr::select(-mixed_taxa_col, -mixed_spp_col, -functional_group_temp)
 
 # Check to see if that improved things
-## Live vs. Dead
-plyr::count(is.na(bio_v2$live_or_dead))
-plyr::count(is.na(bio_v3$live_or_dead)) # fewer NAs!
-## Functional group
+plyr::count(is.na(bio_v3$functional_group))
 sort(unique(bio_v3$functional_group))
-## Species
-sort(unique(bio_v3$species))
-### Looks much cleaner!
+
+sort(unique(bio_v2$mixed_taxa_col))
 
 # Handle Differing Biomass Metrics ----------------------
 
