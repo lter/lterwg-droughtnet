@@ -199,6 +199,15 @@ bio_v4 <- bio_v3 %>%
   # And keep only unique values (i.e., one row per file)
   base::unique()
 
+# Separately Summarize Dates by Sites -------------------
+
+# Grab the dates for each site/file name combination
+bio_dates <- bio_v3 %>%
+  # Count biomass samples within desired groups
+  dplyr::select(filename, site, year, date, biomass_metric) %>%
+  # And keep only unique values (i.e., one row per file)
+  base::unique()
+
 # Export Data -------------------------------------------
 
 # Check that WD is specified appropriately
@@ -210,5 +219,7 @@ dir.create("Data", showWarnings = F)
 # Write out "final" files
 write.csv(x = bio_v4, row.names = F,
           file = file.path("Data", "drought_biomass-iter-count.csv"))
+write.csv(x = bio_dates, row.names = F,
+          file = file.path("Data", "drought_biomass-dates.csv"))
 
 # End ----
