@@ -210,13 +210,60 @@ bio_dates <- bio_v3 %>%
 
 # Identify Files with Certain Taxa ----------------------
 
-bio_taxa <- bio_v3 %>%
+bio_specific_taxa <- bio_v3 %>%
   # Keep desired columns
   dplyr::select(filename, site, taxa_composite) %>%
   # And keep only unique values (i.e., one row per file)
   base::unique() %>%
   # Filter based on which sites contain one or more of a set of specific taxa
   dplyr::filter(tolower(taxa_composite) %in% c("annual grass", "annual grasses", "perennial grass", "perennial grasses", "annual forb", "annual forbs", "perennial forb", "perennial forbs", "shrub", "shrubs", "subshrub", "subshrubs", "tree", "trees", "shrubs and trees"))
+
+# Identify Files with Synonymous Taxa ----------------------
+
+bio_synonym_taxa <- bio_v3 %>%
+  # Keep desired columns
+  dplyr::select(filename, site, date, plot, taxa_composite) %>%
+  # And keep only unique values (i.e., one row per file)
+  base::unique() %>%
+  # Filter to only taxa that can be synonymous (i.e., non-species)
+  dplyr::filter(tolower(taxa_composite) %in% c(
+    "grass", "grasses", "graminoid", "graminoids",
+    "herb", "herbs", "forb", "forbs", "shrub", "shrubs",
+    "legume", "legumes", "standing dead", "litter", "previous year's dead")
+  | stringr::str_detect(string = tolower(taxa_composite), pattern = "dead")
+  | stringr::str_detect(string = tolower(taxa_composite), pattern = "exotic")) %>%
+  # Filter out some irrelevant IDs that slipped through the previous step
+  dplyr::filter(!tolower(taxa_composite) %in% c("adesmia_volckmannii (dead)", "bromus_pictus (dead)", "bromus_setifolius (dead)", "carex_argentina (dead)", "mulinum_spinosum (dead)", "pappostipa_humilis (dead)", "pappostipa_major (dead)", "pappostipa_speciosa (dead)", "past year dead grass", "poa_lanuginosa (dead)", "poa_ligularis (dead)", "podything.dead")) %>%
+  # Create semi-synthetic designations for these IDs to group them
+  dplyr::mutate(
+    placeholder_group = dplyr::case_when(
+      stringr::str_detect(string = tolower(taxa_composite),
+                          pattern = "dead") ~ "dead-and-litter",
+      tolower(taxa_composite) == "litter" ~ "dead-and-litter",
+      tolower(taxa_composite) %in% c("graminoid", "grasses", "grass", "graminoids", "exotic_grass") ~ "grasses-slash-graminoids",
+      tolower(taxa_composite) %in% c("forb", "forbs", "exotic_forb") ~ "flowering-non-legume",
+      tolower(taxa_composite) %in% c("herb", "herbs") ~ "non-woody",
+      tolower(taxa_composite) %in% c("legume", "legumes") ~ "fabaceae",
+      tolower(taxa_composite) %in% c("shrub", "shrubs") ~ "woody",
+      # tolower(taxa_composite) %in% c() ~ "",
+      TRUE ~ 'remove me')) %>%
+  # Group by everything other than taxa_composite
+  dplyr::group_by(filename, site, date, plot, placeholder_group) %>%
+  # Make a column to assess whether one of these has multiple
+  dplyr::mutate(iter = seq_along(taxa_composite),
+                max_iter = max(iter, na.rm = T)) %>%
+  # Any row with a number greater than 1 in 'iter' is what Kate wants identified
+  dplyr::filter(max_iter > 1) %>%
+  # Ungroup
+  dplyr::ungroup()
+
+# Test pipe for making sure all "taxon_composite" entries have been given a group
+bio_synonym_taxa %>%
+  filter(placeholder_group == 'remove me') %>%
+  unique() %>%
+  mutate(simp_taxon = tolower(taxa_composite)) %>%
+  select(simp_taxon) %>%
+  unique()
 
 # Export Data -------------------------------------------
 
@@ -231,7 +278,8 @@ write.csv(x = bio_v4, row.names = F,
           file = file.path("Data", "drought_biomass-iter-count.csv"))
 write.csv(x = bio_dates, row.names = F,
           file = file.path("Data", "drought_biomass-dates.csv"))
-write.csv(x = bio_taxa, row.names = F,
+write.csv(x = bio_specific_taxa, row.names = F,
           file = file.path("Data", "drought_biomass-with-specific-taxa.csv"))
-
+write.csv(x = bio_synonym_taxa, row.names = F,
+          file = file.path("Data", "drought_biomass-with-synonymous-taxa.csv"))
 # End ----
