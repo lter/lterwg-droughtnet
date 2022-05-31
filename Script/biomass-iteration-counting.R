@@ -199,14 +199,24 @@ bio_v4 <- bio_v3 %>%
   # And keep only unique values (i.e., one row per file)
   base::unique()
 
-# Separately Summarize Dates by Sites -------------------
+# Summarize Dates by Sites ------------------------------
 
 # Grab the dates for each site/file name combination
 bio_dates <- bio_v3 %>%
-  # Count biomass samples within desired groups
+  # Keep only needed columns
   dplyr::select(filename, site, year, date, biomass_metric) %>%
   # And keep only unique values (i.e., one row per file)
   base::unique()
+
+# Identify Files with Certain Taxa ----------------------
+
+bio_taxa <- bio_v3 %>%
+  # Keep desired columns
+  dplyr::select(filename, site, taxa_composite) %>%
+  # And keep only unique values (i.e., one row per file)
+  base::unique() %>%
+  # Filter based on which sites contain one or more of a set of specific taxa
+  dplyr::filter(tolower(taxa_composite) %in% c("annual grass", "annual grasses", "perennial grass", "perennial grasses", "annual forb", "annual forbs", "perennial forb", "perennial forbs", "shrub", "shrubs", "subshrub", "subshrubs", "tree", "trees"))
 
 # Export Data -------------------------------------------
 
@@ -221,5 +231,7 @@ write.csv(x = bio_v4, row.names = F,
           file = file.path("Data", "drought_biomass-iter-count.csv"))
 write.csv(x = bio_dates, row.names = F,
           file = file.path("Data", "drought_biomass-dates.csv"))
+write.csv(x = bio_taxa, row.names = F,
+          file = file.path("Data", "drought_biomass-with-specific-taxa.csv"))
 
 # End ----
