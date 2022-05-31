@@ -216,7 +216,7 @@ bio_taxa <- bio_v3 %>%
   # And keep only unique values (i.e., one row per file)
   base::unique() %>%
   # Filter based on which sites contain one or more of a set of specific taxa
-  dplyr::filter(tolower(taxa_composite) %in% c("annual grass", "annual grasses", "perennial grass", "perennial grasses", "annual forb", "annual forbs", "perennial forb", "perennial forbs", "shrub", "shrubs", "subshrub", "subshrubs", "tree", "trees"))
+  dplyr::filter(tolower(taxa_composite) %in% c("annual grass", "annual grasses", "perennial grass", "perennial grasses", "annual forb", "annual forbs", "perennial forb", "perennial forbs", "shrub", "shrubs", "subshrub", "subshrubs", "tree", "trees", "shrubs and trees"))
 
 # Export Data -------------------------------------------
 
