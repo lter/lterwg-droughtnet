@@ -89,7 +89,7 @@ helpR::diff_chk(old = wg_spp_actual$species_simp,
 # Subset TRY data to relevant species
 list_actual <- try_spp_actual %>%
   # Filter to keep the species in the TRY database
-  dplyr::filter(AccSpeciesName_simp %in% wg_spp_actual$species) %>%
+  dplyr::filter(AccSpeciesName_simp %in% wg_spp_actual$species_simp) %>%
   # Reorder cols
   dplyr::select(dplyr::starts_with("AccSpeciesName"), genus, epithet, additional, AccSpeciesID) %>%
   # Keep only unique columns
@@ -99,6 +99,10 @@ list_actual <- try_spp_actual %>%
 dplyr::glimpse(list_actual)
 # view(list_actual)
 list_actual$AccSpeciesID
+
+# Export it!
+write.csv(list_actual, na = "", row.names = F,
+          file = "TRY_species_codes.csv")
 
 
 # End ----
