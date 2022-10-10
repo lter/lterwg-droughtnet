@@ -44,5 +44,6 @@ vignettes/*.pdf
 # Add any folders we don't want Git tracking
 Data
 
-# Don't track full list of TRY species
+# Don't track full (or pared down) list of TRY species
 TRY_AccSpecies.txt
+TRY_species_codes.csv
