@@ -82,37 +82,6 @@ try_spp_sub <- try_spp_actual %>%
 helpR::diff_chk(old = wg_spp_actual$species_simp,
                 new = try_spp_sub$AccSpeciesName_simp)
 
-# Attempt to subset by genus instead
-try_genus_sub <- try_spp_actual %>%
-  # Filter TRY to only species in filtered WG list
-  dplyr::filter(genus %in% wg_spp_actual$genus)
-
-# Do we get them all that way?
-helpR::diff_chk(old = wg_spp_actual$genus,
-                new = try_genus_sub$genus)
-
-# Identify which are *only* genus-level (i.e., not available for species)
-try_genus_only <- try_spp_actual %>%
-  # Filter to genera of missing species
-  dplyr::filter(genus %in% c("Anemonastrum", "Messerschmidia", "Afroaster"))
-
-# All made it?
-unique(try_genus_only$genus) ## Yep!
-
-# Quick ref for identifying in GBIF
-try_genus_only %>%
-  dplyr::filter(genus == "Anemonastrum") %>%
-  dplyr::select(AccSpeciesName_simp, genus) %>%
-  unique()
-
-# See whether a given species is in the TRY database
-try_spp_actual %>%
-  dplyr::filter(AccSpeciesName_simp == "Mayepea domingensis")
-
-# Remind yourself which species we're missing
-helpR::diff_chk(old = wg_spp_actual$species_simp,
-                new = try_spp_sub$AccSpeciesName_simp)
-
 ## ---------------------------------------- ##
 # Create Index of WG Species + TRY Codes ----
 ## ---------------------------------------- ##
