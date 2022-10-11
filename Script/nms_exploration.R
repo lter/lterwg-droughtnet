@@ -60,11 +60,19 @@ for(place in unique(wg_simp$site_code)){
     dplyr::select(-site_code, -combo_group)
   
   # Run multidimensional scaling
-  mds_obj <- vegan::metaMDS(wg_sub[-1], autotransform = F,
-                        expand = F, k = 2, try = 100)
+  mds_obj <- vegan::metaMDS(wg_sub[-1], distance = "bray",
+                            autotransform = F, expand = F,
+                            k = 2, try = 100)
   
   # Grab vector of colors
   lter_palt <- lterpalettefinder::palette_find(name = "mushroom tree")
+  
+  # If there are more than 25 groups, grab more palettes
+  if(length(unique(wg_sub$nms_group)) > 25){
+    lter_palt2 <- lterpalettefinder::palette_find(site = "KBS", name = "burn")
+    lter_palt3 <- lterpalettefinder::palette_find(name = "lakes")
+    lter_palt <- c(lter_palt, lter_palt2, lter_palt3)
+  }
   
   # Crop it to needed length
   lter_colors <- lterpalettefinder::palette_subsample(palette = lter_palt, wanted = length(unique(wg_sub$nms_group)))
@@ -75,8 +83,8 @@ for(place in unique(wg_simp$site_code)){
        width = 850, height = 850, units = "px", pointsize = 20)
   helpR::nms_ord(mod = mds_obj,
                  groupcol = wg_sub$nms_group,
-                 shapes = rep(x = 21:25, times = 4),
-                 lines = rep(x = 1, times = 40),
+                 shapes = rep(x = 21:25, times = 7),
+                 lines = rep(x = 1, times = 70),
                  colors = lter_colors,
                  title = place, leg_pos = 'topright')
   dev.off()
