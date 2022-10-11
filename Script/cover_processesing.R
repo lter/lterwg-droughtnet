@@ -1,14 +1,14 @@
 library(tidyverse)
 library(plyr)
 
-
 #read in cover data
 full_cover <- read.csv("full_cover_test.csv")
 
 full_cover_v2 <- full_cover %>%
-  
+  # pivot longer to check duplicate values
  pivot_longer(cols = c(local_provenance, local_lifeform, local_lifespan, functional_group, N_fixer, ps_path), 
         names_to = "traits", values_to = "trait_values") %>%
+  # consolidating trait values into fewer categories
   mutate(trait_values = case_when(
     nchar(trait_values) == 0 | is.na(trait_values) ~ "NULL",
     trait_values %in% c("ANNUAL GRASS","Grass") ~ "GRASS",
@@ -23,33 +23,39 @@ full_cover_v2 <- full_cover %>%
     trait_values == "SUB-SHRUB" ~ "SUBSHRUB",
     trait_values %in% c("unknown", "UNKNOWN") ~ "UNK",
     trait_values == "C3-C4 Intermediate" ~ "C3-C4 INTERMEDIATE",
+    # fixing an error that someone made when entering the data
     Taxon == "UNKNOWN SP.6(OKLAH.US)" & traits == "functional_group" ~ "GRASS",
-    TRUE ~ trait_values
-  )) %>%
+    TRUE ~ trait_values)) %>%
+  # more fine-tuning
+  mutate(trait_values = case_when(
+    Taxon %in% c("CUSCUTA PLANIFLORA") & traits == "local_lifeform" ~ "FORB",
+    Taxon %in% c("PSORALIDIUM TENUIFLORUM") & traits == "local_lifeform" ~ "FORB",
+    Taxon  == "UNKNOWN SP.6(OKLAH.US)" & traits == "local_lifeform" ~ "FORB",
+    Taxon %in% c("MIMOSA NUTTALLII", "DALEA CANDIDA") & traits == "local_lifeform" ~ "LEGUME",
+    Taxon %in% c("BRYOPHYTE SP.(LYGRAINT.NO)") & traits == "local_lifeform" ~ "BRYOPHYTE",
+    trait_values == "HERB" & Family == "Fabaceae" ~ "LEGUME",
+    trait_values == "HERB" & Family == "Poaceae" ~ "GRASS",
+    trait_values == "HERB" & Family %in% c("Juncaceae", "Cyperaceae") ~ "GRAMINOID",
+    trait_values == "HERB" & !Family %in% c("Fabaceae", "Poaceae", "Juncaceae","Cyperaceae") ~ "FORB",
+    TRUE ~ trait_values)) %>%
+  # dropping duplicates
   unique() %>%
- group_by(site_name, site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days,
+  group_by(site_name, site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days,
           n_treat_years, trt, Family, Taxon, live, max_cover, traits) %>%
+  # counting how many different trait_values there are 
   mutate(obs_count = n()) %>%
   ungroup() %>%
+  # if trait_values is UNKNOWN or NULL and if obs_count is greater than 1, we drop that row
   mutate(drop_me = ifelse(test = trait_values %in% c("UNKNOWN","NULL") & obs_count > 1,
          yes = "drop me",
          no = "keep")) %>%
+  # filter to all the rows we want to keep
   filter(drop_me == "keep") %>%
-  select(-obs_count, -drop_me) %>%
-  group_by(site_name, site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days,
-           n_treat_years, trt, Family, Taxon, live, max_cover, traits) %>%
-  mutate(obs_count = n()) # should have only 1
-  
-full_cover_v2 %>% as.data.frame() %>% filter(obs_count > 1) %>% select(traits) %>% unique()
+  # we don't need obs_count and drop_me anymore
+  select(-obs_count, -drop_me) 
 
-unique(full_cover_v2$obs_count)
+# check to see it looks ok
 glimpse(full_cover_v2)
-
-
-
-
-
-
 
 
 #treatment_info <- read.csv("C:/Users/ohler/Downloads/full_biomass_test.csv")
