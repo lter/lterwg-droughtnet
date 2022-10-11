@@ -52,7 +52,15 @@ full_cover_v2 <- full_cover %>%
   # filter to all the rows we want to keep
   filter(drop_me == "keep") %>%
   # we don't need obs_count and drop_me anymore
-  select(-obs_count, -drop_me) 
+  select(-obs_count, -drop_me) %>%
+  # put it back to wide format
+  pivot_wider(names_from = "traits", values_from = "trait_values") %>%
+  # reorder columns
+  select(site_name, site_code, block, plot, subplot,              
+        year, first_treatment_year, first_treatment_date, cover_date, n_treat_days,         
+         n_treat_years, trt, Family, Taxon, live,           
+         local_provenance, local_lifeform, local_lifespan, functional_group,     
+         N_fixer, ps_path, max_cover)
 
 # check to see it looks ok
 glimpse(full_cover_v2)
@@ -115,19 +123,8 @@ full_ppt <- merge(ppt.1, ppt.2, by = c("site_code", "year", "trt"), all.x = TRUE
  unique()
 
 
-
-
-cover_ppt_all_x <- merge(full_cover, full_ppt, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
+cover_ppt <- merge(full_cover_v2, full_ppt, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
  subset(live == 1)
-
-cover_ppt_no_x <- merge(full_cover, full_ppt, by = c("site_code", "year", "trt"), all.x = FALSE)%>%
- subset(live == 1)
-
-cover_ppt_left_join <- left_join(full_cover, full_ppt, by = c("site_code", "year", "trt"))
-
-
-
-
 
 
 #read worldclim data
@@ -139,13 +136,17 @@ cover_ppt_map <- merge(cover_ppt, worldclim, by = "site_code", all.x = TRUE)
 #specify n_trt_years with n_treat_days
 cover_ppt_map <- cover_ppt_map[-c(12)]#remove old column which isn't trustworthy
 cover_ppt_map$n_treat_days <- as.numeric(cover_ppt_map$n_treat_days)
-cover_ppt_map$n_treat_years <- ifelse(cover_ppt_map$n_treat_days <= 50, 0, 
-                   ifelse(cover_ppt_map$n_treat_days > 50 & cover_ppt_map$n_treat_days < 415, 1, 
-                       ifelse(cover_ppt_map$n_treat_days >= 415 & cover_ppt_map$n_treat_days < 780, 2, 
-                          ifelse(cover_ppt_map$n_treat_days >= 780 & cover_ppt_map$n_treat_days < 1145, 3, 
-                              ifelse(cover_ppt_map$n_treat_days >= 1145 & cover_ppt_map$n_treat_days < 1510, 4, 
-                                 ifelse(cover_ppt_map$n_treat_days >= 1510 & cover_ppt_map$n_treat_days < 1875, 5, 
-                                     ifelse(cover_ppt_map$n_treat_days >= 1875 & cover_ppt_map$n_treat_days <2240, 6, NA )))))))
+
+cover_ppt_map <- cover_ppt_map %>%
+  mutate(n_treat_years = case_when(
+    n_treat_days <= 50 ~ 0,
+    n_treat_days > 50 & n_treat_days < 415 ~ 1,
+    n_treat_days >= 415 & n_treat_days < 780 ~ 2,
+    n_treat_days >= 780 & n_treat_days < 1145 ~ 3,
+    n_treat_days >= 1145 & n_treat_days < 1510 ~ 4,
+    n_treat_days >= 1510 & n_treat_days < 1875 ~ 5,
+    n_treat_days >= 1875 & n_treat_days < 2240 ~ 6
+  ))
 
 temp <- cover_ppt_map[, c("site_code", "n_treat_years")]
 temp <- unique(temp)
