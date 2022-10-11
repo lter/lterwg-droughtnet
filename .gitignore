@@ -43,6 +43,7 @@ vignettes/*.pdf
 
 # Add any folders we don't want Git tracking
 Data
+NMS_Exploration/
 
 # Don't track full (or pared down) list of TRY species
 TRY_AccSpecies.txt
