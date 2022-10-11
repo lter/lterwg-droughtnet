@@ -119,18 +119,18 @@ hist(subset(temp,n_treat_years != 0)$n_treat_years)
 ##############################################
 ###############################################
 #read in precip data
-trt_ppt <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2022-10-07.csv")
+#trt_ppt <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2022-10-07.csv")
 
 
 #summarize precip data because of multple biomass dates?
-trt_ppt_summary <- trt_ppt[,c("site_code", "year", "trt", "ppt")]
-trt_ppt_summary <- ddply(trt_ppt_summary, c("site_code", "year", "trt"),
-                         function(x)data.frame(
-                           ppt = mean(x$ppt)
-                         ))
+#trt_ppt_summary <- trt_ppt[,c("site_code", "year", "trt", "ppt")]
+#trt_ppt_summary <- ddply(trt_ppt_summary, c("site_code", "year", "trt"),
+#                         function(x)data.frame(
+#                           ppt = mean(x$ppt)
+#                         ))
 
 #merge cover and precipitation
-cover_ppt <- merge(full_cover, trt_ppt_summary, by = c("site_code", "year", "trt"), all.x = TRUE)
+#cover_ppt <- merge(full_cover, trt_ppt_summary, by = c("site_code", "year", "trt"), all.x = TRUE)
 
 live_cover_ppt <- subset(cover_ppt, live == 1)
 
