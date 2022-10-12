@@ -7,9 +7,12 @@ library(tidyverse)
 library(plyr)
 
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_10-06-2022.csv")
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_10-12-2022.csv")
+
+
+
 treatment_info <- read.csv("C:/Users/ohler/Downloads/full_biomass_test.csv")
-treatment_info <- treatment_info[,c("site_code", "year", "n_treat_days", "block", "plot", "subplot")]
+treatment_info <- treatment_info[,c("site_code", "year", "n_treat_days", "block", "plot", "subplot", "trt")]
 treatment_info <- unique(treatment_info)
 
 #full_biomass <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_test.csv")
@@ -76,16 +79,18 @@ full_ppt <- merge(ppt.1, ppt.2, by = c("site_code", "year", "trt"), all.x = TRUE
 
 
 
-anpp_ppt <- merge(full_ppt, treatment_info, c("site_code", "year"), all.y = TRUE)%>%
-  merge(anpp_clean, by = c("site_code", "year", "block", "plot", "subplot"), all.y = TRUE)
+anpp_ppt <- anpp_clean%>%
+        left_join(treatment_info, c("site_code", "year", "block", "plot", "subplot"))%>%
+        left_join(full_ppt, c("site_code",  "year", "trt"))
 
-
-
+data.all<-anpp_ppt %>%
+  dplyr::group_by(site_code,block,plot,subplot,year,mass,mass_category,trt,ppt.1, ppt.2,ppt.3,ppt.4) %>%
+  dplyr::summarize(n_treat_days = max(n_treat_days))
 
 #read worldclim data
 worldclim <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/precip/worldclim_map.csv")
 
-anpp_ppt_map <- merge(anpp_ppt, worldclim, by = "site_code")
+anpp_ppt_map <- left_join(anpp_ppt, worldclim, by = "site_code")
 
 
 #specify n_trt_years with n_treat_days
