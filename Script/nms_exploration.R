@@ -40,14 +40,10 @@ wg_simp <- wg_data %>%
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   # DELETE ME (^^^)
   # Ungroup
-  dplyr::ungroup() %>%
-  # Pivot wider
-  tidyr::pivot_wider(names_from = Taxon,
-                     values_from = max_cover,
-                     values_fill = 0)
+  dplyr::ungroup()
   
 # Check it out
-dplyr::glimpse(wg_simp[1:5])
+dplyr::glimpse(wg_simp)
 unique(wg_simp$nms_group)
 
 # Make an exporting folder
@@ -59,13 +55,19 @@ dir.create("NMS_Exploration", showWarnings = F)
 
 # Create an ordination for every site code
 # for(place in "hard.us"){
+# for(place in unique(wg_simp$site_code)){
 for(place in setdiff(unique(wg_simp$site_code),
                      # Exclude sites that error out
                      c("indiana.us", "kranz.de"))){
   
   # Subset the data
   wg_sub <- wg_simp %>%
+    # Subset to place
     dplyr::filter(site_code == place) %>%
+    # Pivot wider
+    tidyr::pivot_wider(names_from = Taxon,
+                       values_from = max_cover,
+                       values_fill = 0) %>%
     # Drop site code column
     dplyr::select(-site_code, -combo_group)
   
