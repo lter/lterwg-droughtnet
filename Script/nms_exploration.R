@@ -76,6 +76,11 @@ for(place in setdiff(unique(wg_simp$site_code),
                             autotransform = F, expand = F,
                             k = 2, try = 100)
   
+  # If MDS doesn't converge, don't make ordination
+  if(mds_obj$stress <= 0.01){
+    message("What we have here is a failURE to converge")
+  } else {
+  
   # Create color palette / line types
   col_length <- length(unique(wg_sub$nms_group)) / 2
   ide_colors <- c(rep("mediumseagreen", times = col_length),
@@ -93,7 +98,7 @@ for(place in setdiff(unique(wg_simp$site_code),
                  colors = ide_colors,
                  lines = ide_lines,
                  title = place, leg_pos = 'topright')
-  dev.off()
+  dev.off() }
   
   # Message completion
   message("NMS created for site '", place, "'") }
