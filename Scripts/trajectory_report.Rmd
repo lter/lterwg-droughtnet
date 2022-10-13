@@ -1,0 +1,149 @@
+---
+title: "DroughtNet - Community Composition Trajectory Analysis Report"
+author: "NCEAS Scientific Computing Support Team"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Housekeeping
+
+Begin by loading the packages that we will need for doing various community composition analysis and visualization. We need `tidyverse` for various wrangling tasks, `RRPP` for trajectory analysis, and Nick Lyon's development package `helpR` has a convenient NMS ordination function. We'll need `vegan` for multidimensional scaling (prerequisite to NMS).
+
+```{r libraries, message = F, warning = F}
+# install.packages("librarian")
+librarian::shelf(tidyverse, RRPP, njlyon0/helpR, vegan)
+```
+
+We will also need to load some composition data to analyze.
+
+```{r load-data}
+all_comp <- read.csv(file.path("cover_ppt_map_10-08-2022.csv"))
+```
+
+Subset to a single site for exploratory purposes and then do some quick processing to simplify the data file for analysis
+
+```{r subset-data}
+comp <- all_comp %>%
+  # Filter to one site
+  dplyr::filter(site_code == "antelope.us") %>%
+  # Generate a single column for block + plot + subplot
+  dplyr::mutate(block_plot_subplot = paste(block, plot, subplot, sep = "_")) %>%
+  # Pare down to only needed columns
+  dplyr::select(year, trt, block_plot_subplot, Taxon, max_cover) %>%
+  # Remove spaces from Taxon column
+  dplyr::mutate(Taxon = gsub(pattern = " ", replacement = "_",
+                             x = Taxon)) %>%
+  # Pivot to wide format 
+  tidyr::pivot_wider(names_from = "Taxon",
+                     values_from = max_cover,
+                     values_fill = 0)
+
+# Glimpse it!
+dplyr::glimpse(comp)
+```
+
+## perMANOVA
+
+To begin, we want to know whether the composition of our communities differs by treatment, year, or the interaction of treatment by year. We could assess this by running a series of univariate ANOVAs where each test used a different species and then we could try to compare results across these tests to get a sense for whether our whole community differs among our treatments. Permutation Multivariate Analyses of Variance (or perMANOVAs) are a multivariate equivalent of an ANOVA that lets us more directly assess differences in community composition.
+
+The `RRPP` package lets this happen relatively simply but requires a special dataframe format to function properly.
+
+```{r rrpp-df}
+# First, make our community composition information into a separate matrix
+comm_mat <- comp %>%
+  dplyr::select(-year, -trt, -block_plot_subplot) %>%
+  as.matrix()
+
+# Next, define the RRPP dataframe
+comp_rdf <- RRPP::rrpp.data.frame("treatment" = comp$trt,
+                                  "year" = comp$year,
+                                  "plot" = comp$block_plot_subplot,
+                                  "community" = comm_mat)
+```
+
+With that defined, we can run a perMANOVA with `RRPP`'s `lm.rrpp` function. It is called "lm" rather than "ANOVA" because an ANOVA is--statistically--just a special case of a linear model.
+
+```{r rrpp-fit}
+# Fit the model
+mod_fit <- RRPP::lm.rrpp(community ~ treatment * year,
+                         data = comp_rdf, # data = RRPP 'dataframe'
+                         iter = 999, # 999 permutations
+                         RRPP = TRUE # permute residuals
+                         )
+
+# Get the summary values (with F statistics)
+anova(mod_fit, effect.type = "F")
+```
+ 
+Now that we have results, we can create an NMS to visualize these differences
+
+```{r multi-dimension_scaling}
+# Perform multidimensional scaling
+mds_obj <- vegan::metaMDS(comp[-c(1:3)], distance = "bray",
+                            autotransform = F, expand = F,
+                            k = 2, try = 100)
+```
+
+Once we've done the multidimensional scaling, we can do the ordination.
+
+```{r nms}
+# Create a column for the explanatory variables of each row
+comp$nms_group <- paste(comp$trt, comp$year, sep = "_")
+
+# Identify correct number of colors / shapes
+col_length <- length(unique(comp$nms_group)) / 2
+ide_colors <- c(rep("mediumseagreen", times = col_length),
+                rep("rosybrown4",times = col_length))
+ide_lines <- c(rep(1, times = col_length),
+                rep(2, times = col_length))
+
+# Feed those vectors into the ordination function
+helpR::nms_ord(mod = mds_obj, groupcol = comp$nms_group,
+               shapes = rep(x = 21:25, times = 4),
+               colors = ide_colors,
+               lines = ide_lines,
+               title = "antelope.us",
+               leg_pos = 'topright')
+```
+
+## Trajectory Analysis
+
+Trajectory analysis actually accepts the same perMANOVA fit created above.
+
+```{r traj-fit}
+traj_fit <- RRPP::trajectory.analysis(fit = mod_fit,
+                                      # Groups are control vs. drought
+                                      groups = comp_rdf$treatment,
+                                      # Trajectory "points" are years
+                                      traj.pts = comp_rdf$year)
+```
+
+Trajectory analysis gathers results for (1) the distance of the change through time, (2) the "shape" of that change, and (3) the correlations (e.g., "angles") of those differences.
+
+```{r traj-dist}
+# Magnitude distance (MD)
+summary(traj_fit, attribute = "MD")
+```
+
+```{r traj-shapes}
+# Shape Differences (SD)
+summary(traj_fit, attribute = "SD")
+```
+
+```{r traj-angles}
+# Angles (TC)
+summary(traj_fit, attribute = "TC", angle.type = "deg")
+```
+
+These will hopefully make more sense in the context of a plot so let's generate that here.
+
+```{r traj-plot-1}
+# Create a plot object
+traj_plot <- plot(traj_fit, pch = 21, cex = 0.7, col = "gray")
+
+# Then add trajectories
+RRPP::add.trajectories(traj_plot, traj.pch = 21)
+```
