@@ -51,3 +51,7 @@ TRY_species_codes.csv
 
 # Don't track any CSVs
 *.csv
+
+# Or PDFs
+*.pdf
+
