@@ -143,5 +143,13 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
   }
 }
 
-anova_list
+anova_df <- anova_list %>%
+  purrr::map(.f = 1) %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map_dfr(.f = select, everything())
+
+write.csv(anova_df, file = file.path(summary_stats_folder, "anova_summary.csv"))
+
 traj_list
