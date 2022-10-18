@@ -31,7 +31,9 @@ all_comp <- comp_raw %>%
   # Filter out unwanted plot types
   dplyr::filter(trt %in% c("Control", "Drought"))
 
-for (a_site in unique(all_comp$site_code)){
+bad_sites <- c("chacra.ar", "cobar.au", "eea.br", "hyide.de", "indiana.us")
+
+for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
   message("Processing begun for site: ", a_site)
   
   comp <- all_comp %>%
