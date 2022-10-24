@@ -175,7 +175,7 @@ mag_dist <- traj_list$md %>%
   purrr::imap(.f = ~mutate(., analysis_type = "Magnitude distance", .after = p_value)) %>% 
   purrr::map_dfr(.f = select, everything()) 
 
-# Extracting the shape differences statistics from each site and mapping every summary table into one dataframe
+# Extracting the shape differences statistics from each site
 shape_diff <- traj_list$sd %>%
   purrr::map(.f = 3)
 
