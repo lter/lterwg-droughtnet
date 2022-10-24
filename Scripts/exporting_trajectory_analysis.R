@@ -9,21 +9,26 @@ rm(list = ls())
 # install.packages("librarian")
 librarian::shelf(tidyverse, RRPP, njlyon0/helpR, vegan)
 
+# Name our export folders
 export_folder <- paste0("export_trajectories_", Sys.Date())
 nms_folder <- file.path(export_folder, "NMS_plots")
 trajectory_folder <- file.path(export_folder, "trajectory_plots")
 summary_stats_folder <- file.path(export_folder, "summary_stats")
 
+# Make our export folders
 dir.create(path = file.path(export_folder), showWarnings = FALSE)
 dir.create(path = file.path(nms_folder), showWarnings = FALSE)
 dir.create(path = file.path(trajectory_folder), showWarnings = FALSE)
 dir.create(path = file.path(summary_stats_folder), showWarnings = FALSE)
 
+# Create empty lists to store our statistics in later
 anova_list <- list() 
 traj_list <- list()
 
+# Read in our data
 comp_raw <- read.csv(file.path("cover_ppt_map_10-08-2022.csv"))
 
+# Standardize our data
 all_comp <- comp_raw %>%
   dplyr::mutate(trt = dplyr::case_when(
     trt == "Control_Infrastructure" ~ "Control",
@@ -31,8 +36,10 @@ all_comp <- comp_raw %>%
   # Filter out unwanted plot types
   dplyr::filter(trt %in% c("Control", "Drought"))
 
+# Make a list of "bad" sites that will break the loop
 bad_sites <- c("chacra.ar", "cobar.au", "eea.br", "hyide.de", "indiana.us")
 
+# For the rest of the sites that work, we...
 for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
   message("Processing begun for site: ", a_site)
   
@@ -79,7 +86,7 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
   
   # Get the summary values (with F statistics)
   anova_for_site <- anova(mod_fit, effect.type = "F")
-  anova_list[[paste0(a_site)]] <- anova_for_site
+  anova_list[[a_site]] <- anova_for_site
   
   # Perform multidimensional scaling
   mds_obj <- vegan::metaMDS(comp[-c(1:3)], distance = "bray",
@@ -99,7 +106,9 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
   ide_lines <- c(rep(1, times = col_length),
                  rep(2, times = col_length))
   
+  # Saving the nms plot as a png
   png(filename = file.path(nms_folder, paste0(a_site, "_nms.png")), width = 850, height = 850, units = "px")
+  
   # Feed those vectors into the ordination function
   helpR::nms_ord(mod = mds_obj, groupcol = comp$nms_group,
                  shapes = rep(x = 21:25, times = 4),
@@ -119,19 +128,19 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
   
   # Magnitude distance (MD)
   traj_summary_md <- summary(traj_fit, attribute = "MD")
-  traj_list[[paste0(a_site)]][["md"]] <- traj_summary_md
+  traj_list[["md"]][[a_site]] <- traj_summary_md
   
   
   # Shape Differences (SD)
   traj_summary_sd <- summary(traj_fit, attribute = "SD")
-  traj_list[[paste0(a_site)]][["sd"]] <- traj_summary_sd
+  traj_list[["sd"]][[a_site]] <- traj_summary_sd
   
   
   # Angles (TC)
   traj_summary_tc <- summary(traj_fit, attribute = "TC", angle.type = "deg")
-  traj_list[[paste0(a_site)]][["tc"]] <- traj_summary_tc
+  traj_list[["tc"]][[a_site]] <- traj_summary_tc
   
-  
+  # Saving the trajectory plot as a png
   png(filename = file.path(trajectory_folder, paste0(a_site, "_trajectory.png")), width = 850, height = 850, units = "px")
   
   # Create a plot object
@@ -143,6 +152,7 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
   }
 }
 
+# Extracting the anova statistics from each site and mapping every summary table into one dataframe
 anova_df <- anova_list %>%
   purrr::map(.f = 1) %>%
   purrr::map(.f = ~as.data.frame(.)) %>%
@@ -150,6 +160,59 @@ anova_df <- anova_list %>%
   purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
   purrr::map_dfr(.f = select, everything())
 
-write.csv(anova_df, file = file.path(summary_stats_folder, "anova_summary.csv"))
+# Exporting the anova summary statistics csv
+write.csv(anova_df, file = file.path(summary_stats_folder, "anova_summary.csv"), row.names = FALSE)
 
-traj_list
+# Extracting the magnitude distance statistics from each site and mapping every summary table into one dataframe
+mag_dist <- traj_list$md %>%
+  purrr::map(.f = 3) %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::map(.f = ~dplyr::rename(.,p_value = `Pr > d`))%>%
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map(.f = ~mutate(., r = NA, .after = variable)) %>%
+  purrr::map(.f = ~mutate(., angle = NA, .after = r)) %>%
+  purrr::imap(.f = ~mutate(., analysis_type = "Magnitude distance", .after = p_value)) %>% 
+  purrr::map_dfr(.f = select, everything()) 
+
+# Extracting the shape differences statistics from each site and mapping every summary table into one dataframe
+shape_diff <- traj_list$sd %>%
+  purrr::map(.f = 3)
+
+# Create a placeholder data frame for the sites without any shape differences statistics
+for (i in 1:length(shape_diff)){
+  if (is.character(shape_diff[[i]])){
+    shape_diff[[i]] <- data.frame(d = NA, `UCL (95%)` = NA, Z = NA, `Pr > d` = NA, row.names = "Control:Drought", check.names = FALSE)
+  } else {
+    next
+  }
+}
+
+# Mapping every summary table into one dataframe
+shape_diff_v2 <- shape_diff %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::map(.f = ~dplyr::rename(., p_value = `Pr > d`)) %>% 
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map(.f = ~mutate(., r = NA, .after = variable)) %>%
+  purrr::map(.f = ~mutate(., angle = NA, .after = r)) %>%
+  purrr::map(.f = ~mutate(., analysis_type = "Shape differences", .after = p_value)) %>% 
+  purrr::map_dfr(.f = select, everything()) 
+
+# Extracting the angles statistics from each site and mapping every summary table into one dataframe
+angles <- traj_list$tc %>%
+  purrr::map(.f = 3)  %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::map(.f = ~rename(.,p_value = `Pr > angle`)) %>%
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map(.f = ~mutate(., analysis_type = "Angles", .after = p_value)) %>%
+  purrr::map(.f = ~mutate(., d = NA, .after = angle)) %>% 
+  purrr::map_dfr(.f = select, everything()) 
+
+# Combine the magnitude distances, shape differences, and angles together into one master dataframe
+traj_df <- dplyr::bind_rows(mag_dist, shape_diff_v2, angles)
+
+# Exporting the trajectory summary statistics csv
+write.csv(traj_df, file = file.path(summary_stats_folder, "trajectory_summary.csv"), row.names = FALSE)
+
