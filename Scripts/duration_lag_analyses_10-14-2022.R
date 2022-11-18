@@ -203,3 +203,22 @@ visreg2d(mod.9, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", 
   geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")
+
+
+
+
+
+
+
+
+
+###Delete later
+x <- subset(data.anpp2, n_treat_days > 90 & n_treat_days < 420)
+
+
+y <- ddply(x, .(site_code, year),
+           function(x)data.frame(
+             anpp_response = mean(x$anpp_response)
+           ))
+
+
