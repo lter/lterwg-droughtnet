@@ -1,6 +1,8 @@
 library(plyr)
 library(tidyverse)
 
+#read n_treat_years data
+IDE_treatment_years<- read.csv("C:/Users/ohler/Downloads/IDE_treatment_years_11-17-2022.csv")
 
 #read in cover data
 full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/full_cover_11-17-2022.csv")%>%
@@ -140,35 +142,36 @@ cover_ppt <- merge(full_cover_v2, full_ppt, by = c("site_code", "year", "trt"), 
 cover_ppt <- cover_ppt[-c(12)]#remove old column which isn't trustworthy
 cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 
-temp <- cover_ppt[,c("site_code", "n_treat_days", "year")]
-temp <- unique(temp)
+#temp <- cover_ppt[,c("site_code", "n_treat_days", "year")]
+#temp <- unique(temp)
 
-cover_ppt$n_treat_years <- ifelse(cover_ppt$n_treat_days > 50 & cover_ppt$n_treat_days < 415, "1", "NA")
-years <- unique(cover_ppt[,c("site_code", "year", "n_treat_years")])
-years$n_treat_years2 <- 
+#cover_ppt$n_treat_years <- ifelse(cover_ppt$n_treat_days > 50 & cover_ppt$n_treat_days < 415, "1", "NA")
+#years <- unique(cover_ppt[,c("site_code", "year", "n_treat_years")])
+#years$n_treat_years2 <- 
 
-cover_ppt <- cover_ppt%>%
-  mutate(n_treat_years = case_when(
-    n_treat_days <= 50 ~ 0,
-    n_treat_days > 50 & n_treat_days < 415 ~ 1,
-    n_treat_days >= 415 & n_treat_days < 780 ~ 2,
-    n_treat_days >= 780 & n_treat_days < 1145 ~ 3,
-    n_treat_days >= 1145 & n_treat_days < 1510 ~ 4,
-    n_treat_days >= 1510 & n_treat_days < 1875 ~ 5,
-    n_treat_days >= 1875 & n_treat_days < 2240 ~ 6
-  ))
+#cover_ppt <- cover_ppt%>%
+#  mutate(n_treat_years = case_when(
+#    n_treat_days <= 50 ~ 0,
+#    n_treat_days > 50 & n_treat_days < 415 ~ 1,
+#    n_treat_days >= 415 & n_treat_days < 780 ~ 2,
+#    n_treat_days >= 780 & n_treat_days < 1145 ~ 3,
+#    n_treat_days >= 1145 & n_treat_days < 1510 ~ 4,
+#    n_treat_days >= 1510 & n_treat_days < 1875 ~ 5,
+#    n_treat_days >= 1875 & n_treat_days < 2240 ~ 6
+#  ))
 
-temp <- cover_ppt_map[, c("site_code", "n_treat_years")]
-temp <- unique(temp)
+#temp <- cover_ppt_map[, c("site_code", "n_treat_years")]
+#temp <- unique(temp)
 
-hist(subset(temp, n_treat_years != 0)$n_treat_years)
-
-
+#hist(subset(temp, n_treat_years != 0)$n_treat_years)
 
 
+cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", "year"))%>%
+                    subset(trt == "Control"| trt == "Drought")
 
 
 
+write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_11-18-2022.csv")
 
 
 
