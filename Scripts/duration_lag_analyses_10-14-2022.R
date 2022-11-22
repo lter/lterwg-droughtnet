@@ -1,60 +1,59 @@
 library(tidyverse)
 library(plyr)
 library(lmerTest)
+library(visreg)
 
 
 
-anpp_ppt_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_10-12-2022.csv")
+anpp_ppt_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_11-20-2022.csv")
 
 Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
 
-anpp_ppt_map <- anpp_ppt_map%>%
+data.anpp <- anpp_ppt_map%>%
   left_join( Site_Elev.Disturb, by = "site_code")%>%
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")%>%
   subset(ppt.1 >0 &ppt.2 >0 &ppt.3 >0 &ppt.4 >0 )#%>%
 #ddply(.(ste_code, year, trt, ppt.1, ppt.2, ppt.3, ppt.4))
 
 
-mod.1 <- lmer(mass~ppt.1 + (1|site_code), data=anpp_ppt_map)
-mod.2 <- lmer(mass~ppt.1 + ppt.2 + (1|site_code), data=anpp_ppt_map)
-mod.3 <- lmer(mass~ppt.1 + ppt.2 + ppt.3 + (1|site_code), data=anpp_ppt_map)                
-mod.4 <- lmer(mass~ppt.1 + ppt.2 + ppt.3 + ppt.4 + (1|site_code), data=anpp_ppt_map)                
-AIC(mod.1, mod.2, mod.3, mod.4)
+#mod.1 <- lmer(mass~ppt.1 + (1|site_code), data=anpp_ppt_map)
+#mod.2 <- lmer(mass~ppt.1 + ppt.2 + (1|site_code), data=anpp_ppt_map)
+#mod.3 <- lmer(mass~ppt.1 + ppt.2 + ppt.3 + (1|site_code), data=anpp_ppt_map)                
+#mod.4 <- lmer(mass~ppt.1 + ppt.2 + ppt.3 + ppt.4 + (1|site_code), data=anpp_ppt_map)                
+#AIC(mod.1, mod.2, mod.3, mod.4)
 
-summary(mod.1)
-summary(mod.2)
-summary(mod.3)
-summary(mod.4)
-visreg(mod.1)
+#summary(mod.1)
+#summary(mod.2)
+#summary(mod.3)
+#summary(mod.4)
+#visreg(mod.1)
 
 
 
 #REMOVING FOREST SITES (Will leave this data to Rich Phillips)
-data.noforest<-anpp_ppt_map %>%
-  dplyr::filter(!habitat.type %in% c('Forest','Forest understory'))
-length(unique(data.noforest$site_code)) #120 (16 sites removed)
-setdiff(data.all$site_code,data.noforest$site_code)
+#data.noforest<-anpp_ppt_map %>%
+#  dplyr::filter(!habitat.type %in% c('Forest','Forest understory'))
+#length(unique(data.noforest$site_code)) #120 (16 sites removed)
+#setdiff(data.all$site_code,data.noforest$site_code)
 # [1] "bamboo.cn"    "bivensarm.us" "cmss.us"      "elizwood.us"  "gigante.pa"   "horizon.cr"  
 #[7] "hubbard.us"   "jilpanger.au" "kranz.de"     "p12.pa"       "p13.pa"       "prades.es"   
 #[13] "sevforest.us" "sherman.pa"   "thompson.us"  "wayqecha.pe" 
 #NOTE: Prades didn't follow IDE protocols, but also happens to be a forest site
 
 #Removing sites here that DO NOT report ANPP or are outside of ANPP range for biome listed in Fahey & Knapp 2007:
-data.anpp<-data.noforest[which(data.noforest$site_code!="lcnorth.cl" #Doesn't report ANPP
-                               &data.noforest$site_code!="lcsouth.cl" #Doesn't report ANPP
-                               &data.noforest$site_code!="qdtnorth.cl" #Doesn't report ANPP
-                               &data.noforest$site_code!="qdtsouth.cl" #Doesn't report ANPP
-                               &data.noforest$site_code!="neudamm.na" #Doesn't report ANPP, also no weather info
-                               &data.noforest$site_code!="ebro.es" #ANPP outside range for biome
-                               &data.noforest$site_code!="garraf.es" #Did not follow protocols: Not using for drought plots, only using control plots for this site
-                               &data.noforest$site_code!="brandjberg.dk" #Did not follow protocols: Not using for drought plots, only using control plots for this site
-                               &data.noforest$site_code!="ethadb.au" #ANPP outside range for biome
-                               &data.noforest$site_code!="ethadn.au" #ANPP outside range for biome
-                               &data.noforest$site_code!="swift.ca" #did not follow IDE protocols (drought plots did not exclude water- see Jillian email)
-                               &data.noforest$site_code!="jenadrt.de" #did not have the correct data for their first treatment year because they lost a biomass bag and 
-                               #requested their data be removed (see GitHub for details), will include them in "Drought shelters were not in place for 
-                               #120-650 days (+/- one week)
-),] 
+#data.anpp<-data.noforest[which(data.noforest$site_code!="lcnorth.cl" #Doesn't report ANPP
+#                               &data.noforest$site_code!="lcsouth.cl" #Doesn't report ANPP
+#                               &data.noforest$site_code!="qdtnorth.cl" #Doesn't report ANPP
+#                               &data.noforest$site_code!="qdtsouth.cl" #Doesn't report ANPP
+#                               &data.noforest$site_code!="neudamm.na" #Doesn't report ANPP, also no weather info
+ #                              &data.noforest$site_code!="ebro.es" #ANPP outside range for biome
+#                               &data.noforest$site_code!="garraf.es" #Did not follow protocols: Not using for drought plots, only using control plots for this site
+#                               &data.noforest$site_code!="brandjberg.dk" #Did not follow protocols: Not using for drought plots, only using control plots for this site
+#                               &data.noforest$site_code!="ethadb.au" #ANPP outside range for biome
+#                               &data.noforest$site_code!="ethadn.au" #ANPP outside range for biome
+#                               &data.noforest$site_code!="swift.ca" #did not follow IDE protocols (drought plots did not exclude water- see Jillian email)
+                               
+#),] 
 
 length(unique(data.anpp$site_code)) #108
 
@@ -98,7 +97,7 @@ Plot.trt.ct2<-gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
 
 setdiff(data.anpp$site_code,data.anpp1$site_code) #no sites eliminated here
-length(unique(data.anpp1$site_code)) #108
+length(unique(data.anpp1$site_code)) #1oo
 
 
 controls <- data.anpp1%>%
@@ -119,53 +118,56 @@ data.anpp2$drtsev.3 <- ((data.anpp2$ppt.3-data.anpp2$precip)/data.anpp2$precip)
 data.anpp2$drtsev.4 <- ((data.anpp2$ppt.4-data.anpp2$precip)/data.anpp2$precip)
 
 
-mod.1 <- lmer(anpp_response~drtsev.1 + (1|site_code:plot), data=data.anpp2)
-mod.2 <- lmer(anpp_response~drtsev.1 + drtsev.2 + (1|site_code:plot), data=data.anpp2)
-mod.3 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + (1|site_code:plot), data=data.anpp2)                
-mod.4 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + drtsev.4 + (1|site_code:plot), data=data.anpp2)                
-AIC(mod.1, mod.2, mod.3, mod.4)
+#mod.1 <- lmer(anpp_response~drtsev.1 + (1|site_code:plot), data=data.anpp2)
+#mod.2 <- lmer(anpp_response~drtsev.1 + drtsev.2 + (1|site_code:plot), data=data.anpp2)
+#mod.2.revised <- lmer(anpp_response~drtsev.1 * drtsev.2 + (1|site_code:plot), data=data.anpp2)
+#mod.3 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + (1|site_code:plot), data=data.anpp2)                
+#mod.4 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + drtsev.4 + (1|site_code:plot), data=data.anpp2)                
+#AIC(mod.1, mod.2, mod.2.revised, mod.3, mod.4)
 
-summary(mod.1)
-r.squaredGLMM(mod.1)
-summary(mod.2)
-r.squaredGLMM(mod.2)
-summary(mod.2.revised)
-r.squaredGLMM(mod.2.revised)
-summary(mod.3)
-r.squaredGLMM(mod.3)
-summary(mod.4)
-r.squaredGLMM(mod.4)
-visreg(mod.2)
-visreg2d(mod.2, "drtsev.1", "drtsev.2")
+#summary(mod.1)
+#r.squaredGLMM(mod.1)
+#summary(mod.2)
+#r.squaredGLMM(mod.2)
+#summary(mod.2.revised)
+#r.squaredGLMM(mod.2.revised)
+#summary(mod.3)
+#r.squaredGLMM(mod.3)
+#summary(mod.4)
+#r.squaredGLMM(mod.4)
+#visreg(mod.2)
+#visreg2d(mod.2, "drtsev.1", "drtsev.2")
 
 
-mod.1 <- lmer(anpp_response~drtsev.1 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))
-mod.2 <- lmer(anpp_response~drtsev.1 + drtsev.2 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))
-mod.2.revised <- lmer(anpp_response~ drtsev.2 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))
-mod.3 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))                
-mod.4 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + drtsev.4 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))                
-AIC(mod.1, mod.2, mod.2.revised, mod.3, mod.4)
+#mod.1 <- lmer(anpp_response~drtsev.1 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))
+#mod.2 <- lmer(anpp_response~drtsev.1 + drtsev.2 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))
+#mod.2.revised <- lmer(anpp_response~ drtsev.2 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))
+#mod.3 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))                
+#mod.4 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + drtsev.4 + (1|site_code/year), data=subset(data.anpp2, n_treat_days>1145))                
+#AIC(mod.1, mod.2, mod.2.revised, mod.3, mod.4)
 
-summary(mod.1)
-r.squaredGLMM(mod.1)
-summary(mod.2)
-r.squaredGLMM(mod.2)
-summary(mod.2.revised)
-r.squaredGLMM(mod.2.revised)
-summary(mod.3)
-r.squaredGLMM(mod.3)
-summary(mod.4)
-r.squaredGLMM(mod.4)
+#summary(mod.1)
+#r.squaredGLMM(mod.1)
+#summary(mod.2)
+#r.squaredGLMM(mod.2)
+#summary(mod.2.revised)
+#r.squaredGLMM(mod.2.revised)
+#summary(mod.3)
+#r.squaredGLMM(mod.3)
+#summary(mod.4)
+#r.squaredGLMM(mod.4)
 
 
 
 
 
 data.anpp.summary <- data.anpp2%>%
-  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4),
+  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years),
         function(x)data.frame(
-          anpp_response = mean(x$anpp_response)
+          anpp_response = mean(x$anpp_response),
+          anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1)
         ))
+        
 
 
 #interactive
@@ -204,21 +206,104 @@ visreg2d(mod.9, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", 
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")
 
+##############try model selection
+library(MASS)
+library(nlme)
+#Backward model selection
+stepAIC(mod.4, scope = list(upper = mod.4,
+                            lower = ~1),
+        trace = F)
+
+lmNull <- lme(anpp_response~1, random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1())
+
+
+#Forward model selection
+stepAIC(lmNull, scope = list(upper = mod.4,
+                             lower = ~1),
+        trace = F)
+
+winning.mod <- lme(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.1:drtsev.2, random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1())
+summary(winning.mod)
+
+winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.1:drtsev.2 +(1|site_code),data = data.anpp.summary)
+
+visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "forestgreen"))+
+  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
+  xlab("Current year drought severity")+
+  ylab("Previous year drought severity")
+
+visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="persp", col = c("red", "white", "forestgreen"))+
+  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
+  xlab("Current year drought severity")+
+  ylab("Previous year drought severity")
 
 
 
 
+#####Can I remoake stihes plots by year and plot drought severity and response by year?
+subset(data.anpp.summary,n_treat_years ==1)%>%
+dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response))) %>%
+ggplot(  aes(site_code, anpp_response))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(c(-5,3))+
+  ylab("anpp_response")+
+  xlab("")+
+  coord_flip()+
+  theme_bw()
+
+subset(data.anpp.summary,n_treat_years ==2)%>%
+  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response))) %>%
+  ggplot(  aes(site_code, anpp_response))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(c(-5,3))+
+  ylab("anpp_response")+
+  xlab("")+
+  coord_flip()+
+  theme_bw()
 
 
+subset(data.anpp.summary,n_treat_years ==3)%>%
+  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response))) %>%
+  ggplot(  aes(site_code, anpp_response))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(c(-5,3))+
+  ylab("anpp_response")+
+  xlab("")+
+  coord_flip()+
+  theme_bw()
+
+subset(data.anpp.summary,n_treat_years ==4)%>%
+  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response))) %>%
+  ggplot(  aes(site_code, anpp_response))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(c(-5,3))+
+  ylab("anpp_response")+
+  xlab("")+
+  coord_flip()+
+  theme_bw()
 
 
-###Delete later
-x <- subset(data.anpp2, n_treat_days > 90 & n_treat_days < 420)
+####drought severity figure by year
+subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
+ggplot( aes(drtsev.1, anpp_response))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  xlab("Drought severity")+
+  theme_bw()
 
 
-y <- ddply(x, .(site_code, year),
-           function(x)data.frame(
-             anpp_response = mean(x$anpp_response)
-           ))
+###Some numbers on the data
+length(unique(subset(data.anpp.summary, n_treat_years == 1)$site_code))
+length(unique(subset(data.anpp.summary, n_treat_years == 2)$site_code))
+length(unique(subset(data.anpp.summary, n_treat_years == 3)$site_code))
+length(unique(subset(data.anpp.summary, n_treat_years == 4)$site_code))
+
 
 

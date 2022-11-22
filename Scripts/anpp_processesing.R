@@ -7,11 +7,14 @@ library(tidyverse)
 library(plyr)
 
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_10-12-2022.csv")
+#read n_treat_years data
+IDE_treatment_years<- read.csv("C:/Users/ohler/Downloads/IDE_treatment_years_11-17-2022.csv")
+
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_11-18-2022.csv")
 
 
 
-treatment_info <- read.csv("C:/Users/ohler/Downloads/full_biomass_test.csv")
+treatment_info <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_11-18-2022.csv")
 treatment_info <- treatment_info[,c("site_code", "year", "n_treat_days", "block", "plot", "subplot", "trt")]
 treatment_info <- unique(treatment_info)
 
@@ -19,7 +22,7 @@ treatment_info <- unique(treatment_info)
 #details <- full_biomass[,c("site_code", block, plot, subplot, year, )]
 
 #read in precip data
-ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2022-10-07.csv")
+ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2022-11-20.csv")
 
 #reduce column names to minimum
 ppt.1$ppt.1 <- ppt.1$ppt#change precip column names in lag files to reflect lags
@@ -33,7 +36,7 @@ ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"),
 
 
 #read in precip data
-ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2022-10-07.csv")
+ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2022-11-20.csv")
 
 #reduce column names to minimum
 ppt.2$ppt.2 <- ppt.2$ppt#change precip column names in lag files to reflect lags
@@ -45,7 +48,7 @@ ppt.2 <- ddply(ppt.2, c("site_code", "year", "trt"),
 #ppt.2[,c("site_code", "year", "trt", "ppt.2")]
 
 #read in precip data
-ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2022-10-07.csv")
+ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2022-11-20.csv")
 
 #reduce column names to minimum
 ppt.3$ppt.3 <- ppt.3$ppt#change precip column names in lag files to reflect lags
@@ -57,7 +60,7 @@ ppt.3 <- ddply(ppt.3, c("site_code", "year", "trt"),
 #ppt.3[,c("site_code", "year", "trt", "ppt.3")]
 
 #read in precip data
-ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2022-10-07.csv")
+ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2022-11-20.csv")
 
 #reduce column names to minimum
 ppt.4$ppt.4 <- ppt.4$ppt#change precip column names in lag files to reflect lags
@@ -83,29 +86,63 @@ anpp_ppt <- anpp_clean%>%
         left_join(treatment_info, c("site_code", "year", "block", "plot", "subplot"))%>%
         left_join(full_ppt, c("site_code",  "year", "trt"))
 
+#summarize treatment days and remove plots identified by site PIs as problematic
 data.all<-anpp_ppt %>%
   dplyr::group_by(site_code,block,plot,subplot,year,mass,mass_category,trt,ppt.1, ppt.2,ppt.3,ppt.4) %>%
-  dplyr::summarize(n_treat_days = max(n_treat_days))
+  dplyr::summarize(n_treat_days = max(n_treat_days))%>%
+  unite(rep_year, c("site_code", "year", "block", "plot", "subplot"), remove = FALSE)%>%
+          subset(rep_year != "passogavia.it_2021_5_10_A")%>% #plot may have issues. check github
+          subset(rep_year != "naqu.cn_2021_2_15_A")%>%#plot may have issues. check github
+          subset(rep_year != "ukulingadrt.za_2021_3_8_A")%>%#plot may have issues. check github
+          subset(rep_year != "sevblack.us_2019_1_106_A")%>%#plot may have issues. Tim Ohlert says high biomass is due to shrub and therefore not representative of ANPP
+          subset(rep_year != "jenadrt.de_2015_1_1_A")%>%
+subset(rep_year != "jenadrt.de_2015_1_2_A")%>%
+subset(rep_year != "jenadrt.de_2015_1_3_A")%>%
+subset(rep_year != "jenadrt.de_2015_1_4_A")%>%
+subset(rep_year != "jenadrt.de_2015_1_5_A")%>%
+subset(rep_year != "jenadrt.de_2015_1_6_A")%>%
+          subset(site_code != "lcnorth.cl")%>% #Doesn't report ANPP
+  subset(site_code != "lcsouth.cl")%>%#Doesn't report ANPP
+  subset(site_code != "qdtnorth.cl")%>%#Doesn't report ANPP
+  subset(site_code != "qdtsouth.cl")%>%#Doesn't report ANPP
+  subset(site_code != "neudamm.na")%>%#Doesn't report ANPP, also no weather info
+  subset(site_code != "ebro.es")%>%#ANPP outside range for biome
+  subset(site_code != "ethadb.au")%>%#ANPP outside range for biome
+  subset(site_code != "ethadn.au")%>%#ANPP outside range for biome
+  unite(site_trt, c("site_code", "trt"), remove =FALSE)%>%
+  subset(site_trt != "garraf.es_Drought")%>% #Did not follow protocols: Not using for drought plots, only using control plots for this site
+  subset(site_trt != "brandjberg.dk_Drought")%>%#Did not follow protocols: Not using for drought plots, only using control plots for this site
+  subset(site_trt != "swift.ca_Drought")%>% #did not follow IDE protocols (drought plots did not exclude water- see Jillian email)%>%
+  subset(select=-c(rep_year, site_trt))
+                               
+
+  
+
+anpp_ppt.end <- left_join(data.all, IDE_treatment_years, by = c("site_code", "year"))%>%
+  subset(trt == "Control"| trt == "Drought")
+
+
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_11-20-2022.csv")
 
 #read worldclim data
-worldclim <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/precip/worldclim_map.csv")
+#worldclim <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/precip/worldclim_map.csv")
 
-anpp_ppt_map <- left_join(anpp_ppt, worldclim, by = "site_code")
+#anpp_ppt_map <- left_join(anpp_ppt, worldclim, by = "site_code")
 
 
 #specify n_trt_years with n_treat_days
-anpp_ppt_map$n_treat_years <- ifelse(anpp_ppt_map$n_treat_days <= 50, 0,
-                                     ifelse(anpp_ppt_map$n_treat_days > 50 & anpp_ppt_map$n_treat_days < 415, 1,
-                                            ifelse(anpp_ppt_map$n_treat_days >= 415 & anpp_ppt_map$n_treat_days < 780, 2,
-                                                   ifelse(anpp_ppt_map$n_treat_days >= 780 & anpp_ppt_map$n_treat_days < 1145, 3,
-                                                          ifelse(anpp_ppt_map$n_treat_days >= 1145 & anpp_ppt_map$n_treat_days < 1510, 4,
-                                                                 ifelse(anpp_ppt_map$n_treat_days >= 1510 & anpp_ppt_map$n_treat_days < 1875, 5,
-                                                                        ifelse(anpp_ppt_map$n_treat_days >= 1875 & anpp_ppt_map$n_treat_days <2240, 6, NA )))))))
+#anpp_ppt_map$n_treat_years <- ifelse(anpp_ppt_map$n_treat_days <= 50, 0,
+#                                     ifelse(anpp_ppt_map$n_treat_days > 50 & anpp_ppt_map$n_treat_days < 415, 1,
+#                                            ifelse(anpp_ppt_map$n_treat_days >= 415 & anpp_ppt_map$n_treat_days < 780, 2,
+#                                                   ifelse(anpp_ppt_map$n_treat_days >= 780 & anpp_ppt_map$n_treat_days < 1145, 3,
+#                                                          ifelse(anpp_ppt_map$n_treat_days >= 1145 & anpp_ppt_map$n_treat_days < 1510, 4,
+#                                                                 ifelse(anpp_ppt_map$n_treat_days >= 1510 & anpp_ppt_map$n_treat_days < 1875, 5,
+#                                                                        ifelse(anpp_ppt_map$n_treat_days >= 1875 & anpp_ppt_map$n_treat_days <2240, 6, NA )))))))
 
-temp <- anpp_ppt_map[,c("site_code", "n_treat_years")]
-temp <- unique(temp)
+#temp <- anpp_ppt_map[,c("site_code", "n_treat_years")]
+#temp <- unique(temp)
 
-hist(subset(temp,n_treat_years != 0)$n_treat_years)
+#hist(subset(temp,n_treat_years != 0)$n_treat_years)
 
 #library(lmerTest)
 #mod.1 <- lmer(mass~ppt.1 + (1|site_code:plot) + (1|site_code:year), data = anpp_ppt) 
