@@ -8,7 +8,7 @@ library(plyr)
 
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Downloads/IDE_treatment_years_11-17-2022.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_11-17-2022.csv")
 
 anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_11-18-2022.csv")
 
@@ -28,7 +28,7 @@ ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_c
 ppt.1$ppt.1 <- ppt.1$ppt#change precip column names in lag files to reflect lags
 ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"),
                function(x)data.frame(
-                 ppt.1 = mean(x$ppt)
+                 ppt.1 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
                ))
 
 
@@ -42,7 +42,7 @@ ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_c
 ppt.2$ppt.2 <- ppt.2$ppt#change precip column names in lag files to reflect lags
 ppt.2 <- ddply(ppt.2, c("site_code", "year", "trt"),
                function(x)data.frame(
-                 ppt.2 = mean(x$ppt)
+                 ppt.2 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
                ))
 
 #ppt.2[,c("site_code", "year", "trt", "ppt.2")]
@@ -54,7 +54,7 @@ ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_c
 ppt.3$ppt.3 <- ppt.3$ppt#change precip column names in lag files to reflect lags
 ppt.3 <- ddply(ppt.3, c("site_code", "year", "trt"),
                function(x)data.frame(
-                 ppt.3 = mean(x$ppt)
+                 ppt.3 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
                ))
 
 #ppt.3[,c("site_code", "year", "trt", "ppt.3")]
@@ -66,7 +66,7 @@ ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_c
 ppt.4$ppt.4 <- ppt.4$ppt#change precip column names in lag files to reflect lags
 ppt.4 <- ddply(ppt.4, c("site_code", "year", "trt"),
                function(x)data.frame(
-                 ppt.4 = mean(x$ppt)
+                 ppt.4 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
                ))
 # ppt.4[,c("site_code", "year", "trt", "ppt.4")]
 
@@ -125,12 +125,13 @@ data.all[data.all$site_code == "ukulingadrt.za" & data.all$year == "2021" & data
   
 
 anpp_ppt.end <- left_join(data.all, IDE_treatment_years, by = c("site_code", "year"))%>%
-  subset(trt == "Control"| trt == "Drought" | trt == "Control_Infrastructure")
+  subset(trt == "Control"| trt == "Drought" )
+         #| trt == "Control_Infrastructure")
 
 
 
 
 
-#write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_12-05-2022.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_12-07-2022.csv")
 
 
