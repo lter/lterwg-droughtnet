@@ -85,7 +85,7 @@ ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_c
 ppt.1$ppt.1 <- ppt.1$ppt#change precip column names in lag files to reflect lags
 ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"), 
         function(x)data.frame(
-         ppt.1 = mean(x$ppt)
+         ppt.1 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
         ))
 
 
@@ -96,7 +96,7 @@ ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_c
 ppt.2$ppt.2 <- ppt.2$ppt#change precip column names in lag files to reflect lags
 ppt.2 <- ddply(ppt.2, c("site_code", "year", "trt"), 
         function(x)data.frame(
-         ppt.2 = mean(x$ppt)
+         ppt.2 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
         ))
 
 #read in precip data
@@ -106,7 +106,7 @@ ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_c
 ppt.3$ppt.3 <- ppt.3$ppt#change precip column names in lag files to reflect lags
 ppt.3 <- ddply(ppt.3, c("site_code", "year", "trt"), 
         function(x)data.frame(
-         ppt.3 = mean(x$ppt)
+         ppt.3 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
         ))
 
 #read in precip data
@@ -116,7 +116,7 @@ ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_c
 ppt.4$ppt.4 <- ppt.4$ppt#change precip column names in lag files to reflect lags
 ppt.4 <- ddply(ppt.4, c("site_code", "year", "trt"), 
         function(x)data.frame(
-         ppt.4 = mean(x$ppt)
+         ppt.4 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
         ))
 
 #merge all the precip-lag years

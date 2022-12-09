@@ -5,7 +5,7 @@ library(visreg)
 
 
 
-anpp_ppt_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_11-20-2022.csv")
+anpp_ppt_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_12-05-2022.csv")
 
 Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
 
@@ -299,11 +299,33 @@ ggplot( aes(drtsev.1, anpp_response))+
   theme_bw()
 
 
+mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==1))
+summary(mod)
+mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==2))
+summary(mod)
+mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==3))
+summary(mod)
+mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==4))
+summary(mod)
+
+
+mod <- lmer(anpp_response~drtsev.1 + (1|site_code), data = subset(data.anpp2,n_treat_years ==1))
+summary(mod)
+r.squaredGLMM(mod)
+mod <- lmer(anpp_response~drtsev.1 + (1|site_code), data = subset(data.anpp2,n_treat_years ==2))
+summary(mod)
+r.squaredGLMM(mod)
+mod <- lmer(anpp_response~drtsev.1 + (1|site_code), data = subset(data.anpp2,n_treat_years ==3))
+summary(mod)
+r.squaredGLMM(mod)
+mod <- lmer(anpp_response~drtsev.1 + (1|site_code), data = subset(data.anpp2,n_treat_years ==4))
+summary(mod)
+r.squaredGLMM(mod)
+
 ###Some numbers on the data
 length(unique(subset(data.anpp.summary, n_treat_years == 1)$site_code))
 length(unique(subset(data.anpp.summary, n_treat_years == 2)$site_code))
 length(unique(subset(data.anpp.summary, n_treat_years == 3)$site_code))
 length(unique(subset(data.anpp.summary, n_treat_years == 4)$site_code))
-
 
 
