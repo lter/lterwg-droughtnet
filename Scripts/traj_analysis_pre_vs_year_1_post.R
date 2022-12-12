@@ -32,51 +32,37 @@ traj_list <- list()
 # Read in our data
 comp_raw <- read.csv(file.path("cover_ppt_11-18-2022.csv"))
 
-# Standardize our data
-all_comp <- comp_raw %>%
+# Filter our data to 1 pre-treatment year
+comp_pre_treatment <- comp_raw %>%
   dplyr::mutate(trt = dplyr::case_when(
     trt == "Control_Infrastructure" ~ "Control",
     TRUE ~ trt)) %>%
   # Filter out unwanted plot types
   dplyr::filter(trt %in% c("Control", "Drought")) %>%
-  # Keep only rows where n_treat_years is 0 or 1 
-  dplyr::filter(n_treat_years == 0 | n_treat_years == 1) %>%
-  # Group by site because we will be filtering the minimum value for each site later
-  dplyr::group_by(site_code) %>%
-  # Make a new column indicating the sign of n_treat_days
-  dplyr::mutate(treat_days_sign = case_when(
-    n_treat_days < 0 ~ "negative_treat_days",
-    n_treat_days > 0 ~ "positive_treat_days",
-    n_treat_days == 0 ~ "zero_treat_days",
-    is.na(n_treat_days) ~ "NA_treat_days",
-  )) %>%
-  # If n_treat_years is 0 and n_treat_days is negative, calculate the distance between 0 and n_treat_days
-  dplyr::mutate(dist_from_zero = ifelse(
-    test = n_treat_years == 0 & treat_days_sign == "negative_treat_days",
-    yes = 0 - n_treat_days,
-    no = "keep_for_later"
-  )) %>%
-  # For each site, out of all the rows where n_treat_years is 0 and n_treat_days is negative, drop the ones where there are multiple pre-treatment years
-  # Basically for each site, there is now only 1 pre-treatment year
-  # However, the pre-treatment year being kept is the one where n_treat_days is closest to 0
-  # So if a site has n_treat_days = -700 and n_treat_days = -600 and both rows are n_treat_years = 0, the row with n_treat_days = -600 is kept
-  dplyr::mutate(drop_or_keep = ifelse(
-    test = dist_from_zero == min(dist_from_zero) | dist_from_zero == "keep_for_later",
-    yes = "keep",
-    no = "drop"
-  )) %>%
+  # Group by site_code, trt, block, plot, subplot, year, Taxon
+  dplyr::group_by(site_code, trt, block, plot, subplot, year, Taxon) %>%
+  # Keep the rows where n_treat_years == 0 AND where the cover is max for the above grouping variables
+  dplyr::filter(n_treat_years == 0 & max_cover == max(max_cover)) %>%
   # Ungroup
-  dplyr::ungroup() %>%
-  # Keep the appropriate rows
-  dplyr::filter(drop_or_keep == "keep") %>%
-  # Drop the temporary columns
-  dplyr::select(-treat_days_sign, -dist_from_zero, -drop_or_keep)
-  
+  dplyr::ungroup()
+
+# Filter our data to year 1 post-treatment
+comp_year_1 <- comp_raw %>%
+  dplyr::mutate(trt = dplyr::case_when(
+    trt == "Control_Infrastructure" ~ "Control",
+    TRUE ~ trt)) %>%
+  # Filter out unwanted plot types
+  dplyr::filter(trt %in% c("Control", "Drought")) %>%
+  # Keep only year 1 post-treatment
+  dplyr::filter(n_treat_years == 1)
+
+# Combine both together
+all_comp <- bind_rows(comp_pre_treatment, comp_year_1)
+
 # Make a list of "bad" sites that will break the loop
-bad_sites <- c("allmendb.ch", "allmendo.ch", "antelope.us", "ayora.es", "bfl.us", "chacra.ar",
-               "chilcasdrt.ar", "eea.br", "guaribas.br", "hoide.de", "indiana.us", "jenadrt.de",
-               "kernb.ca", "lygraint.no", "lygraold.no", "oklah.us", "pineta.es", "purdue.us",
-               "qdtnorth.cl", "qdtsouth.cl", "slp.us", "teshio.jp")
+bad_sites <- c("antelope.us", "ayora.es", "bfl.us", "chacra.ar", "chilcasdrt.ar",
+               "eea.br", "guaribas.br", "hoide.de", "hyide.de", "indiana.us", "jenadrt.de", 
+               "kernb.ca", "oklah.us", "pineta.es", "slp.us", "teshio.jp")
 
 # For the rest of the sites that work, we...
 for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
