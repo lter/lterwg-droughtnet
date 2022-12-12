@@ -1,0 +1,1089 @@
+---
+title: "IDE_CommAnalysis_MIA-SPL_11162022"
+author: "Maggie Anderson"
+date: "2022-11-16"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+**Purpose of this document**: analysis of community-wide responses to the first year of extreme drought using network-wide data from the International Drought Experiment (IDE), also known as DroughtNet
+
+**Contributors**: Maggie Anderson, Kate Wilkins, Tim Ohlert, Smriti Pehim Limbu
+
+**Goals**:
++ Goal 1: synthesize plant community cover data from IDE dataset, updated as of 11-16-2022
+
++ Goal 2: calculate the following responses after a single year of extreme drought:
+
+      Y-VARS (look at these first in response to drought severity)
+        - Richness
+        - Evenness
+        - Dispersion (?), Betadisper()
+        - Berger-Parker dominance index (max cover / total cover?)
+        - Hill numbers approach
+        
+      X-VARS (in accordance with 1-st year IDE manuscript)
+        - Drought severity
+        - MAP
+        - Aridity
+        - CV of MAP
+        - % sand (IDE MS Single Year Extreme / data / site_sand from soil grid???)
+        - Pre-treatment precipitation
+        - Proportion graminoid
+        
+      OTHER RELATIONSHIPS
+        - Annual/perennial response
+        - Grass/forb response
+        - Native/non-native response
+        - C3/C4 ratio change
+        - LCBD (does compositional uniqueness change?)
+        - ANPP vs. SR (both regular and Hill Numbers approach)
+      
+      IF TIME:
+      - Stitches plots means
+    
+      - Evenness in single-speices plots = 0
+      - BP-index in these plots = 1
+    
+      - Richness responses over time?
+      - Turnover responses over time 
+      - Multivariate change in codyn
+      - NMS and PCoA
+        - euclidian & jaccard distances
+    
+      - Run PERMANOVA & NMS?
+
++ Goal 3: create stitch plots for responses
+
+---
+**Table of contents**:
+---
+* DATA WRANGLING
+  + [1) Setup](#chunk1)
+  + [2) Load data](#chunk2)
+  + [3) Calculations: richness, evenness, dominance, Hill richness](#chunk3)
+  + [4) Add site information to community df](#chunk4) # only pull out information on habitat and MAP, leave the rest
+  + [5) Drought severity calcs, add ANPP data](#chunk5)
+  + [6) Filter to get yr1 drought in grassland sites w/ enough reps](#chunk6)
+
+* ORDINATIONS
+  + [7) PLOT-LEVEL dispersion (PCoA) & LCBD](#chunk7)
+  
+* CALCULATE BIODIVERSITY RESPONSES
+  + [8) PLOT-level richness/evenness/etc. responses](#chunk8)
+  + [9) SITE-level richness/evenness/etc. responses](#chunk9)
+  
+* MAKE STITCH PLOT DATAFRAMES
+  + [10) Make dataframes specifically for stitches plots](#chunk10) # under construction
+  + [11) Add rest of cleaned site information](#chunk11) # this will prevent the need for changing all the code once site info is re-added 
+  
+* ADD UPDATED SITE INFORMATION TO DATAFRAMES (if needed)
+  + [12) Add site information](#chunk12)
+  
+* STATISTICS
+  + [13) Models](#chunk13)
+  
+* FIGURES
+  + [14) PLOT-level comparisons of ANPP to richness and evenness](#chunk14)
+  + [15) PLOT-level Richness (reg. & Hill), evenness, dominance, & diversity responses to drought severity](#chunk15)
+  + [16) Stitch plots (site level)](#chunk16)
+
+  
+*RESULTS*
+  - richness/eveness/dominance responses to drought severity
+    * by habitat type and extreme vs. nominal
+  - richness/eveness/dominance responses to abiotic variables
+    * by habitat type and extreme vs. nominal
+  - richness/eveness/dominance responses to drought severity
+    * by annuals/perennials
+    * by C3/C4
+    * by functional groups (grass/forb/graminoid)
+  - ANPP response vs. species richness response
+  - Species gains/losses in drought relative to control
+  
+**To do list (add date when finished)**:
+* Add photosynthetic path information (Smriti)
+* Update site and plot-level datasets (Maggie) - 11/04/22
+* Calculate nominal vs. extreme drought (Maggie) - 11/04/22
+* Calculate ANPP responses (Maggie) - 1/20/22
+* LCBD calculations (Maggie) - 10/28/22
+* Update and check data wrangling/plot workflow (Maggie & Smriti) - 11/06/22
+* Upload script to lter GitHub repo (Maggie & Smriti)
+* Set up code checking meeting (Maggie & Smriti) - 10/13/2022
+  
+
+# DATA WRANGLING 
+
+*finished dataframe example:* this is a dataframe that I have created and am done editing. It appears at the chunk in which it was created
+
+### 1) Setup, install relevant packages {#chunk1}
+```{r}
+# clear workspace
+  rm(list = ls()) 
+
+  knitr::opts_chunk$set(echo = TRUE) # in case we want to knit this script
+
+# load packages
+  pacman::p_load(adespatial,    # LCBD calculations
+                 betapart,      # LCBD calculations
+                 codyn,         # diversity metrics
+                 ggthemes,      # plot aesthetics
+                 hillR,         # Hill numbers
+                 plotly,        # interactive plots
+                 plyr,          # every wrangling thing u ever wanted
+                 RColorBrewer,  # fun colors for plots
+                 tidyverse,     # wrangling
+                 vegan          # community-specific analyses
+                 ) 
+```
+
+### 2) Load in data: community comp, anpp, site info, other variables {#chunk2}
+```{r}
+# Cover data
+  full_cover <- read.csv("~/Dropbox/IDE/data_processed/cover_ppt_map_10-08-2022.csv")
+  head(full_cover)
+  summary(full_cover)
+  
+  # summaries of cover data
+  unique(full_cover$trt)
+  unique(full_cover$functional_group)
+  unique(full_cover$live)
+  unique(full_cover$ps_path)
+  unique(full_cover$local_lifespan)
+  unique(full_cover$n_treat_years)
+  length(unique(full_cover$Taxon)) # 1937 unique species
+  
+# ANPP data
+  anpp <- read.csv("~/Dropbox/IDE/data_processed/anpp_ppt_map_10-12-2022.csv")
+  head(anpp)
+  
+# Site data
+  site_info <- read.csv("~/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
+  head(site_info)
+  summary(site_info)
+
+# Precipitation data
+  ppt_data <- read.csv("~/Dropbox/IDE MS_Single year extreme/Data/precip/precip_by_trmt_year_with_percentiles_365-0days_2022-06-06.csv")
+  head(ppt_data)
+  summary(ppt_data)
+  
+# Site aridity information
+  ai<-read.csv("~/Dropbox/IDE MS_Single year extreme/Data/ai_pet_04-18-2022.csv")
+```
+
+### 3) Calculate community metrics {#chunk3}
+```{r}
+# Plot-level aggregate values
+  # -species richness
+  # -evenness
+  # -dominance (Berger-Parker)
+  # -species richness using Hill numbers (effective number of species)
+
+# Biodiversity calculations using the codyn package
+  comb.by.plot <- full_cover %>%
+    subset(trt == "Control" | trt == "Drought") %>% 
+    ddply(.(site_code, block, plot, subplot, year, first_treatment_year,  first_treatment_date, cover_date, n_treat_days, n_treat_years, trt), # select
+          function(x)data.frame(
+            species_richness = length(x$Taxon),          # richness
+            cover = sum(x$max_cover),                    # max cover
+            BP_index = max(x$max_cover)/sum(x$max_cover),# Berger-Parker dominance index
+            hill_taxa(x$max_cover, q = 0),               # taxonomic alpha diversity via Hill Numbers (effective number of species)
+            EQ = community_structure(
+              x,
+              time.var = NULL,
+              abundance.var = "max_cover",
+              replicate.var = NULL,
+              metric = c("EQ"))$EQ                       # evenness
+          ))
+             
+  warnings()
+
+# Some plots with only 1 species have NA evenness values. Set this to 0
+  # Note: we're setting this to zero (and not 1), because plots that are 100% dominated by a single species (via Berger-Parker index) have a value of 1. As such, the inverse value of evenness should be 0
+  comb.by.plot$EQ[is.na(comb.by.plot$EQ)] <- 0 # set NA evenness values to 0
+  min(comb.by.plot$EQ) # confirm
+  
+  head(comb.by.plot) # inspect dataframe
+
+# Rename Hill number column
+  comb.by.plot <- comb.by.plot %>%   
+          dplyr::rename(richness_hill=hill_taxa.x.max_cover..q...0.)
+```
+
+### 4) Add site-level information abiotic conditions, and yr 1 ANPP to dataframe {#chunk4}
+```{r}
+# use site_info and ppt_data dataframes (already loaded in chunk #2)
+  head(site_info)
+  head(ppt_data)
+
+# combine dataframes 
+  ppt_data <- left_join(ppt_data, site_info[,c("site_code","habitat.type")], by = "site_code") 
+
+# pull precip in drought plots and site-level MAP values for each YEAR (maybe change this later)
+  ppt_data_yr <- ppt_data[,c("site_code","year","n_treat_days","ppt_ambient","ppt_drought","site_map","habitat.type")] 
+
+# remove duplicate site_year plots
+  ppt_data_yr$site_code_yr <- paste(ppt_data_yr$site_code, ppt_data_yr$year, sep = "_")
+  
+  max_nona <- function(x) { # fix NAs
+    if (all(is.na(x))) {
+      return(NA)
+    }
+    
+    max(x, na.rm = TRUE)
+  }
+  
+  # DEBUG: # summarize by percentile_drought, max
+  ppt_data_yr <- ppt_data_yr %>%
+    group_by(site_code_yr) %>%
+    dplyr::summarise(across(.cols = everything(), .fns = max_nona))
+```
+
+### 5) Calculate drought severity/extremity & add yr 1 ANPP data {#chunk5}
+```{r}
+# drought severity calculation
+  ppt_data_yr$drtpct_map<-((ppt_data_yr$ppt_drought-ppt_data_yr$site_map)/ppt_data_yr$site_map)
+
+##########################
+# percent ambient
+  ppt_data_yr$amb_pct <- (ppt_data_yr$ppt_ambient-ppt_data_yr$site_map)/ppt_data_yr$site_map
+
+# ambient aspect
+  ppt_data_yr$amb_abspct <- abs((ppt_data_yr$ppt_ambient-ppt_data_yr$site_map)/ppt_data_yr$site_map)
+
+# Drought MAP percent?
+  ppt_data_yr$drtpct_map100<-((ppt_data_yr$ppt_drought-ppt_data_yr$site_map)/ppt_data_yr$site_map)*100
+
+#Merge with info on extremity of drought
+  ppt_data_yr$Extreme<- ifelse(ppt_data_yr$amb_pct<=0.01,"Extr","NotExtreme");
+  ppt_data_yr$Extreme.num<- ifelse(ppt_data_yr$amb_pct<=0.01,1,0);  
+
+#How many sites above or below average?
+extr.ct<-ppt_data_yr %>% 
+  dplyr::distinct(site_code,year, Extreme)
+length(which(extr.ct$Extreme=='Extr')) #609 (all sites/years)
+length(which(extr.ct$Extreme=='NotExtreme')) #609 (all sites/years)
+
+#Average drought severity with 95% CI
+drtsev.site<-ppt_data_yr%>%
+  dplyr::group_by(site_code)%>%
+  dplyr::summarize(site_drtsev = mean(drtpct_map,na.rm=T),
+                   n=n(), 
+                   sd = sd(drtpct_map,na.rm=T), 
+                   se = sd/sqrt(n),
+                   LowerCI = site_drtsev - qt(1 - (0.05 / 2), n - 1) * se,
+                   UpperCI = site_drtsev + qt(1 - (0.05 / 2), n - 1) * se) %>%
+  dplyr::as_tibble()
+
+drtsev.ave<-drtsev.site%>%
+  dplyr::summarize(mean_drtsev = mean(site_drtsev,na.rm=T),
+                   n=n(), 
+                   sd = sd(site_drtsev,na.rm=T), 
+                   se = sd/sqrt(n),
+                   LowerCI = mean_drtsev - qt(1 - (0.05 / 2), n - 1) * se,
+                   UpperCI = mean_drtsev + qt(1 - (0.05 / 2), n - 1) * se) %>%
+  dplyr::as_tibble()
+
+#Concatenate habitat and extremity
+ppt_data_yr$Eco.Extr <- str_c(ppt_data_yr$habitat.type,"_", ppt_data_yr$Extreme)
+ppt_data_yr$Eco.Extr<- factor(ppt_data_yr$Eco.Extr, levels = c("Grassland_Extr","Shrubland_Extr","Grassland_NotExtreme","Shrubland_NotExtreme"))
+
+# some plots with only one species have a evenness value of NA, so sqitch to 0 because these are essentially super uneven
+#ppt_data_yr$EQ[is.na(ppt_data_yr$EQ)] <- 0
+
+##########################
+
+# join datasets
+  comb.by.plot <- left_join(comb.by.plot,ppt_data_yr[,c("site_code","year","ppt_drought","site_map","habitat.type","drtpct_map","amb_pct","amb_abspct","drtpct_map100","Extreme","Eco.Extr")], by = c("site_code","year")) 
+
+# add ANPP data (loaded in chunk 2)
+  head(anpp)
+  
+  anpp.comm <- inner_join(comb.by.plot, anpp[,c("site_code","block","plot","mass","n_treat_years")], by = c("site_code","block","plot","n_treat_years"), keep = F)
+  
+  # debug 
+  anpp.comm$Extreme <- as.factor(anpp.comm$Extreme)
+```
+*anpp.comm* is a year-1 community metric data set containing ANPP data
+*ppt_data_yr* contains drought severity & extremity information per site per year (for all years)
+
+### 6) Filter data to first year of drought, only grassland/shrubland sites, sites with sufficient no. of reps {#chunk6}
+```{r}
+# first year of data only
+comb.by.plot <- comb.by.plot %>%
+    filter(n_treat_years == 1) # why does this drop 9 sites????
+  
+# Code credit: Dr. Kate Wilkins
+
+# REMOVING FOREST SITES (Will leave this data to Rich Phillips)
+  data.noforest <- comb.by.plot %>%
+  dplyr::filter(!habitat.type %in% c('Forest','Forest understory'))
+  length(unique(data.noforest$site_code)) #77 (3 sites removed)
+  setdiff(comb.by.plot$site_code,data.noforest$site_code) # these sites were removed
+
+# Removing sites here that DO NOT report ANPP or are outside of ANPP range for biome listed in Fahey & Knapp 2007:
+  data.anpp<-data.noforest[which(data.noforest$site_code!="lcnorth.cl" #Doesn't report ANPP
+  &data.noforest$site_code!="lcsouth.cl" #Doesn't report ANPP
+  &data.noforest$site_code!="qdtnorth.cl" #Doesn't report ANPP
+  &data.noforest$site_code!="qdtsouth.cl" #Doesn't report ANPP
+  &data.noforest$site_code!="neudamm.na" #Doesn't report ANPP, also no weather info
+  &data.noforest$site_code!="ebro.es" #ANPP outside range for biome
+  &data.noforest$site_code!="garraf.es" #Did not follow protocols: Not using for drought plots, only using control plots for this site
+  &data.noforest$site_code!="brandjberg.dk" #Did not follow protocols: Not using for drought plots, only using control plots for this site
+  &data.noforest$site_code!="ethadb.au" #ANPP outside range for biome
+  &data.noforest$site_code!="ethadn.au" #ANPP outside range for biome
+  &data.noforest$site_code!="swift.ca" #did not follow IDE protocols (drought plots did not exclude water- see Jillian email)
+  &data.noforest$site_code!="jenadrt.de" #did not have the correct data for their first treatment year because they lost a biomass bag and
+  #requested their data be removed (see GitHub for details), will include them in "Drought shelters were not in place for
+  #120-650 days (+/- one week)
+  ),]
+
+# group by distinct plots/treatments within a site and year
+  uniq.plot <- comb.by.plot %>% 
+    dplyr::filter(trt %in% c("Drought","Control"))%>%
+    dplyr::select(site_code,first_treatment_year,n_treat_days,n_treat_years,plot,trt,species_richness,cover,BP_index,richness_hill,EQ,ppt_drought,site_map,habitat.type,drtpct_map)%>%
+    dplyr::distinct(site_code,first_treatment_year,n_treat_days,n_treat_years,plot,trt,species_richness,cover,BP_index,richness_hill,EQ,ppt_drought,site_map,habitat.type,drtpct_map)%>%
+    dplyr::as_tibble()
+
+# get df with number of plots (reps) per treatments
+  Plot.trt.ct <- uniq.plot %>% 
+    dplyr::group_by(site_code,trt,first_treatment_year) %>% 
+    dplyr::summarise(Plot.count=n())
+
+# Converting to wide format to see which sites do not have both treatments in a year
+Plottrt_wide <- spread(Plot.trt.ct,trt,Plot.count)
+Plottrt_wide[is.na(Plottrt_wide)] <- 0
+
+#Remove sites and years that don't have both control and drought plots
+  #OR that only have one rep of drought
+  #brokenh.au in 2018 and 2019 (0 drought plots)
+  #chacra.ar in 2016 (1 control plot) #Keeping
+  #chilcasdrt.ar in 2016 and 2020 (0 drought plots)
+  #charleville.au in 2017 (1 control plot) #Keeping
+  #charleville.au in 2019 (1 drought plot)
+  #cobar.au in 2018 (1 control plot) #keeping
+
+Plottrt_wide1<-Plottrt_wide%>%
+  dplyr::filter(Drought>=2 & Control>=1)%>%
+  dplyr::as_tibble()
+
+#Switch back to long format for merge
+Plot.trt.ct2<-gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
+
+#Merge unique trt count back with data frame to filter
+comb.by.plot<-merge(comb.by.plot,Plot.trt.ct2,by=c("site_code","trt","first_treatment_year"))
+
+#Select for sites where min no. of reps is greater than 2
+comb.by.plot <- comb.by.plot %>%
+  filter(Plot.count > 2)
+
+# MAYBE KEEP THIS
+# if the value in the functional group column = grass, change to graminoid 
+full_cover$functional_group <- ifelse(full_cover$functional_group == "GRASS", "GRAMINOID", full_cover$functional_group)
+```
+*comb.by.plot* contains community metric calculations and site info for year 1 with calculations for species richness (species_richness), species evenness (EQ), dominance (BP_index), and species richness using Hill numbers, or effective number of species (richness_hill)
+
+
+# ORDINATIONS 
+
+### 7) SITE-LEVEL dispersion: PCoA (betadisper) and LCBD {#chunk7}
+In this case, we're looking to see if sites shift in their species composition between drought and control plots (PCoA), by calculating the average distance of group members to the group centroid or spatial median in multivariate space using betadisper(). We're also interesting in investigating each sites' LCBD values, which are squared distances to the centroid in an ordination diagram, or a fancy way for saying how dispersed is each site is
+```{r}
+# Create site x species matrix for yr 1 data
+
+  # Paste several columns to make unique column for pivoting data
+  full_cover$Unique <- paste(full_cover$site_code,full_cover$trt,full_cover$plot, sep = "_")
+
+  # Convert comb.by.plot to wide format dataframe 
+      # Pivot
+    comb.by.plot.s <- full_cover %>%
+      filter(n_treat_years %in% 1) %>%
+      filter(trt == "Control" | trt == "Drought") %>%
+      dplyr::select(site_code, year, trt, Taxon, max_cover, Unique) %>%
+      pivot_wider(id_cols = Unique,
+                            names_from = Taxon,
+                            values_from = max_cover, 
+                            values_fn = sum)
+    head(comb.by.plot.s)
+  
+# set NAs in matrix to 0
+    comb.by.plot.s[is.na(comb.by.plot.s)] <- 0
+    head(comb.by.plot.s)
+  
+
+# Split "Unique" column into multiple columns by separator
+  comb.by.plot.s <- comb.by.plot.s %>%
+    separate(col = Unique, into = c("site_code","trt","plot"), sep = "_") %>%
+    filter(trt != "drt.us") 
+  
+### Ordination calculations
+  # do these separately for control and drought for each site
+  # this involves breaking dataframe up by treatment, using sites to group PCoA analysis, then re-merging dataframe
+      
+##### PCoA
+    # subset by drought 
+      comb.by.plot.drt <- comb.by.plot.s %>%
+        filter(trt == "Drought") # drought plots
+      
+      # get bray-curtis distance
+      d.drt <- vegdist(comb.by.plot.drt[,-c(1:3)], method="bray")
+      bd.drt = betadisper(d.drt, comb.by.plot.drt$site_code, type = c("median","centroid"))
+      plot(bd.drt) # plot for drought
+      
+      # extract distances to centroids
+      df.drt <- data.frame(Distance_to_centroid=bd.drt[["distances"]],Group=bd.drt$group) # "distances" = Euclidean distances in principal coordinate space between the samples and their respective group (site-level) centroid or median.
+      groups <- bd.drt$group # sites
+      df.drt$trt <- as.factor("Drought")
+      
+    
+    # subset by control
+      comb.by.plot.ctl <- comb.by.plot.s %>%
+        filter(trt == "Control") # control plots
+      
+      d.ctl <- vegdist(comb.by.plot.ctl[,-c(1:3)], method="bray")
+      bd.ctl = betadisper(d.ctl, comb.by.plot.ctl$site_code, type = c("median","centroid"))
+      plot(bd.ctl)
+      
+      df.ctl <- data.frame(Distance_to_centroid=bd.ctl[["distances"]],Group=bd.ctl$group)
+      groups <- bd.ctl$group
+      df.ctl$trt <- as.factor("Control")
+      
+      # combine drought and control dataframes
+      df.pcoa.s <- rbind(df.drt,df.ctl)
+    
+    # plot
+    ggplot(data=df.pcoa.s,aes(x=Group,y=Distance_to_centroid,fill=Group)) +
+      stat_summary(aes(col=trt),fun.data = mean_se,  geom = "errorbar", width = 0.3, size = 1, position = position_dodge(width = 0.9)) +
+          stat_summary(aes(col=trt),fun=mean,geom="point", position = position_dodge(width = 0.9),pch=21) +
+      theme_bw() +
+      scale_colour_manual(values=c("grey30","grey70")) +
+      theme(axis.text.x=element_text(angle = -90, hjust = 0,vjust=0.5));ggplotly() 
+    # not really useful to look at, but it shows us the values that we can extract from these ordination objects
+    
+    # out of curiosity, are there any patterns in dispersion across all sites?
+    ggplot(data=df.pcoa.s,aes(x=trt,y=Distance_to_centroid)) +
+      stat_summary(aes(col=trt),fun.data = mean_se,  geom = "errorbar", width = 0.3, size = 1, position = position_dodge(width = 0.9)) +
+          stat_summary(aes(col=trt),fun=mean,geom="point", position = position_dodge(width = 0.9),pch=21) +
+      theme_bw() +
+      scale_colour_manual(values=c("grey30","grey70")) +
+      theme(axis.text.x=element_text(angle = -90, hjust = 0,vjust=0.5));ggplotly() # interesting...
+    
+    
+###### LCBD calculations: 
+      # LCBD are squared distances to the centroid in an ordination diagram
+      # Another fancy word for saying how dispersed is each site
+    # Drought
+       g <- comb.by.plot.drt$site_code # grouping variable
+       dist<-beta.pair.abund(comb.by.plot.drt[,-c(1:3)],index.family="bray")
+       bd <- betadisper(dist[[3]],g) # ordination plot object with coords
+      
+      out.comp.drt = beta.div.comp(comb.by.plot.drt[,-c(1:3)], coef="S", quant=TRUE) # LCBD calcs: type out.sp.XXX$beta for values
+      out.sp.D.drt = LCBD.comp(out.comp.drt$D, sqrt.D=TRUE)   # out.comp.ctl$D = difference in species composition
+      print(bd$centroids[,c(1:2)]) # take a look at the centroids
+      centroids.drt <- bd$centroids[,c(1:2)] # may need to be flipped using t() if there are too little/many groups
+      centroids.drt <- as.data.frame(centroids.drt)
+      
+      comb.by.plot.drt$PCoA1 <- bd$vectors[,1] # add Cartesian coordinates from PCoA to df (vectors 1 and 2 only) for plotting
+      comb.by.plot.drt$PCoA2 <- bd$vectors[,2] 
+      comb.by.plot.drt$LCBD <- out.sp.D.drt$LCBD # add LCBD to df
+    
+    # Control
+     g <- comb.by.plot.ctl$site_code # grouping variable
+     dist<-beta.pair.abund(comb.by.plot.ctl[,-c(1:3)],index.family="bray")
+     bd <- betadisper(dist[[3]],g) # ordination plot object with coords
+    
+    out.comp.ctl = beta.div.comp(comb.by.plot.ctl[,-c(1:3)], coef="S", quant=TRUE) # LCBD calcs: type out.sp.XXX$beta for values
+    out.sp.D.ctl = LCBD.comp(out.comp.ctl$D, sqrt.D=TRUE)   # out.comp.ctl$D = difference in species composition
+    print(bd$centroids[,c(1:2)]) # take a look at the centroids
+    centroids.ctl <- bd$centroids[,c(1:2)] # may need to be flipped using t() if there are too little/many groups
+    centroids.ctl <- as.data.frame(centroids.ctl)
+    
+    comb.by.plot.ctl$PCoA1 <- bd$vectors[,1] # add Cartesian coordinates from PCoA to df (vectors 1 and 2 only) for plotting
+    comb.by.plot.ctl$PCoA2 <- bd$vectors[,2] 
+    comb.by.plot.ctl$LCBD <- out.sp.D.ctl$LCBD # add LCBD to df
+    
+    # combine drought and control dataframes
+      df.lcbd.s <- bind_rows(comb.by.plot.drt[,c("site_code","trt","plot","PCoA1","PCoA2","LCBD")],comb.by.plot.ctl[,c("site_code","trt","plot","PCoA1","PCoA2","LCBD")])
+      
+    # debug
+      df.lcbd.s$plot <- as.numeric(df.lcbd.s$plot)
+      
+    # plot LCBD
+      ggplot(data=df.lcbd.s,aes(x=site_code,y=LCBD,fill=site_code)) +
+      stat_summary(aes(col=trt),fun.data = mean_se,  geom = "errorbar", width = 0.3, size = 1, position = position_dodge(width = 0.9)) +
+          stat_summary(aes(col=trt),fun=mean,geom="point", position = position_dodge(width = 0.9),pch=21) +
+      theme_bw() +
+      scale_colour_manual(values=c("grey30","grey70")) +
+      theme(axis.text.x=element_text(angle = -90, hjust = 0,vjust=0.5));ggplotly()
+      
+    # look at trends across sites
+      ggplot(data=df.lcbd.s,aes(x=trt,y=LCBD)) +
+      stat_summary(aes(col=trt),fun.data = mean_se,  geom = "errorbar", width = 0.3, size = 1, position = position_dodge(width = 0.9)) +
+          stat_summary(aes(col=trt),fun=mean,geom="point", position = position_dodge(width = 0.9),pch=21) +
+      theme_bw() +
+      scale_colour_manual(values=c("grey30","grey70")) +
+      theme(axis.text.x=element_text(angle = -90, hjust = 0,vjust=0.5));ggplotly()
+```
+*df.pcoa.s* contains PCoA centroid distances for all SITES
+*df.lcbd.s* LCBD values for control vs. drought plots in all SITES
+
+
+# CALCULATE BIOMASSS & BIODIVERSITY RESPONSES 
+
+### 8) SITE-LEVEL aggregate values: responses for species richness (reg., hill numbers), evenness, dominance, and ANPP {chunk8}
+```{r}
+# This chunk calculates metric responses in separate dataframes, then combines them at the end
+
+# Species richness response
+   comb.wide.sr <- comb.by.plot %>% 
+     pivot_wider(names_from = trt,
+                 values_from = species_richness) %>% # pivot wider so that each treatment is a separate column filled by species richness values
+     dplyr::select(site_code,n_treat_years,Control,Drought) %>% # select columns to work with 
+     group_by(site_code, n_treat_years) %>% # by site, not plot
+     replace(is.na(.), 0) %>% # some NA values present. Replace with 0
+     dplyr::summarise_all(funs(sum)) %>% # summarise across to get species richness values for Drought and Control together
+     dplyr::mutate(sr_response = log(Drought/Control)) 
+   
+    head(comb.wide.sr)
+    
+      # repeat pipe for calculating the responses of other metrics (below)
+ 
+# Evenness response
+   comb.wide.eq <- comb.by.plot %>%
+     pivot_wider(names_from = trt,
+                 values_from = EQ) %>%
+     dplyr::select(site_code,n_treat_years,Control,Drought) %>%
+     group_by(site_code, n_treat_years) %>% 
+     replace(is.na(.), 0) %>%
+     dplyr::summarise_all(funs(sum)) %>%
+     dplyr::mutate(eq_response = log(Drought/Control))
+   
+    head(comb.wide.eq)
+ 
+# Berger-Parker index response
+   comb.wide.bp <- comb.by.plot %>%
+     pivot_wider(names_from = trt,
+                 values_from = BP_index) %>%
+     dplyr::select(site_code,n_treat_years,Control,Drought) %>%
+     group_by(site_code, n_treat_years) %>% 
+     replace(is.na(.), 0) %>%
+     dplyr::summarise_all(funs(sum)) %>%
+     mutate(bp_response = log(Drought/Control))
+   
+    head(comb.wide.bp)
+ 
+# Hill richness response
+   comb.wide.rh <- comb.by.plot %>%
+     pivot_wider(names_from = trt,
+                 values_from = richness_hill) %>%
+     dplyr::select(site_code,n_treat_years,Control,Drought) %>%
+     group_by(site_code, n_treat_years) %>% 
+     replace(is.na(.), 0) %>%
+     dplyr::summarise_all(funs(sum)) %>%
+     dplyr::mutate(rh_response = log(Drought/Control))
+   
+    head(comb.wide.rh)
+    
+# ANPP response
+   comb.wide.anpp <- anpp.comm %>%
+     pivot_wider(names_from = trt,
+                 values_from = mass,
+                 values_fn = mean) %>%
+     dplyr::select(site_code,n_treat_years,Control,Drought) %>%
+     group_by(site_code, n_treat_years) %>% 
+     replace(is.na(.), 0) %>%
+     dplyr::summarise_all(funs(sum)) %>%
+     dplyr::mutate(anpp_response = log(Drought/Control))
+   
+    head(comb.wide.anpp)
+ 
+# combine species richness, evenness, and BP index responses, then join to original dataframe
+    comb <- comb.wide.sr[,c("site_code","n_treat_years","sr_response")] %>%
+      left_join(comb.wide.eq[,c("site_code","n_treat_years","eq_response")], by=c("site_code","n_treat_years")) %>%
+      left_join(comb.wide.bp[,c("site_code","n_treat_years","bp_response")], by=c("site_code","n_treat_years")) %>%
+      left_join(comb.wide.rh[,c("site_code","n_treat_years","rh_response")], by=c("site_code","n_treat_years")) %>%
+      left_join(comb.wide.anpp[,c("site_code","n_treat_years","anpp_response")], by=c("site_code","n_treat_years"))
+    head(comb)
+  
+# join with site_info dataset
+    comb.site.resp <- left_join(comb, distinct(comb.by.plot[,c("site_code","habitat.type")]), by = "site_code")
+    
+    
+# Remove duplicates several columns
+# comb.site.resp <- comb.site.resp %>%
+#   filter(!duplicated(cbind(site_code,trt,LCBD,PCoA1,sr_response)))
+```
+*comb.site.resp* contains SITE-level community metric responses for year 1 & site-level information
+
+### 9) PLOT-LEVEL aggregate values: species richness (reg., hill numbers), evenness, & dominance {chunk9} 
+##### Is the first treatment year for anpp and cover always the same?
+```{r}
+# Add ANPP data
+  # first, filter the data
+anpp.comm <- anpp.comm %>%
+    filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+  filter(n_treat_years == 1)
+
+# Calculate % rainfall reduction by drought treatment
+drttrt.ave<-merge(comb.by.plot,site_info,by = c("site_code","habitat.type"))
+drttrt.ave1<-drttrt.ave%>%
+  dplyr::group_by(site_code,plot,drought_trt)%>% # add plot here too?
+  dplyr::as_tibble()
+mean(as.numeric(drttrt.ave1$drought_trt))
+#52.41
+
+drttrt.ave <- left_join(drttrt.ave, anpp.comm[,c("site_code","plot","mass")], by= c("site_code","plot")) %>%
+  distinct()
+
+#Prepping data frame to add a column with plot-level drought diversity metrics and 
+#another column with mean control diversity metrics for the site
+
+    # Break into separate dataframes to calculate diversity metrics by treatment
+    yr_drt_comm<-drttrt.ave %>%
+      dplyr::filter(trt=="Drought")%>% # drought treatments only
+      dplyr::group_by(site_code,year,plot,habitat.type)%>% # plot added here
+      dplyr::summarize(species_richness=mean(species_richness),
+                       EQ=mean(EQ),
+                       BP_index=mean(BP_index),
+                       RH=mean(richness_hill),
+                       ANPP=mean(mass)) 
+    length(unique(yr_drt_comm$site_code)) #79
+    
+    
+    control_means<-drttrt.ave%>%
+      dplyr::filter(trt=="Control")%>% 
+      dplyr::group_by(site_code,year,habitat.type)%>%
+      dplyr::summarize(mean_control_species_richness=mean(species_richness),
+                       mean_control_EQ=mean(EQ),
+                       mean_control_BP_index=mean(BP_index),
+                       mean_control_RH=mean(richness_hill),
+                       mean_control_ANPP=mean(mass))
+    ###############
+
+length(unique(control_means$site_code)) #79
+
+# Merging these to create a new dataframe
+  data.c<-data.frame(merge(yr_drt_comm,control_means[,c("site_code","year","mean_control_species_richness","mean_control_EQ","mean_control_BP_index","mean_control_RH","mean_control_ANPP","habitat.type")]))
+  length(unique(data.c$site_code))#78 sites
+  unique(data.c$habitat.type) # All types
+
+
+# get responses
+data.c <- data.c %>%
+  mutate(sr_response = log(species_richness/mean_control_species_richness),
+         eq_response = log(EQ/mean_control_EQ),
+         BP_index_response = log(BP_index/mean_control_BP_index),
+         rh_response = log(RH/mean_control_RH),
+         anpp_response = log(ANPP/mean_control_ANPP))
+
+# change NAs to 0 (CHECK THIS!)
+data.c$eq_response[is.na(data.c$eq_response)] <- 0
+
+#######################
+
+#Merge with ppt_data dataframes
+# comb.plot.resp<-merge(drttrt.ave, data.c[,c("site_code","year","plot","sr_response","eq_response","BP_index_response","rh_response","habitat.type")],all=F)
+comb.plot.resp<-merge(data.c[,c("site_code","year","plot","sr_response","eq_response","BP_index_response","rh_response","anpp_response","habitat.type")], comb.by.plot,all=F)
+
+# debug
+#comb.plot.resp$plot <- as.character(comb.plot.resp$plot)
+
+length(unique(ppt_data_yr$site_code)) #78
+
+# Add ordination data
+comb.plot.resp <- left_join(comb.plot.resp, df.lcbd.s, by = c("site_code","trt","plot"))
+
+# comb.plot.resp <- left_join(comb.plot.resp, comb.plot.resp[,c("site_code","plot","trt","first_treatment_year","year","mass")], by = c("site_code","plot","trt","first_treatment_year","year"), all.x=F)
+
+# Remove duplicates several columns
+comb.plot.resp <- comb.plot.resp %>%
+  filter(!duplicated(cbind(site_code,plot,trt,LCBD,PCoA1,eq_response)))
+```
+*comb.plot.resp* contains PLOT-level community metric & anpp responses (including ordination responses) for year 1 & plot/site-level information 
+
+### 10) Make dataframes for stitch plots {#chunk10} 
+```{r}
+### Species richness (regular)
+      #Mean SR response by habitat type 
+      dt3.all.sr<-comb.plot.resp %>%
+        #dplyr::filter(n_treat_years %in% 1) %>%
+        dplyr::group_by(site_code,Eco.Extr,Extreme) %>%
+        dplyr::summarize(mean_SRR = mean(sr_response,na.rm=T), 
+                         n = n(),
+                         sd = sd(sr_response,na.rm=T), 
+                         se = sd/sqrt(n),
+                         LowerCI = mean_SRR - qt(1 - (0.05 / 2), n - 1) * se,
+                         UpperCI = mean_SRR + qt(1 - (0.05 / 2), n - 1) * se) %>%
+        dplyr::as_tibble()
+      
+      dt3.all.sr<-data.frame(dt3.all.sr)
+      
+      #Number of sites with significant reductions in species richness based on confidence interval not overlapping zero
+      dt3.all.sr$Sig<-with(dt3.all.sr, LowerCI <= 0 & UpperCI >= 0)
+
+### Species richness (Hill)
+      #Mean hill response by habitat type 
+      dt3.all.rh<-comb.plot.resp %>%
+        #dplyr::filter(n_treat_years %in% 1) %>%
+        dplyr::group_by(site_code,Eco.Extr,Extreme) %>%
+        dplyr::summarize(mean_SRH = mean(rh_response,na.rm=T), 
+                         n = n(),
+                         sd = sd(rh_response,na.rm=T), 
+                         se = sd/sqrt(n),
+                         LowerCI = mean_SRH - qt(1 - (0.05 / 2), n - 1) * se,
+                         UpperCI = mean_SRH + qt(1 - (0.05 / 2), n - 1) * se) %>%
+        dplyr::as_tibble()
+      
+      dt3.all.rh<-data.frame(dt3.all.rh)
+      
+      #Number of sites with significant reductions in species richness based on confidence interval not overlapping zero
+      dt3.all.rh$Sig<-with(dt3.all.rh, LowerCI <= 0 & UpperCI >= 0)
+      
+### Species evenness
+      #Mean EQ response by habitat type 
+      dt3.all.eq<-comb.plot.resp %>%
+        dplyr::filter(n_treat_years %in% 1) %>%
+        dplyr::group_by(site_code,Eco.Extr,Extreme) %>%
+        dplyr::summarize(mean_EQR = mean(eq_response,na.rm=T), 
+                         n = n(),
+                         sd = sd(eq_response,na.rm=T), 
+                         se = sd/sqrt(n),
+                         LowerCI = mean_EQR - qt(1 - (0.05 / 2), n - 1) * se,
+                         UpperCI = mean_EQR + qt(1 - (0.05 / 2), n - 1) * se) %>%
+        dplyr::as_tibble()
+      
+      dt3.all.eq<-data.frame(dt3.all.eq)
+      
+      #Number of sites with significant reductions in species evenness based on confidence interval not overlapping zero
+      dt3.all.eq$Sig<-with(dt3.all.eq, LowerCI <= 0 & UpperCI >= 0)
+      
+### Berger-Parker index
+      #Mean BP index response by habitat type 
+      dt3.all.bp<-comb.plot.resp %>%
+        dplyr::filter(n_treat_years %in% 1) %>%
+        dplyr::group_by(site_code,Eco.Extr,Extreme) %>%
+        dplyr::summarize(mean_BPR = mean(BP_index_response,na.rm=T), 
+                         n = n(),
+                         sd = sd(BP_index_response,na.rm=T), 
+                         se = sd/sqrt(n),
+                         LowerCI = mean_BPR - qt(1 - (0.05 / 2), n - 1) * se,
+                         UpperCI = mean_BPR + qt(1 - (0.05 / 2), n - 1) * se) %>%
+        dplyr::as_tibble()
+      
+      dt3.all.bp<-data.frame(dt3.all.bp)
+      
+      #Number of sites with significant reductions in BP index values based on confidence interval not overlapping zero
+      dt3.all.bp$Sig<-with(dt3.all.bp, LowerCI <= 0 & UpperCI >= 0)
+```
+*dt3.all.sr* (regular species richness), *dt3.all.rh* (hill species richness), *dt3.all.eq* (evenness), and *dt3.all.bp* (Berger-Parker Index) response means and standard errors with information on drought severity/extremity and habitat type, to be used in stitches plots
+
+### 12) Add site information  {#chunk12} 
+```{r}
+# Review dataframes that we want to use
+head(anpp.comm) # is a year-1 community metric data set containing ANPP data
+    # No site info
+head(comb.site.resp) # contains SITE-level community metric responses for year 1 & site-level information
+    # No site info
+head(comb.plot.resp) # contains PLOT-level community metric (including ordination) responses for year 1 & plot/site-level information 
+    # No site info
+
+# look at site info
+head(site_info)
+
+# add site info to anpp.comm, comb.plot.resp, & comb.site.resp
+  anpp.comm.si <- left_join(anpp.comm, site_info, by = c("site_code", "habitat.type")) 
+  comb.plot.resp.si <- left_join(comb.plot.resp, site_info, by = c("site_code", "habitat.type"))
+  comb.site.resp.si <- left_join(comb.site.resp, site_info, by = c("site_code", "habitat.type"))
+```
+*anpp.comm.si* is a year-1 community metric data set containing ANPP data with all SITE INFORMATION
+*comb.plot.resp.si* contains SITE-level community metric responses for year 1 & site-level information with all SITE INFORMATION
+*comb.site.resp.si* contains PLOT-level community metric (including ordination) responses for year 1 & plot/site-level information with all SITE INFORMATION
+
+STATISTICS
+
+### 13) Models & post-hoc analyses {#chunk13} (under construction)
+```{r}
+```
+
+FIGURES
+
+### 14) PLOT-level comparisons of ANPP to richness and evenness {#chunk14}
+```{r}
+# dataframe assembled in chunk 5 
+  head(anpp.comm.si)
+
+# effective SR (hill) vs anpp
+  anpp.comm.si %>% #add year 1 data only?
+    filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+  ggplot(aes(x=log(mass), y = richness_hill)) +
+    geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=2) +
+  scale_color_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme"),        values=c("mediumseagreen","wheat3","mediumseagreen","wheat3")) +
+  scale_shape_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme "),values=c(19,17,21,24))+
+    geom_smooth(aes(color = Eco.Extr, linetype=Extreme),method = "lm",se=F) +
+    theme_bw() +
+    theme(panel.grid.major.x = element_blank(),
+           panel.grid.major.y = element_line(size=.1, color="grey")) +
+    xlab("log(ANPP)") +
+    ylab("Species richness (hill)")
+
+
+# evenness vs anpp
+  anpp.comm.si %>% #add year 1 data only?
+    filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+  ggplot(aes(x=log(mass), y = EQ)) +
+    geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=2) +
+  scale_color_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme"),        values=c("mediumseagreen","wheat3","mediumseagreen","wheat3")) +
+  scale_shape_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme "),values=c(19,17,21,24))+
+    geom_smooth(aes(color = Eco.Extr, linetype=Extreme),method = "lm",se=F) +
+    theme_bw() +
+    theme(panel.grid.major.x = element_blank(),
+           panel.grid.major.y = element_line(size=.1, color="grey")) +
+    xlab("log(ANPP)") +
+    ylab("Species evenness")
+```
+
+------------------
+
+### 15) PLOT-level Richness (reg. & Hill), evenness, dominance, & diversity responses to drought severity {#chunk15}
+```{r}
+### PLOT-level responses ###
+
+# SR (hill) response in yr 1
+comb.plot.resp.si %>%
+  filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+ggplot(aes(x=drtpct_map, y = rh_response)) +
+  geom_vline(xintercept = 0, linetype="solid", 
+                color = "black", size=1) +
+  geom_hline(yintercept = 0, linetype="dashed", 
+                color = "black", size=1) +
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=2) +
+  scale_color_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme"),        values=c("mediumseagreen","wheat3","mediumseagreen","wheat3")) +
+  scale_shape_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme "),values=c(19,17,21,24))+
+    geom_smooth(aes(color = Eco.Extr, linetype=Extreme),method = "lm",se=F) +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank(),
+         panel.grid.major.y = element_line(size=.1, color="grey")) +
+  xlab("Drought Severity") +
+  ylab("Species Richness (Hill) Response, plot level")
+
+
+# evenness response in yr 1
+comb.plot.resp.si %>%
+  filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+ggplot(aes(x=drtpct_map, y = eq_response)) +
+  geom_vline(xintercept = 0, linetype="solid", 
+                color = "black", size=1) +
+  geom_hline(yintercept = 0, linetype="dashed", 
+                color = "black", size=1) +
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=2) +
+  scale_color_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme"),        values=c("mediumseagreen","wheat3","mediumseagreen","wheat3")) +
+  scale_shape_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme "),values=c(19,17,21,24))+
+    geom_smooth(aes(color = Eco.Extr, linetype=Extreme),method = "lm",se=F) +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank(),
+         panel.grid.major.y = element_line(size=.1, color="grey")) +
+  xlab("Drought Severity") +
+  ylab("Species Evenness Response, plot level")
+
+# Berger-Parker index response in yr 1
+comb.plot.resp.si %>%
+  filter(habitat.type == "Grassland" | habitat.type == "Shrubland") %>%
+ggplot(aes(x=drtpct_map, y = BP_index_response)) +
+  geom_vline(xintercept = 0, linetype="solid", 
+                color = "black", size=1) +
+  geom_hline(yintercept = 0, linetype="dashed", 
+                color = "black", size=1) +
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=2) +
+  scale_color_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme"),        values=c("mediumseagreen","wheat3","mediumseagreen","wheat3")) +
+  scale_shape_manual(name="IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme","Shrubland_Extr"="Shrubland, extreme","Grassland_NotExtreme"="Grassland, Not extreme","Shrubland,Not extreme "),values=c(19,17,21,24))+
+    geom_smooth(aes(color = Eco.Extr, linetype=Extreme),method = "lm",se=F) +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank(),
+         panel.grid.major.y = element_line(size=.1, color="grey")) +
+  xlab("Drought Severity") +
+  ylab("Berger-Parker Dominance Index Response, plot level")
+```
+
+------------------
+
+### 16) Stitch plots (site level) [#chunk16]
+```{r}
+#Richness (hill) response by site
+RRdata<-dt3.all.rh
+
+RRdata.sort <- RRdata[order(-(RRdata$mean_SRH)),]
+RRdata.sort$site_code <- factor(RRdata.sort$site_code, levels=unique(RRdata.sort$site_code))
+RRdata.sort
+
+length(unique(RRdata.sort$site_code)) #78
+sum(RRdata.sort$mean_SRH<0) #57 sites with negative drought response
+sum(RRdata.sort$mean_SRH>0) #21 sites with no or positive drought response
+
+Fig.sh<-ggplot(RRdata.sort, aes(x = mean_SRH,y=site_code))+
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=LowerCI,y=site_code,xend=UpperCI,yend=site_code,color=Eco.Extr),size=0.25)+
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=1)+
+  scale_color_manual(name="IDE Sites (n=78)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),
+                     values=c("mediumseagreen","rosybrown4","mediumseagreen","rosybrown4"))+
+  scale_shape_manual(name="IDE Sites (n=78)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),values=c(19,17,21,24))+ 
+  labs(x = "Species richness (hill) response", y="")+
+  geom_hline(yintercept=0)+
+  theme_tufte(ticks=T,base_size = 15)+ 
+  theme(legend.position="right",axis.line.x = element_line(colour ="black", size = 0.5),
+        axis.line.y = element_line(colour ="black", size = 0.5),
+        axis.text.x = element_text(color="black",size=8,family="Calibri"),
+        axis.text.y = element_text(color="black",size=8,family="Calibri"),
+        axis.title.x = element_text(color="black",size=8,family="Calibri"),
+        axis.title.y = element_text(color="black",size=8,family="Calibri"),
+        legend.text = element_text(color="black",size=8,family="Calibri"),
+        legend.title = element_text(color="black",size=8,family="Calibri"))
+#Fig.sr<-Fig.sr+xlim(-7.0,7.0)
+Fig.sh
+
+
+#Evenness response by site
+RRdata<-dt3.all.eq
+
+RRdata.sort <- RRdata[order(-(RRdata$mean_EQR)),]
+#RRdata.sort$site_code <- factor(RRdata.sort$site_code)
+RRdata.sort$site_code <- factor(RRdata.sort$site_code, levels=unique(RRdata.sort$site_code))
+RRdata.sort
+
+length(unique(RRdata.sort$site_code)) #78
+sum(RRdata.sort$mean_EQR<0) #50 sites with negative drought response
+sum(RRdata.sort$mean_EQR>0) #28 sites with no or positive drought response
+
+Fig.eq<-ggplot(RRdata.sort, aes(x = mean_EQR,y=site_code))+
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=LowerCI,y=site_code,xend=UpperCI,yend=site_code,color=Eco.Extr),size=0.25)+
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=1)+
+  scale_color_manual(name="IDE Sites (n=78)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),
+                     values=c("mediumseagreen","rosybrown4","mediumseagreen","rosybrown4"))+
+  scale_shape_manual(name="IDE Sites (n=78)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),values=c(19,17,21,24))+ 
+  labs(x = "Species evenness response", y="")+
+  geom_hline(yintercept=0)+
+  theme_tufte(ticks=T,base_size = 15)+ 
+  theme(legend.position="right",axis.line.x = element_line(colour ="black", size = 0.5),
+        axis.line.y = element_line(colour ="black", size = 0.5),
+        axis.text.x = element_text(color="black",size=8,family="Calibri"),
+        axis.text.y = element_text(color="black",size=8,family="Calibri"),
+        axis.title.x = element_text(color="black",size=8,family="Calibri"),
+        axis.title.y = element_text(color="black",size=8,family="Calibri"),
+        legend.text = element_text(color="black",size=8,family="Calibri"),
+        legend.title = element_text(color="black",size=8,family="Calibri"))
+Fig.eq
+
+# Berger-Parker Index response by site
+RRdata<-dt3.all.bp
+
+RRdata.sort <- RRdata[order(-(RRdata$mean_BPR)),]
+RRdata.sort$site_code <- factor(RRdata.sort$site_code, levels=unique(RRdata.sort$site_code))
+RRdata.sort
+
+length(unique(RRdata.sort$site_code)) #78
+sum(RRdata.sort$mean_BPR<0) #50 sites with negative drought response
+sum(RRdata.sort$mean_BPR>0) #28 sites with no or positive drought response
+
+Fig.bp<-ggplot(RRdata.sort, aes(x = mean_BPR,y=site_code))+
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=LowerCI,y=site_code,xend=UpperCI,yend=site_code,color=Eco.Extr),size=0.25)+
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=1)+
+  scale_color_manual(name="IDE Sites (n=78)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),
+                     values=c("mediumseagreen","rosybrown4","mediumseagreen","rosybrown4"))+
+  scale_shape_manual(name="IDE Sites (n=78)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),values=c(19,17,21,24))+ 
+  labs(x = "Berger-Parker Index response", y="")+
+  geom_hline(yintercept=0)+
+  theme_tufte(ticks=T,base_size = 15)+ 
+  theme(legend.position="right",axis.line.x = element_line(colour ="black", size = 0.5),
+        axis.line.y = element_line(colour ="black", size = 0.5),
+        axis.text.x = element_text(color="black",size=8,family="Calibri"),
+        axis.text.y = element_text(color="black",size=8,family="Calibri"),
+        axis.title.x = element_text(color="black",size=8,family="Calibri"),
+        axis.title.y = element_text(color="black",size=8,family="Calibri"),
+        legend.text = element_text(color="black",size=8,family="Calibri"),
+        legend.title = element_text(color="black",size=8,family="Calibri"))
+Fig.bp
+```
+
+### 17) Stitch plot summaries
+```{r}
+#Richness (hill) responses overall
+dt3.sum.rh<-comb.plot.resp %>%
+        dplyr::group_by(Eco.Extr,Extreme) %>%
+        dplyr::summarize(mean_SRR = mean(rh_response,na.rm=T), 
+                         n = n(),
+                         sd = sd(sr_response,na.rm=T), 
+                         se = sd/sqrt(n),
+                         LowerCI = mean_SRR - qt(1 - (0.05 / 2), n - 1) * se,
+                         UpperCI = mean_SRR + qt(1 - (0.05 / 2), n - 1) * se) %>%
+        dplyr::as_tibble() %>%
+  filter(!is.na(Eco.Extr))
+      
+      dt3.sum.rh<-data.frame(dt3.sum.rh)
+      
+RRdata<-dt3.sum.rh
+
+ggplot(RRdata, aes(x = mean_SRR,y=Eco.Extr))+
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=LowerCI,y=Eco.Extr,xend=UpperCI,yend=Eco.Extr,color=Eco.Extr),size=0.25)+
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=1)+
+  scale_color_manual(name="Summary of all IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),
+                     values=c("mediumseagreen","wheat3","mediumseagreen","wheat3"))+
+  scale_shape_manual(name="Summary of all IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),values=c(19,17,21,24))+ 
+  labs(x = "Species richness (hill) response", y="")+
+  geom_hline(yintercept=0)+
+  theme_tufte(ticks=T,base_size = 15)+ 
+  theme(legend.position="right",axis.line.x = element_line(colour ="black", size = 0.5),
+        axis.line.y = element_line(colour ="black", size = 0.5),
+        axis.text.x = element_text(color="black",size=8,family="Calibri"),
+        axis.text.y = element_text(color="black",size=8,family="Calibri"),
+        axis.title.x = element_text(color="black",size=8,family="Calibri"),
+        axis.title.y = element_text(color="black",size=8,family="Calibri"),
+        legend.text = element_text(color="black",size=8,family="Calibri"),
+        legend.title = element_text(color="black",size=8,family="Calibri"))
+
+#BP Index responses overall
+dt3.sum.bp<-comb.plot.resp %>%
+        dplyr::group_by(Eco.Extr,Extreme) %>%
+        dplyr::summarize(mean_BPR = mean(BP_index_response,na.rm=T), 
+                         n = n(),
+                         sd = sd(BP_index_response,na.rm=T), 
+                         se = sd/sqrt(n),
+                         LowerCI = mean_BPR - qt(1 - (0.05 / 2), n - 1) * se,
+                         UpperCI = mean_BPR + qt(1 - (0.05 / 2), n - 1) * se) %>%
+        dplyr::as_tibble() %>%
+  filter(!is.na(Eco.Extr))
+      
+      dt3.sum.bp<-data.frame(dt3.sum.bp)
+      
+RRdata<-dt3.sum.bp
+
+ggplot(RRdata, aes(x = mean_BPR,y=Eco.Extr))+
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=LowerCI,y=Eco.Extr,xend=UpperCI,yend=Eco.Extr,color=Eco.Extr),size=0.25)+
+  geom_point(aes(color=Eco.Extr,shape=Eco.Extr),size=1)+
+  scale_color_manual(name="Summary of all IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),
+                     values=c("mediumseagreen","wheat3","mediumseagreen","wheat3"))+
+  scale_shape_manual(name="Summary of all IDE Sites (n=80)",labels = c("Grassland_Extr"="Grassland, extreme ","Shrubland_Extr"="Shrubland, extreme ","Grassland_NotExtreme"="Grassland, Not extreme ","Shrubland,Not extreme"),values=c(19,17,21,24))+ 
+  labs(x = "Species richness (hill) response", y="")+
+  geom_hline(yintercept=0)+
+  theme_tufte(ticks=T,base_size = 15)+ 
+  theme(legend.position="right",axis.line.x = element_line(colour ="black", size = 0.5),
+        axis.line.y = element_line(colour ="black", size = 0.5),
+        axis.text.x = element_text(color="black",size=8,family="Calibri"),
+        axis.text.y = element_text(color="black",size=8,family="Calibri"),
+        axis.title.x = element_text(color="black",size=8,family="Calibri"),
+        axis.title.y = element_text(color="black",size=8,family="Calibri"),
+        legend.text = element_text(color="black",size=8,family="Calibri"),
+        legend.title = element_text(color="black",size=8,family="Calibri"))
+```
+Note that summaries of evenness responses are not shown because there were too many NAs
+
+
