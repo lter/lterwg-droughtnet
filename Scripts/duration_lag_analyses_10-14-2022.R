@@ -134,7 +134,7 @@ data.anpp.summary <- data.anpp2%>%
   subset(n_treat_years >= 1 & n_treat_years<= 4)
         
 
-
+##All models to compare
 #interactive
 mod.1 <- lmer(anpp_response~drtsev.1 + (1|site_code), data=data.anpp.summary, REML = FALSE)
 mod.2 <- lmer(anpp_response~drtsev.1 * drtsev.2 + (1|site_code), data=data.anpp.summary, REML = FALSE)
@@ -307,3 +307,52 @@ length(unique(subset(data.anpp.summary, n_treat_years == 3)$site_code))
 length(unique(subset(data.anpp.summary, n_treat_years == 4)$site_code))
 
 
+##############################
+####Try making lag based on previous year's ANPP response (ecological drought)
+
+
+data.anpp3 <- data.anpp2[,c("site_code", "year", "block", "plot", "subplot", "n_treat_years", "habitat.type", "anpp_response", "drtsev.1", "drtsev.2", "drtsev.3", "drtsev.4")]
+
+data.anpp.dummy <- data.anpp3[,c("site_code", "year", "block", "plot", "subplot", "anpp_response")]
+data.anpp.dummy <- dplyr::rename(data.anpp.dummy, anpp_response_prevyear = anpp_response)
+
+data.anpp.dummy$year <- data.anpp.dummy$year - 1 #force lag year for merging
+
+data.anpp4 <- left_join(data.anpp3, data.anpp.dummy, by = c("site_code", "year", "block", "plot", "subplot"))
+
+anpp.summary.eco <- data.anpp4%>%
+  ddply(.(site_code, year, n_treat_years, habitat.type),
+        function(x)data.frame(
+          anpp_response = mean(x$anpp_response),
+          anpp_response_prevyear = mean(x$anpp_response_prevyear),
+          drtsev.1 = mean(x$drtsev.1),
+          drtsev.2 = mean(x$drtsev.2),
+          drtsev.3 = mean(x$drtsev.3),
+          drtsev.4 = mean(x$drtsev.4)
+        ))
+
+
+#all models to compare ecological drought
+#interactive
+temp.df <- subset(anpp.summary.eco, n_treat_years == 2 & is.na(anpp_response_prevyear) != TRUE)
+mod.1 <- lmer(anpp_response~anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
+mod.2 <- lmer(anpp_response~drtsev.1 + anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
+mod.3 <- lmer(anpp_response~drtsev.1 * anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
+
+mod.1 <- lm(anpp_response~anpp_response_prevyear, data=temp.df)
+mod.2 <- lm(anpp_response~drtsev.1 + anpp_response_prevyear, data=temp.df)
+mod.3 <- lm(anpp_response~drtsev.1 * anpp_response_prevyear, data=temp.df)
+mod.4 <- lm(anpp_response~drtsev.1, data=temp.df)
+mod.5 <- lm(anpp_response~drtsev.1 * drtsev.2, data=temp.df)
+
+
+AIC(mod.1, mod.2, mod.3, mod.4, mod.5)
+
+summary(mod.1)
+r.squaredGLMM(mod.1)
+summary(mod.2)
+r.squaredGLMM(mod.2)
+summary(mod.3)
+r.squaredGLMM(mod.3)
+
+visreg(mod.2)
