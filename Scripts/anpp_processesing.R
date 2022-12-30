@@ -18,6 +18,9 @@ treatment_info <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Da
 treatment_info <- treatment_info[,c("site_code", "year", "n_treat_days", "block", "plot", "subplot", "trt")]
 treatment_info <- unique(treatment_info)
 
+treatment_info$trt <- plyr::revalue(treatment_info$trt, c("Control_Infrastructure"="Control"))
+
+
 #full_biomass <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_test.csv")
 #details <- full_biomass[,c("site_code", block, plot, subplot, year, )]
 
@@ -114,17 +117,13 @@ subset(rep_year != "jenadrt.de_2015_1_6_A")%>%
   subset(site_trt != "swift.ca_Drought")%>% #did not follow IDE protocols (drought plots did not exclude water- see Jillian email)%>%
   subset(select=-c(rep_year, site_trt))
                                
-data.all[data.all$site_code == "ukulingadrt.za" & data.all$year == "2021" & data.all$block == "3" & data.all$plot == "8", "mass"] <- 393.66 #updated value from site PI. See GitHub for details
+data.all[data.all$site_code == "ukulingadrt.za" & data.all$year == "2021" & data.all$block == "3" & data.all$plot == "8", "mass"] <- 393.66 #updated value from site PI. See GitHub for details #ukulinga.za -- The correct biomass for 2021 block 3 plot 8 should be 393.66 g/m2
 
 
 
-#ukulinga.za -- The correct biomass for 2021 block 3 plot 8 should be 393.66 g/m2
 
-
-
-  
-
-anpp_ppt.end <- left_join(data.all, IDE_treatment_years, by = c("site_code", "year"))%>%
+anpp_ppt.end <- data.all%>%
+          left_join( IDE_treatment_years, by = c("site_code", "year"))%>%
   subset(trt == "Control"| trt == "Drought" )
          #| trt == "Control_Infrastructure")
 

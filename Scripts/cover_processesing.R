@@ -2,11 +2,12 @@ library(plyr)
 library(tidyverse)
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Downloads/IDE_treatment_years_11-17-2022.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_11-17-2022.csv")
 
 #read in cover data
 full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/full_cover_11-17-2022.csv")%>%
               subset(live == 1)
+full_cover$trt <- plyr::revalue(full_cover$trt, c("Control_Infrastructure"="Control"))
 
 
 full_cover_v2 <- full_cover %>%

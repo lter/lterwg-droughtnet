@@ -363,3 +363,6 @@ ggplot(subset(anpp.RM,n_treat_years >= 1 &n_treat_years <=4), aes(MAP, RM, color
   ylim(-5,5)+
   theme_base()
   
+temp <- subset(anpp.RM,n_treat_years >= 1 &n_treat_years <=4)
+mod <- lmer(RM~as.factor(n_treat_years)+(1|site_code), data = temp)
+summary(mod)
