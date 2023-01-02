@@ -4,6 +4,9 @@ library(tidyverse)
 #read n_treat_years data
 IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_11-17-2022.csv")
 
+#read in cover data survey
+cover_survey <- read.csv("C:/Users/ohler/Dropbox/IDE_data_May 2018/IDE Site Info/cover_survey_results.csv")
+
 #read in cover data
 full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/full_cover_11-17-2022.csv")%>%
               subset(live == 1)
@@ -168,7 +171,8 @@ cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 
 
 cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", "year"))%>%
-                    subset(trt == "Control"| trt == "Drought")
+                    subset(trt == "Control"| trt == "Drought")%>%
+                  left_join(cover_survey, by = "site_code")
 
 
 
