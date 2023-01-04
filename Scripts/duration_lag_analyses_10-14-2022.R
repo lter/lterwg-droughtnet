@@ -8,7 +8,7 @@ library(ggthemes)
 
 
 
-anpp_ppt_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_12-05-2022.csv")
+anpp_ppt_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-01-02.csv")
 
 Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
 
@@ -67,7 +67,7 @@ Plot.trt.ct2<-gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
 
 setdiff(data.anpp$site_code,data.anpp1$site_code) #no sites eliminated here
-length(unique(data.anpp1$site_code)) #1o
+length(unique(data.anpp1$site_code)) #1o7
 
 
 controls <- data.anpp1%>%
@@ -103,29 +103,29 @@ data.anpp.summary <- data.anpp2%>%
 
 ##All models to compare
 #interactive
-mod.1 <- lmer(anpp_response~drtsev.1 + (1|site_code), data=data.anpp.summary, REML = FALSE)
-mod.2 <- lmer(anpp_response~drtsev.1 * drtsev.2 + (1|site_code), data=data.anpp.summary, REML = FALSE)
-mod.3 <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|site_code), data=data.anpp.summary, REML = FALSE)
-mod.4 <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + (1|site_code), data=data.anpp.summary, REML = FALSE)  
+#mod.1 <- lmer(anpp_response~drtsev.1 + (1|site_code), data=data.anpp.summary, REML = FALSE)
+#mod.2 <- lmer(anpp_response~drtsev.1 * drtsev.2 + (1|site_code), data=data.anpp.summary, REML = FALSE)
+#mod.3 <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|site_code), data=data.anpp.summary, REML = FALSE)
+#mod.4 <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + (1|site_code), data=data.anpp.summary, REML = FALSE)  
 
 #additive
-mod.5 <- lmer(anpp_response~drtsev.1 + (1|site_code), data=data.anpp.summary, REML = FALSE)
-mod.6 <- lmer(anpp_response~drtsev.1 + drtsev.2 + (1|site_code), data=data.anpp.summary, REML = FALSE)
-mod.7 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + (1|site_code), data=data.anpp.summary, REML = FALSE)
-mod.8 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + drtsev.4 + (1|site_code), data=data.anpp.summary, REML = FALSE) 
-mod.9 <- lmer(anpp_response~drtsev.1 + drtsev.1:drtsev.2 + (1|site_code), data=data.anpp.summary, REML = FALSE)
-AIC(mod.1, mod.2, mod.3, mod.4, mod.5, mod.6, mod.7, mod.8, mod.9)
+#mod.5 <- lmer(anpp_response~drtsev.1 + (1|site_code), data=data.anpp.summary, REML = FALSE)
+#mod.6 <- lmer(anpp_response~drtsev.1 + drtsev.2 + (1|site_code), data=data.anpp.summary, REML = FALSE)
+#mod.7 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + (1|site_code), data=data.anpp.summary, REML = FALSE)
+#mod.8 <- lmer(anpp_response~drtsev.1 + drtsev.2 + drtsev.3 + drtsev.4 + (1|site_code), data=data.anpp.summary, REML = FALSE) 
+#mod.9 <- lmer(anpp_response~drtsev.1 + drtsev.1:drtsev.2 + (1|site_code), data=data.anpp.summary, #REML = FALSE)
+#AIC(mod.1, mod.2, mod.3, mod.4, mod.5, mod.6, mod.7, mod.8, mod.9)
 
-summary(mod.1)
-r.squaredGLMM(mod.1)
-summary(mod.2)
-r.squaredGLMM(mod.2)
-summary(mod.3)
-r.squaredGLMM(mod.3)
-summary(mod.4)
-r.squaredGLMM(mod.4)
-summary(mod.9)
-r.squaredGLMM(mod.9)
+#summary(mod.1)
+#r.squaredGLMM(mod.1)
+#summary(mod.2)
+#r.squaredGLMM(mod.2)
+#summary(mod.3)
+#r.squaredGLMM(mod.3)
+#summary(mod.4)
+#r.squaredGLMM(mod.4)
+#summary(mod.9)
+#r.squaredGLMM(mod.9)
 
 
 ##############try model selection
@@ -159,13 +159,6 @@ visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red"
   geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()  
   
-#visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="persp", col = c("red", "white", "forestgreen"))+
-#  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
-#  xlab("Current year drought severity")+
-#  ylab("Previous year drought severity")
-
-
-
 
 #####Can I remake stitches plots by year and plot drought severity and response by year?
 subset(data.anpp.summary,n_treat_years ==1)%>%
@@ -214,15 +207,16 @@ subset(data.anpp.summary,n_treat_years ==4)%>%
   theme_bw()
 
 
-data.anpp.summary$site_code <- factor(data.anpp.summary$site_code, levels = dplyr::desc(subset(data.anpp.summary, n_treat_years == 1)$anpp_response))
-                                      
-                                      #c("drought", "irr", "N", "P", "mult_nutrient"))
-#data.anpp.summary%>%
-#  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response %in% n_treat_years == 1))) %>%
- # mutate(site_code = as.factor(site_code),
-#         name = reorder_within(name, n, decade)) %>%
-ggplot(data.anpp.summary, aes(site_code, anpp_response))+
-  facet_wrap(~n_treat_years)+
+
+
+ordered.df <- subset(data.anpp.summary,n_treat_years ==1)%>%
+  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
+  rbind(subset(data.anpp.summary,n_treat_years ==2))%>%
+  rbind(subset(data.anpp.summary,n_treat_years ==3))%>%
+  rbind(subset(data.anpp.summary,n_treat_years ==4))
+  
+  ggplot(ordered.df,  aes(site_code, anpp_response))+
+    facet_wrap(~n_treat_years)+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
   geom_hline(yintercept = 0,linetype="dashed")+
   ylim(c(-5,3))+
@@ -231,7 +225,24 @@ ggplot(data.anpp.summary, aes(site_code, anpp_response))+
   coord_flip()+
   theme_bw()
 
+library(ggcorrplot)                                  
 
+  data.anpp.summary%>%
+  dplyr::select( -c("year", "anpp_response.error", "drtsev.1", "drtsev.2", 'drtsev.3', "drtsev.4"))%>%
+  pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
+  dplyr::select(-site_code)%>%
+  drop_na()%>%
+  cor()%>%
+  ggcorrplot(type = "lower", lab = TRUE, p.mat = p.mat)
+
+ p.mat <-  data.anpp.summary%>%
+    dplyr::select( -c("year", "anpp_response.error", "drtsev.1", "drtsev.2", 'drtsev.3', "drtsev.4"))%>%
+    pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
+    dplyr::select(-site_code)%>%
+    drop_na()%>%
+    cor_pmat()
+ 
+  
 ####drought severity figure by year
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
 ggplot( aes(drtsev.1, anpp_response))+
@@ -331,9 +342,10 @@ r.squaredGLMM(mod.2)
 summary(mod.3)
 r.squaredGLMM(mod.3)
 
-visreg(mod.2)
 
-
+ggplot(temp.df, aes(anpp_response_prevyear,anpp_response))+
+  geom_point()+
+  theme_base()
 
 ####Do some stuff with the RM index from Bondaruk 2022
 
@@ -347,22 +359,28 @@ anpp.RM <- data.anpp%>%
             MAP = mean(x$precip)
           ))%>%
           left_join(anpp.mean, by = "site_code")%>%
-          pivot_wider(names_from = "trt", values_from = c("mass", "ppt.1"))
+          pivot_wider(names_from = "trt", values_from = c("mass", "ppt.1"))%>%
+          subset(n_years >= 4)%>% #this reduces to sites where mean ANPP was calculated over at least 4 years
+          subset(n_treat_years >= 1 &n_treat_years <=4)
 
 anpp.RM$RM <- ((anpp.RM$mass_Control-anpp.RM$mass_Drought) / anpp.RM$mean.mass)/((anpp.RM$ppt.1_Control-anpp.RM$ppt.1_Drought) / anpp.RM$MAP)
 
 
-ggplot(subset(anpp.RM,n_treat_years >= 1 &n_treat_years <=4), aes(as.factor(n_treat_years), RM))+
+ggplot(anpp.RM, aes(as.factor(n_treat_years), RM))+
+  #geom_beeswarm()+\
   geom_boxplot()+
+  geom_point()+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  #ylim(-5, 5)+
   theme_base()
   
   
-ggplot(subset(anpp.RM,n_treat_years >= 1 &n_treat_years <=4), aes(MAP, RM, color = habitat.type))+
+ggplot(anpp.RM, aes(MAP, RM, color = habitat.type))+
   facet_wrap(~n_treat_years)+
   geom_point()+
   ylim(-5,5)+
   theme_base()
   
-temp <- subset(anpp.RM,n_treat_years >= 1 &n_treat_years <=4)
-mod <- lmer(RM~as.factor(n_treat_years)+(1|site_code), data = temp)
+
+mod <- lmer(RM~as.factor(n_treat_years)+(1|site_code), data = anpp.RM)
 summary(mod)
