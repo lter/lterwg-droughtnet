@@ -30,7 +30,7 @@ anova_list <- list()
 traj_list <- list()
 
 # Read in our data
-comp_raw <- read.csv(file.path("cover_ppt_11-18-2022.csv"))
+comp_raw <- read.csv(file.path("cover_ppt_2023-01-02.csv"))
 
 # Standardize our data
 all_comp <- comp_raw %>%
@@ -43,9 +43,11 @@ all_comp <- comp_raw %>%
   dplyr::filter(n_treat_years >= 1)
 
 # Make a list of "bad" sites that will break the loop
-bad_sites <- c("chacra.ar", "cdpt_drt.us", "cobar.au", "eea.br", "hoide.de", "hyide.de", 
+bad_sites <- c("chacra.ar", "cdpt_drt.us", "cobar.au", "eea.br", "hyide.de", 
                "indiana.us", "jrnchi.us", "morient.ar", "nnss.us", "octc.us", "qdtnorth.cl", 
-               "sevblack.us", "sevblue.us", "sevmixed.us")
+               "sevblack.us", "sevblue.us", "sevmixed.us",
+               "jilpanger.au", "kiskun.hu", "lcnorth.cl", "lcsouth.cl", "purdue.us",
+               "qdtsouth.cl", "sand.us", "teshio.jp")
 
 # For the rest of the sites that work, we...
 for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
@@ -152,10 +154,12 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
     png(filename = file.path(trajectory_folder, paste0(a_site, "_trajectory.png")), width = 850, height = 850, units = "px")
     
     # Create a plot object
-    traj_plot <- plot(traj_fit, pch = 21, cex = 0.7, col = "gray", main = paste0(a_site))
+    traj_plot <- plot(traj_fit, pch = 21, cex = 0.7, col = "gray", main = paste0(a_site, " post-treatment years only"))
     
     # Then add trajectories
-    RRPP::add.trajectories(traj_plot, traj.pch = 21)
+    RRPP::add.trajectories(traj_plot, traj.pch = c(21, 22))
+    legend("topright", levels(as.factor(comp_rdf$treatment)), pch =  c(21, 22), pt.bg = 1)
+    
     dev.off()
   }
 }
