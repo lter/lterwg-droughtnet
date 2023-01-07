@@ -183,3 +183,67 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
     dev.off()
   }
 }
+
+# Extracting the anova statistics from each site and mapping every summary table into one dataframe
+anova_df <- anova_list %>%
+  purrr::map(.f = 1) %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map_dfr(.f = select, everything())
+
+# Exporting the anova summary statistics csv
+write.csv(anova_df, file = file.path(summary_stats_folder, "anova_summary.csv"), row.names = FALSE)
+
+# Extracting the magnitude distance statistics from each site and mapping every summary table into one dataframe
+mag_dist <- traj_list$md %>%
+  purrr::map(.f = 3) %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::map(.f = ~dplyr::rename(.,p_value = `Pr > d`))%>%
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map(.f = ~mutate(., r = NA, .after = variable)) %>%
+  purrr::map(.f = ~mutate(., angle = NA, .after = r)) %>%
+  purrr::imap(.f = ~mutate(., analysis_type = "Magnitude distance", .after = p_value)) %>% 
+  purrr::map_dfr(.f = select, everything()) 
+
+# Extracting the shape differences statistics from each site
+shape_diff <- traj_list$sd %>%
+  purrr::map(.f = 3)
+
+# Create a placeholder data frame for the sites without any shape differences statistics
+for (i in 1:length(shape_diff)){
+  if (is.character(shape_diff[[i]])){
+    shape_diff[[i]] <- data.frame(d = NA, `UCL (95%)` = NA, Z = NA, `Pr > d` = NA, row.names = "Control:Drought", check.names = FALSE)
+  } else {
+    next
+  }
+}
+
+# Mapping every summary table into one dataframe
+shape_diff_v2 <- shape_diff %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::map(.f = ~dplyr::rename(., p_value = `Pr > d`)) %>% 
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map(.f = ~mutate(., r = NA, .after = variable)) %>%
+  purrr::map(.f = ~mutate(., angle = NA, .after = r)) %>%
+  purrr::map(.f = ~mutate(., analysis_type = "Shape differences", .after = p_value)) %>% 
+  purrr::map_dfr(.f = select, everything()) 
+
+# Extracting the angles statistics from each site and mapping every summary table into one dataframe
+angles <- traj_list$tc %>%
+  purrr::map(.f = 3)  %>%
+  purrr::map(.f = ~as.data.frame(.)) %>%
+  purrr::map(.f = ~rownames_to_column(.,"variable")) %>%
+  purrr::map(.f = ~rename(.,p_value = `Pr > angle`)) %>%
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>%
+  purrr::map(.f = ~mutate(., analysis_type = "Angles", .after = p_value)) %>%
+  purrr::map(.f = ~mutate(., d = NA, .after = angle)) %>% 
+  purrr::map_dfr(.f = select, everything()) 
+
+# Combine the magnitude distances, shape differences, and angles together into one master dataframe
+traj_df <- dplyr::bind_rows(mag_dist, shape_diff_v2, angles)
+
+# Exporting the trajectory summary statistics csv
+write.csv(traj_df, file = file.path(summary_stats_folder, "trajectory_summary.csv"), row.names = FALSE)
