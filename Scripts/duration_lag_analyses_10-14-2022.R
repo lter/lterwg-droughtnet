@@ -227,6 +227,13 @@ ordered.df <- subset(data.anpp.summary,n_treat_years ==1)%>%
 
 library(ggcorrplot)                                  
 
+  p.mat <-  data.anpp.summary%>%
+    dplyr::select( -c("year", "anpp_response.error", "drtsev.1", "drtsev.2", 'drtsev.3', "drtsev.4"))%>%
+    pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
+    dplyr::select(-site_code)%>%
+    drop_na()%>%
+    cor_pmat()
+  
   data.anpp.summary%>%
   dplyr::select( -c("year", "anpp_response.error", "drtsev.1", "drtsev.2", 'drtsev.3', "drtsev.4"))%>%
   pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
@@ -235,12 +242,6 @@ library(ggcorrplot)
   cor()%>%
   ggcorrplot(type = "lower", lab = TRUE, p.mat = p.mat)
 
- p.mat <-  data.anpp.summary%>%
-    dplyr::select( -c("year", "anpp_response.error", "drtsev.1", "drtsev.2", 'drtsev.3', "drtsev.4"))%>%
-    pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
-    dplyr::select(-site_code)%>%
-    drop_na()%>%
-    cor_pmat()
  
   
 ####drought severity figure by year
@@ -384,3 +385,38 @@ ggplot(anpp.RM, aes(MAP, RM, color = habitat.type))+
 
 mod <- lmer(RM~as.factor(n_treat_years)+(1|site_code), data = anpp.RM)
 summary(mod)
+
+
+
+
+#####################################
+#####Pull slopes and p-values for each site over time
+
+#start with data.anpp2
+
+site_vector <- unique(data.anpp2$site_code)
+
+site.regressions_master <- {}
+
+for(i in 1:length(site_vector)) {
+  temp.df <- data.anpp2%>%
+          subset( site_code == site_vector[i])%>%
+          subset(n_treat_days > 90 & n_treat_days <2000)
+          
+  new.dat <- data.frame(site_code = unique(temp.df$site_code))
+  if(length(unique(temp.df$n_treat_years))>=4){
+    #temp.mod <- lmer(anpp_response~n_treat_days + (1|plot), data = temp.df)
+    temp.mod <- lm(anpp_response~n_treat_days, data = temp.df)
+    summary(temp.mod)
+    
+    new.dat$slope <- coef(summary(temp.mod))["n_treat_days", "Estimate"]
+    new.dat$pval <- coef(summary(temp.mod))["n_treat_days", "Pr(>|t|)"]
+  } else {
+    new.dat$slope <- NA
+    new.dat$pval <- NA
+  }
+
+  site.regressions_master <- rbind(site.regressions_master, new.dat )
+  rm(temp.df, temp.mod, new.dat)
+}
+
