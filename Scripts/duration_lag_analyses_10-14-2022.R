@@ -150,6 +150,7 @@ winning.mod <- lme(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.1:drtsev.2, rand
 summary(winning.mod)
 
 winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.1:drtsev.2 +(1|site_code),data = data.anpp.summary)
+summary(winning.mod.lmer)
 
 visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "forestgreen"))+
   geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2, color = as.factor(n_treat_years)))+
@@ -243,6 +244,34 @@ library(ggcorrplot)
   ggcorrplot(type = "lower", lab = TRUE, p.mat = p.mat)
 
  
+###Make grand means by year-ecosystem-nominalvsextreme
+  
+data.anpp2$is.extreme <- ifelse(data.anpp2$ppt.1 < data.anpp2$precip, "yes", "no")
+
+grand.means <- data.anpp2%>%
+    ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, habitat.type,is.extreme ),
+          function(x)data.frame(
+            anpp_response = mean(x$anpp_response),
+            anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1)
+          ))%>%
+    subset(n_treat_years >= 1 & n_treat_years<= 4)%>%
+  ddply(.(n_treat_years, habitat.type),#here is were you add is.extreme if you want that
+        function(x)data.frame(
+          anpp_response = mean(x$anpp_response),
+          anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1)
+        ))
+
+
+ggplot(grand.means,  aes(habitat.type, anpp_response))+
+  facet_wrap(~n_treat_years)+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(c(-1.1,0.4))+
+  ylab("anpp_response")+
+  xlab("")+
+  coord_flip()+
+  theme_bw()
+  
   
 ####drought severity figure by year
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
@@ -265,6 +294,8 @@ summary(mod)
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==4))
 summary(mod)
 
+mod <- lmer(anpp_response~drtsev.1*n_treat_years+ (1|site_code), data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 4))
+summary(mod)
 
 mod <- lmer(anpp_response~drtsev.1 + (1|site_code), data = subset(data.anpp2,n_treat_years ==1))
 summary(mod)
@@ -322,10 +353,11 @@ anpp.summary.eco <- data.anpp4%>%
 
 #all models to compare ecological drought
 #interactive
-temp.df <- subset(anpp.summary.eco, n_treat_years == 2 & is.na(anpp_response_prevyear) != TRUE)
-mod.1 <- lmer(anpp_response~anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
-mod.2 <- lmer(anpp_response~drtsev.1 + anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
-mod.3 <- lmer(anpp_response~drtsev.1 * anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
+temp.df <- subset(anpp.summary.eco, n_treat_years == 2 & 
+                    is.na(anpp_response_prevyear) != TRUE)
+#mod.1 <- lmer(anpp_response~anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
+#mod.2 <- lmer(anpp_response~drtsev.1 + anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
+#mod.3 <- lmer(anpp_response~drtsev.1 * anpp_response_prevyear + (1|site_code), data=temp.df, REML = FALSE)
 
 mod.1 <- lm(anpp_response~anpp_response_prevyear, data=temp.df)
 mod.2 <- lm(anpp_response~drtsev.1 + anpp_response_prevyear, data=temp.df)
@@ -343,10 +375,42 @@ r.squaredGLMM(mod.2)
 summary(mod.3)
 r.squaredGLMM(mod.3)
 
+visreg2d(mod.3, xvar = "drtsev.1", yvar = "anpp_response_prevyear", plot.type ="gg")+
+  geom_point(data = temp.df, aes(drtsev.1, anpp_response_prevyear))
+
 
 ggplot(temp.df, aes(anpp_response_prevyear,anpp_response))+
   geom_point()+
+  geom_smooth(method = "lm")+
+  xlab("ANPP response previous year")+
+  ylab("ANPP response")+
   theme_base()
+
+
+
+#FORWARD MODEL SELECTION
+lmFull <- lme(anpp_response~anpp_response_prevyear*drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4, random = ~1|site_code, data=temp.df, method = "ML", na.action = na.exclude, correlation = corAR1())
+
+#stepAIC(lmFull, scope = list(upper = mod.4,
+#                            lower = ~1),
+#        trace = F)
+
+lmNull <- lme(anpp_response~1, random = ~ 1 |site_code, data = temp.df, method = "ML",  na.action=na.exclude, correlation = corAR1())
+
+
+#Forward model selection
+stepAIC(lmNull, scope = list(upper = lmFull,
+                             lower = ~1),
+        trace = F)
+
+winning.mod <- lme(anpp_response ~ drtsev.1 + anpp_response_prevyear + drtsev.2 +drtsev.1:anpp_response_prevyear + drtsev.1:drtsev.2, random = ~ 1 |site_code, data = temp.df, method = "ML",  na.action=na.exclude, correlation = corAR1())
+summary(winning.mod)
+
+
+
+
+
+
 
 ####Do some stuff with the RM index from Bondaruk 2022
 
@@ -404,7 +468,7 @@ for(i in 1:length(site_vector)) {
           subset(n_treat_days > 90 & n_treat_days <2000)
           
   new.dat <- data.frame(site_code = unique(temp.df$site_code))
-  if(length(unique(temp.df$n_treat_years))>=4){
+  if(length(unique(temp.df$n_treat_years))>=3){
     #temp.mod <- lmer(anpp_response~n_treat_days + (1|plot), data = temp.df)
     temp.mod <- lm(anpp_response~n_treat_days, data = temp.df)
     summary(temp.mod)
@@ -419,4 +483,17 @@ for(i in 1:length(site_vector)) {
   site.regressions_master <- rbind(site.regressions_master, new.dat )
   rm(temp.df, temp.mod, new.dat)
 }
+
+site.regressions_master <- site.regressions_master%>%drop_na()
+length(subset(site.regressions_master, pval >0.05)$site_code)
+length(subset(site.regressions_master, pval <0.05 & slope > 0)$site_code)
+length(subset(site.regressions_master, pval <0.05 & slope < 0)$site_code)
+
+
+site.regressions_summary <- site.regressions_master%>%
+                            ddply(.(),function(x)data.frame(
+                              not_significant = length(x)
+                            ))
+
+
 
