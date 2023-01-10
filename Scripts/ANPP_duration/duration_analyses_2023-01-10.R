@@ -169,6 +169,7 @@ visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red"
   theme_base()  
 
 
+
 ####drought severity figure by year
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   ggplot( aes(drtsev.1, anpp_response))+
