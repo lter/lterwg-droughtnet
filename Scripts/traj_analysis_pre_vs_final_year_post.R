@@ -28,6 +28,8 @@ dir.create(path = file.path(summary_stats_folder), showWarnings = FALSE)
 # Create empty lists to store our statistics in later
 anova_list <- list() 
 traj_list <- list()
+fit_list <- list()
+trt_legend_list <- list()
 
 # Read in our data
 comp_raw <- read.csv(file.path("cover_ppt_2023-01-02.csv"))
@@ -155,6 +157,9 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
                                           groups = comp_rdf$treatment,
                                           # Trajectory "points" are years
                                           traj.pts = comp_rdf$year)
+    fit_list[[a_site]] <- traj_fit
+    trt_legend_list[[a_site]] <- comp_rdf$treatment
+    
     
     # Magnitude distance (MD)
     traj_summary_md <- summary(traj_fit, attribute = "MD")
@@ -174,7 +179,7 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
     png(filename = file.path(trajectory_folder, paste0(a_site, "_trajectory.png")), width = 850, height = 850, units = "px")
     
     # Create a plot object
-    traj_plot <- plot(traj_fit, pch = 21, cex = 0.7, col = "gray", main = paste0(a_site, " pre-treatment vs. final year post-treatment"))
+    traj_plot <- plot(traj_fit, pch = 3, cex = 0.7, col = "gray", main = paste0(a_site, " pre-treatment vs. final year post-treatment"))
     
     # Then add trajectories
     RRPP::add.trajectories(traj_plot, traj.pch = c(21, 22))
@@ -183,6 +188,25 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
     dev.off()
   }
 }
+
+# Make a master pdf of all our trajectory plots
+pdf(file.path(trajectory_folder, "traj_plots_pre_vs_final_year_post.pdf"))
+par(mfrow = c(3,3))
+
+for (a_site in names(fit_list)){
+  
+  # Create a plot object
+  traj_plot <- plot(fit_list[[a_site]], pch = 3, cex = 0.4, col = "gray", main = paste0(a_site))
+  
+  # Then add trajectories
+  RRPP::add.trajectories(traj_plot, traj.pch = c(21, 22))
+  legend("topright", levels(as.factor(trt_legend_list[[a_site]])), pch =  c(21, 22), pt.bg = 1)
+  
+  # Add a title to our master pdf
+  mtext("Trajectory plots for pre-treatment vs. final year post-treatment", outer=TRUE,  cex=0.7, line=-1.5)
+  
+}
+dev.off()
 
 # Extracting the anova statistics from each site and mapping every summary table into one dataframe
 anova_df <- anova_list %>%
