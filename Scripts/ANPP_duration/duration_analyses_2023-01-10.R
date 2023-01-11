@@ -115,7 +115,7 @@ data.anpp.summary <- data.anpp2%>%
         ))%>%
   subset(n_treat_years >= 1 & n_treat_years<= 4)
 
-
+length(unique(data.anpp.summary$site_code))
 
 
 
@@ -131,8 +131,15 @@ plot(x)+
   xlab("Treatment days")+
   geom_point(data = data.anpp.summary, aes(n_treat_days, anpp_response))+
   theme_base()
-ggplot(data.anpp.summary, aes(n_treat_days, anpp_response))+
-  geom_point()+
+
+x <- ggpredict(big.mod,"drtsev.1")
+plot(x)+
+  #  ylim(0,15)+
+  ylab("ANPP response (LRR)")+
+  xlab("Drought severity")+
+  geom_point(data = data.anpp.summary, aes(drtsev.1, anpp_response))+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
   theme_base()
 
 
@@ -161,7 +168,7 @@ winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.1:drtsev.2
 summary(winning.mod.lmer)
 
 visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "forestgreen"))+
-  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2, color = as.factor(n_treat_years)))+
+  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -238,4 +245,29 @@ data.anpp.summary%>%
 
 
 
+
+################
+##average drought severity and average anpp response over 4 years
+
+anpp.avg <- data.anpp2%>%
+        ddply(.(site_code, n_treat_years, drtsev.1, mean.mass),function(x)data.frame(
+          mass = mean(x$mass)
+        ))%>%
+        subset(n_treat_years >= 1 & n_treat_years <=4)%>%
+        ddply(.(site_code, mean.mass),function(x)data.frame(
+          avg_mass = (sum(x$mass)/4),
+          avg.drtsev = mean(x$drtsev.1)
+        ))
+
+anpp.avg$lrr_avg <- log(anpp.avg$avg_mass/anpp.avg$mean.mass)
+
+mod <- lm(lrr_avg~avg.drtsev, data = anpp.avg)
+summary(mod)
+
+ggplot(anpp.avg, aes(avg.drtsev, lrr_avg))+
+  geom_smooth(method = "lm")+
+  geom_point()+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  theme_base()
 
