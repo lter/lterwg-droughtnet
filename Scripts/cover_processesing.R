@@ -74,6 +74,12 @@ full_cover_v2 <- full_cover %>%
 # check to see it looks ok
 glimpse(full_cover_v2)
 
+full_cover_v2 <- full_cover_v2%>%
+  ddply(.(site_code, year, trt, site_name, block, plot, subplot, first_treatment_year, first_treatment_date, Family, Taxon, live, local_provenance, local_lifeform, local_lifespan, functional_group, N_fixer, ps_path), function(x)data.frame(
+    #this is where to enter the max cover date, but it would require a lubridate function first to convert character to date            cover_date = 
+    n_treat_days = max(x$n_treat_days),
+    max_cover = max(x$max_cover)
+  ))
 
 #treatment_info <- read.csv("C:/Users/ohler/Downloads/full_biomass_test.csv")
 #treatment_info <- treatment_info[, c("site_code", "year", "n_treat_days", "block", "plot", "subplot")]
