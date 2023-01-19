@@ -144,6 +144,21 @@ plot(x)+
 
 ggplot(data.anpp.summary, aes(drtsev.1, anpp_response))+
   geom_smooth(method = "lm", formula= exp(y)~x)
+
+
+
+##this bit tries testing the model residuals but it doesn't show anything
+temp.mod <- lmer(anpp_response~drtsev.1 + (1|site_code), data = data.anpp.summary)
+resid <- residuals(temp.mod)
+data.anpp.summary$resid <- resid
+mod.resid <- lm(resid~n_treat_days,data=data.anpp.summary)
+mod.resid.2 <- lm(resid~n_treat_days+I(n_treat_days^2),data=data.anpp.summary)
+AIC(mod.resid,mod.resid.2)
+summary(mod.resid)
+visreg(mod.resid)
+#can delete above section showing that model residuals aren't explanatory
+
+
 ##############try model selection
 library(MASS)
 library(nlme)
