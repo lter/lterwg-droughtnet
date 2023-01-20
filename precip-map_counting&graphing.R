@@ -3,6 +3,7 @@ ide.precip <- read.csv("~/Dropbox/IDE/data_processed/anpp_ppt_map_2023-01-11.csv
 library(formattable)
 library(tidyr)
 
+# calculate ppt reduction from map and percent ppt reduction from map
 ide.precip$ppt.map <- ide.precip$ppt.1 - ide.precip$site_map
 ide.precip$percent_ppt_red <- (ide.precip$ppt.map / ide.precip$site_map)*100
 
@@ -10,8 +11,6 @@ ide.precip$percent_ppt_red <- (ide.precip$ppt.map / ide.precip$site_map)*100
 ide.precip.ctrls <- subset(ide.precip, ide.precip$trt == "Control")
 
 str(ide.precip.ctrls)
-ide.precip.ctrls$ppt.map <- as.numeric(ide.precip.ctrls$ppt.map)
-ide.precip.ctrls$percent_ppt_red <- as.numeric(ide.precip.ctrls$percent_ppt_red)
 ide.precip.ctrls$ppt.map <- round(ide.precip.ctrls$ppt.map, 1)
 ide.precip.ctrls$percent_ppt_red <- round(ide.precip.ctrls$percent_ppt_red, 1)
 ide.precip.ctrls$mass <- round(ide.precip.ctrls$mass, 2)
