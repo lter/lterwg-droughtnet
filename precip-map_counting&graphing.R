@@ -3,14 +3,17 @@ ide.precip <- read.csv("~/Dropbox/IDE/data_processed/anpp_ppt_map_2023-01-11.csv
 library(formattable)
 library(tidyr)
 
+ide.precip$ppt.map <- ide.precip$ppt.1 - ide.precip$site_map
+ide.precip$percent_ppt_red <- (ide.precip$ppt.map / ide.precip$site_map)*100
+
 # select just control plots - not interested in drought plots for this...
 ide.precip.ctrls <- subset(ide.precip, ide.precip$trt == "Control")
 
 str(ide.precip.ctrls)
 ide.precip.ctrls$ppt.map <- as.numeric(ide.precip.ctrls$ppt.map)
-ide.precip.ctrls$percent_reduction <- as.numeric(ide.precip.ctrls$percent_reduction)
+ide.precip.ctrls$percent_ppt_red <- as.numeric(ide.precip.ctrls$percent_ppt_red)
 ide.precip.ctrls$ppt.map <- round(ide.precip.ctrls$ppt.map, 1)
-ide.precip.ctrls$percent_reduction <- round(ide.precip.ctrls$percent_reduction, 1)
+ide.precip.ctrls$percent_ppt_red <- round(ide.precip.ctrls$percent_ppt_red, 1)
 ide.precip.ctrls$mass <- round(ide.precip.ctrls$mass, 2)
 ide.precip.ctrls$ppt.1 <- round(ide.precip.ctrls$ppt.1, 1)
 ide.precip.ctrls$ppt.2 <- round(ide.precip.ctrls$ppt.2, 1)
@@ -18,7 +21,7 @@ ide.precip.ctrls$ppt.3 <- round(ide.precip.ctrls$ppt.3, 1)
 ide.precip.ctrls$ppt.4 <- round(ide.precip.ctrls$ppt.4, 1)
 
 # get a single value per site per year - not interested in plot-level values for this...
-ide.precip.ctrls.siteavgs <- aggregate(x = ide.precip.ctrls[c("site_map", "ppt.1", "ppt.map", "percent_reduction", "mass")],
+ide.precip.ctrls.siteavgs <- aggregate(x = ide.precip.ctrls[c("site_map", "ppt.1", "ppt.map", "percent_ppt_red", "mass")],
                                        by = ide.precip.ctrls[c("site_code", "n_treat_years")],
                                        FUN = mean, na.rm = TRUE)
 
@@ -28,7 +31,7 @@ ide.precip.ctrls.siteavgs <- subset(ide.precip.ctrls.siteavgs,
                                     | ide.precip.ctrls.siteavgs$n_treat_years == "3" | ide.precip.ctrls.siteavgs$n_treat_years == "4")
 # pivot to wide format
 ide.precip.ctrls.siteavgs.wide <- ide.precip.ctrls.siteavgs %>% 
-  pivot_wider(names_from = n_treat_years, values_from = c(ppt.1, ppt.map, percent_reduction, mass))
+  pivot_wider(names_from = n_treat_years, values_from = c(ppt.1, ppt.map, percent_ppt_red, mass))
 
 # create subset of just sites with 4 consecutive years of extreme drought (ppt-map<0)
 ide.4year.edrt.sites <- subset(ide.precip.ctrls.siteavgs.wide, 
