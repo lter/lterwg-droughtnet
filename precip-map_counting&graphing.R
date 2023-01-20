@@ -1,4 +1,4 @@
-ide.precip <- read.csv("~/Desktop/anpp_ppt_2023-01-11.csv")
+ide.precip <- read.csv("~/Dropbox/IDE/data_processed/anpp_ppt_map_2023-01-11.csv")
 
 library(formattable)
 library(tidyr)
