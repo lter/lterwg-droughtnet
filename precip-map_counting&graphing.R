@@ -23,13 +23,33 @@ ide.precip.ctrls.siteavgs <- subset(ide.precip.ctrls.siteavgs,
 ide.precip.ctrls.siteavgs.wide <- ide.precip.ctrls.siteavgs %>% 
   pivot_wider(names_from = n_treat_years, values_from = c(ppt.1, ppt.map, percent_reduction, mass))
 
-# create subset of just sites with 4 years of extreme drought (ppt-map<0)
+# create subset of just sites with 4 consecutive years of extreme drought (ppt-map<0)
 ide.4year.edrt.sites <- subset(ide.precip.ctrls.siteavgs.wide, 
                                ide.precip.ctrls.siteavgs.wide$ppt.map_1 < 0 & 
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 &
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 &
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_4 < 0)
 View(ide.4year.edrt.sites)
+nrow(ide.4year.edrt.sites)
+
+# create subset of just sites with 3 consecutive years of extreme drought (ppt-map<0)
+ide.3year.edrt.sites <- subset(ide.precip.ctrls.siteavgs.wide, 
+                               ide.precip.ctrls.siteavgs.wide$ppt.map_1 < 0 & 
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 &
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 |
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 & 
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 &
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_4 < 0)
+View(ide.3year.edrt.sites)
+nrow(ide.3year.edrt.sites)
+
+# create subset of just sites with 2 consecutive years of extreme drought (ppt-map<0)
+ide.2year.edrt.sites <- subset(ide.precip.ctrls.siteavgs.wide, 
+                               ide.precip.ctrls.siteavgs.wide$ppt.map_1 < 0 & ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 |
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 & ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 | 
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 & ide.precip.ctrls.siteavgs.wide$ppt.map_4 < 0)
+View(ide.2year.edrt.sites)
+nrow(ide.2year.edrt.sites)
 
 # create subset of columns for table-ing (just table-ing ppt-map in year 1-4 for now...)
 vars.mm <- c('site_code', 'site_map', 'ppt.map_1', 'ppt.map_2', 'ppt.map_3', 'ppt.map_4')
@@ -53,3 +73,21 @@ table.4year.edrt.sites <- formattable(ide.4year.edrt.sites.mm,
                                       list('ppt.map_1' = yr.formatter,'ppt.map_2' = yr.formatter,
                                            'ppt.map_3' = yr.formatter,'ppt.map_4' = yr.formatter))
 table.4year.edrt.sites
+
+ide.3year.edrt.sites.mm <- ide.3year.edrt.sites[vars.mm]
+ide.3year.edrt.sites.mm
+
+table.3year.edrt.sites <- formattable(ide.3year.edrt.sites.mm, 
+                                      align =c("l", "c", "c", "c", "c", "c"), 
+                                      list('ppt.map_1' = yr.formatter,'ppt.map_2' = yr.formatter,
+                                           'ppt.map_3' = yr.formatter,'ppt.map_4' = yr.formatter))
+table.3year.edrt.sites
+
+ide.2year.edrt.sites.mm <- ide.2year.edrt.sites[vars.mm]
+ide.2year.edrt.sites.mm
+
+table.2year.edrt.sites <- formattable(ide.2year.edrt.sites.mm, 
+                                      align =c("l", "c", "c", "c", "c", "c"), 
+                                      list('ppt.map_1' = yr.formatter,'ppt.map_2' = yr.formatter,
+                                           'ppt.map_3' = yr.formatter,'ppt.map_4' = yr.formatter))
+table.2year.edrt.sites
