@@ -2,6 +2,7 @@ ide.precip <- read.csv("~/Dropbox/IDE/data_processed/anpp_ppt_map_2023-01-11.csv
 
 library(formattable)
 library(tidyr)
+library(dplyr)
 
 # calculate ppt reduction from map and percent ppt reduction from map
 ide.precip$ppt.map <- ide.precip$ppt.1 - ide.precip$site_map
@@ -65,6 +66,7 @@ vars.mm <- c('site_code', 'site_map', 'ppt.map_1', 'ppt.map_2', 'ppt.map_3', 'pp
 
 ide.precip.ctrls.siteavgs.mm <- ide.precip.ctrls.siteavgs.wide[vars.mm]
 ide.precip.ctrls.siteavgs.mm
+ide.precip.ctrls.siteavgs.mm <- ide.precip.ctrls.siteavgs.mm %>% arrange(site_code)
 
 yr.formatter <- formatter("span", style = x ~ style(color = ifelse(x > 0, "green", ifelse(x < 0, "red", "grey"))))
 
