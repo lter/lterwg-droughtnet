@@ -95,6 +95,9 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   left_join(num.treat.years, by = "site_code")%>%
   subset(num.years == 4 | num.years == 3)
 
+## subset to just sies with 3 years extreme
+data.anpp2 <- left_join(ide.3year.edrt.sites.df, data.anpp2, by = "site_code")
+
 
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
 data.anpp2$drtsev.1 <- ((data.anpp2$ppt.1-data.anpp2$precip)/data.anpp2$precip)
@@ -113,7 +116,7 @@ data.anpp.summary <- data.anpp2%>%
           anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1),
           n_treat_days = mean(x$n_treat_days)
         ))%>%
-  subset(n_treat_years >= 1 & n_treat_years<= 3)
+  subset(n_treat_years >= 1 & n_treat_years<= 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
 
 length(unique(data.anpp.summary$site_code))
 
@@ -178,18 +181,18 @@ stepAIC(lmNull, scope = list(upper = lmFull,
                              lower = ~1),
         trace = F)
 
-winning.mod <- lme(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3, random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1())
+winning.mod <- lme(anpp_response ~ drtsev.1 + drtsev.3 + drtsev.2 + drtsev.1:drtsev.2 +      drtsev.3:drtsev.2, random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1())
 summary(winning.mod)
 
-winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3 +(1|site_code),data = data.anpp.summary)
+winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.3 + drtsev.2 + drtsev.1:drtsev.2 +      drtsev.3:drtsev.2 +(1|site_code),data = data.anpp.summary)
 summary(winning.mod.lmer)
 
 visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "forestgreen"))+
-  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
+  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2), shape = 1)+
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")+
   geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_vline(xintercept = 0, linetype = "dashed")+
+  #geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()  
 
 
@@ -203,7 +206,7 @@ stepAIC(lmFull, scope = list(upper = lmFull,
                              lower = ~1),
         trace = F)
 
-lmNull <- lme(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3), method = "ML",  na.action=na.exclude, correlation = corAR1())
+lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3), method = "ML",  na.action=na.exclude, correlation = corAR1())
 
 
 #Forward model selection
@@ -216,18 +219,18 @@ stepAIC(lmFull, scope = list(upper = lmFull,
         trace = F)
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.1:drtsev.3 + drtsev.2:drtsev.3, data = tempdf)
+winning.mod <- lm(anpp_response ~ drtsev.1 * drtsev.2 * drtsev.3, data = tempdf)
 summary(winning.mod)
 
 #winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3 +(1|site_code),data = data.anpp.summary)
 #summary(winning.mod.lmer)
 
 visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "forestgreen"))+
-  #geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
+  geom_point(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")+
-  geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_vline(xintercept = 0, linetype = "dashed")+
+  #geom_hline(yintercept = 0, linetype = "dashed")+
+  #geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()  
 
 
@@ -275,7 +278,7 @@ ggplot(ordered.df,  aes(site_code, anpp_response))+
   facet_wrap(~n_treat_years)+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
   geom_hline(yintercept = 0,linetype="dashed")+
-  ylim(c(-5,3))+
+  ylim(c(-6.3,5))+
   ylab("anpp_response")+
   xlab("")+
   coord_flip()+

@@ -1,4 +1,4 @@
-ide.precip <- read.csv("~/Dropbox/IDE/data_processed/anpp_ppt_map_2023-01-11.csv")
+ide.precip <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_map_2023-01-11.csv")
 
 library(formattable)
 library(tidyr)
@@ -39,26 +39,28 @@ ide.4year.edrt.sites <- subset(ide.precip.ctrls.siteavgs.wide,
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 &
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 &
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_4 < 0)
-View(ide.4year.edrt.sites)
+#View(ide.4year.edrt.sites)
 nrow(ide.4year.edrt.sites)
+ide.4year.edrt.sites.df <- dplyr::select(ide.4year.edrt.sites, site_code)
 
 # create subset of just sites with 3 consecutive years of extreme drought (ppt-map<0)
 ide.3year.edrt.sites <- subset(ide.precip.ctrls.siteavgs.wide, 
                                ide.precip.ctrls.siteavgs.wide$ppt.map_1 < 0 & 
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 &
-                                 ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 |
-                                 ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 & 
-                                 ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 &
-                                 ide.precip.ctrls.siteavgs.wide$ppt.map_4 < 0)
-View(ide.3year.edrt.sites)
+                                 ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0  )#| for now, I'm only using the sites where the first three years were extreme
+                                # ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 & 
+                                # ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 &
+                                # ide.precip.ctrls.siteavgs.wide$ppt.map_4 < 0)
+#View(ide.3year.edrt.sites)
 nrow(ide.3year.edrt.sites)
+ide.3year.edrt.sites.df <- dplyr::select(ide.3year.edrt.sites, site_code)
 
 # create subset of just sites with 2 consecutive years of extreme drought (ppt-map<0)
 ide.2year.edrt.sites <- subset(ide.precip.ctrls.siteavgs.wide, 
                                ide.precip.ctrls.siteavgs.wide$ppt.map_1 < 0 & ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 |
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_2 < 0 & ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 | 
                                  ide.precip.ctrls.siteavgs.wide$ppt.map_3 < 0 & ide.precip.ctrls.siteavgs.wide$ppt.map_4 < 0)
-View(ide.2year.edrt.sites)
+#View(ide.2year.edrt.sites)
 nrow(ide.2year.edrt.sites)
 
 # create subset of columns for table-ing (just table-ing ppt-map in year 1-4 for now...)
