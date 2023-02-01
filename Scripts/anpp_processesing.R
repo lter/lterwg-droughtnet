@@ -20,7 +20,9 @@ treatment_info <- unique(treatment_info)
 
 treatment_info$trt <- plyr::revalue(treatment_info$trt, c("Control_Infrastructure"="Control"))
 
-
+site_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")%>%
+  dplyr::select(site_code, precip, habitat.type)%>%
+  dplyr::rename(map = precip)
 #full_biomass <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_test.csv")
 #details <- full_biomass[,c("site_code", block, plot, subplot, year, )]
 
@@ -114,11 +116,14 @@ data.all[data.all$site_code == "ukulingadrt.za" & data.all$year == "2021" & data
 
 anpp_ppt.end <- data.all%>%
           left_join( IDE_treatment_years, by = c("site_code", "year"))%>%
-  subset(trt == "Control"| trt == "Drought" )
+  subset(trt == "Control"| trt == "Drought" )%>%
+  merge(site_map)
          #| trt == "Control_Infrastructure")
 
 
 
-write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-01-02.csv")
+
+
+#write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-01-02.csv")
 
 

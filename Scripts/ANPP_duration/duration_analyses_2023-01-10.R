@@ -96,7 +96,7 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(num.years == 4 | num.years == 3)
 
 ## subset to just sies with 3 years extreme
-data.anpp2 <- left_join(ide.3year.edrt.sites.df, data.anpp2, by = "site_code")
+#data.anpp2 <- left_join(ide.3year.edrt.sites.df, data.anpp2, by = "site_code")
 
 
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
@@ -124,7 +124,8 @@ length(unique(data.anpp.summary$site_code))
 
 big.mod <- lmer(anpp_response~n_treat_days*drtsev.1 + (1|site_code), data = data.anpp.summary)
 summary(big.mod)
-#visreg(big.mod)
+big.mod <- lme(anpp_response~n_treat_days*drtsev.1, random =~1|site_code, data = data.anpp.summary)
+summary(big.mod)
 
 
 x <- ggpredict(big.mod,"n_treat_days")
@@ -148,7 +149,13 @@ plot(x)+
 ggplot(data.anpp.summary, aes(drtsev.1, anpp_response))+
   geom_smooth(method = "lm", formula= exp(y)~x)
 
-
+visreg2d(big.mod, "n_treat_days","drtsev.1",  plot.type="gg", col = c("red", "white", "dodgerblue"))+
+  geom_point(data = data.anpp.summary, aes(x=n_treat_days, y=drtsev.1), shape = 1)+
+  xlab("# treatment days")+
+  ylab("Drought severity")+
+  #geom_hline(yintercept = 0, linetype = "dashed")+
+  #geom_vline(xintercept = 0, linetype = "dashed")+
+  theme_base()  
 
 ##this bit tries testing the model residuals but it doesn't show anything
 temp.mod <- lmer(anpp_response~drtsev.1 + (1|site_code), data = data.anpp.summary)
@@ -181,13 +188,13 @@ stepAIC(lmNull, scope = list(upper = lmFull,
                              lower = ~1),
         trace = F)
 
-winning.mod <- lme(anpp_response ~ drtsev.1 + drtsev.3 + drtsev.2 + drtsev.1:drtsev.2 +      drtsev.3:drtsev.2, random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1())
+winning.mod <- lme(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3, random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1())
 summary(winning.mod)
 
-winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.3 + drtsev.2 + drtsev.1:drtsev.2 +      drtsev.3:drtsev.2 +(1|site_code),data = data.anpp.summary)
+winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3 +(1|site_code),data = data.anpp.summary)
 summary(winning.mod.lmer)
 
-visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "forestgreen"))+
+visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "dodgerblue"))+
   geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2), shape = 1)+
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")+
@@ -195,7 +202,14 @@ visreg2d(winning.mod.lmer, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red"
   #geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()  
 
-
+#I think this plot shows that if two years ago was a severe drought, a wet year last year can mitigate the effects of current year drought severity
+visreg2d(winning.mod.lmer, "drtsev.2", "drtsev.3", plot.type="gg", col = c("red", "white", "dodgerblue"))+
+  geom_point(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2), shape = 1)+
+  xlab("Previous year drought severity")+
+  ylab("2 years ago drought severity")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme_base()  
 
 
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason

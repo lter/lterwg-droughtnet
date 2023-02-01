@@ -12,6 +12,9 @@ full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/full_cover_11-
               subset(live == 1)
 full_cover$trt <- plyr::revalue(full_cover$trt, c("Control_Infrastructure"="Control"))
 
+site_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")%>%
+  dplyr::select(site_code, precip, habitat.type)%>%
+  dplyr::rename(map = precip)
 
 full_cover_v2 <- full_cover %>%
   # pivot longer to check duplicate values
@@ -178,7 +181,8 @@ cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 
 cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", "year"))%>%
                     subset(trt == "Control"| trt == "Drought")%>%
-                  left_join(cover_survey, by = "site_code")
+                  left_join(cover_survey, by = "site_code")%>%
+  merge(site_map)
 
 
 
