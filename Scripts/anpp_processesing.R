@@ -10,7 +10,7 @@ library(plyr)
 #read n_treat_years data
 IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_11-17-2022.csv")
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_11-18-2022.csv")
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-02-02.csv")
 
 
 
@@ -21,7 +21,7 @@ treatment_info <- unique(treatment_info)
 treatment_info$trt <- plyr::revalue(treatment_info$trt, c("Control_Infrastructure"="Control"))
 
 site_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")%>%
-  dplyr::select(site_code, precip, habitat.type)%>%
+  dplyr::select(site_code, precip, habitat.type, arid)%>%
   dplyr::rename(map = precip)
 #full_biomass <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_test.csv")
 #details <- full_biomass[,c("site_code", block, plot, subplot, year, )]
@@ -97,6 +97,7 @@ subset(rep_year != "jenadrt.de_2015_1_3_A")%>%
 subset(rep_year != "jenadrt.de_2015_1_4_A")%>%
 subset(rep_year != "jenadrt.de_2015_1_5_A")%>%
 subset(rep_year != "jenadrt.de_2015_1_6_A")%>%
+subset(rep_year != "nyngan.au_2019_1_8_A")%>% #major outlier. Tim made decision to nix it
           subset(site_code != "lcnorth.cl")%>% #Doesn't report ANPP
   subset(site_code != "lcsouth.cl")%>%#Doesn't report ANPP
   subset(site_code != "qdtnorth.cl")%>%#Doesn't report ANPP
@@ -124,6 +125,6 @@ anpp_ppt.end <- data.all%>%
 
 
 
-#write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-01-02.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-02-02.csv")
 
 
