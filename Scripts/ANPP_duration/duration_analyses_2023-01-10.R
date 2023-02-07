@@ -11,16 +11,17 @@ library(ggeffects)
 
 
 
-anpp_ppt_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-01-02.csv")
-
-Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
-
-data.anpp <- anpp_ppt_map%>%
-  left_join( Site_Elev.Disturb, by = "site_code")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-02-06.csv")%>%
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")#%>%
+
+#Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/Site_Elev-Disturb.csv")
+
+#data.anpp <- anpp_ppt_map%>%
+#  left_join( Site_Elev.Disturb, by = "site_code")%>%
+#  subset(habitat.type == "Grassland" | habitat.type == "Shrubland")#%>%
 #subset(ppt.1 ==0 |ppt.2 ==0 |ppt.3 ==0 |ppt.4 ==0 )
 
-anpp.mean <- anpp_ppt_map%>%
+anpp.mean <- data.anpp%>%
   #left_join( Site_Elev.Disturb, by = "site_code")%>%
   #subset(habitat.type == "Grassland" | habitat.type == "Shrubland")%>%
   subset(trt == "Control")%>%
@@ -29,7 +30,7 @@ anpp.mean <- anpp_ppt_map%>%
 
 
 
-length(unique(data.anpp$site_code)) #110
+length(unique(data.anpp$site_code)) #112
 
 #Only using sites with >= 2 reps for drought and >=1 rep for control
 #From Mendy (11-08-2021):
@@ -71,7 +72,7 @@ Plot.trt.ct2<-gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
 
 setdiff(data.anpp$site_code,data.anpp1$site_code) #no sites eliminated here
-length(unique(data.anpp1$site_code)) #1o7
+length(unique(data.anpp1$site_code)) #1o9
 
 #controls <- data.anpp1%>%
 #  subset(trt == "Control" )%>%
@@ -100,10 +101,10 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
 
 
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
-data.anpp2$drtsev.1 <- ((data.anpp2$ppt.1-data.anpp2$precip)/data.anpp2$precip)
-data.anpp2$drtsev.2 <- ((data.anpp2$ppt.2-data.anpp2$precip)/data.anpp2$precip)
-data.anpp2$drtsev.3 <- ((data.anpp2$ppt.3-data.anpp2$precip)/data.anpp2$precip)
-data.anpp2$drtsev.4 <- ((data.anpp2$ppt.4-data.anpp2$precip)/data.anpp2$precip)
+data.anpp2$drtsev.1 <- ((data.anpp2$ppt.1-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.2 <- ((data.anpp2$ppt.2-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.3 <- ((data.anpp2$ppt.3-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.4 <- ((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
 
 
 
@@ -220,7 +221,7 @@ stepAIC(lmFull, scope = list(upper = lmFull,
                              lower = ~1),
         trace = F)
 
-lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3), method = "ML",  na.action=na.exclude, correlation = corAR1())
+lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3),  na.action=na.exclude)
 
 
 #Forward model selection
@@ -228,18 +229,17 @@ stepAIC(lmNull, scope = list(upper = lmFull,
                              lower = ~1),
         trace = F)
 
-stepAIC(lmFull, scope = list(upper = lmFull,
-                             lower = ~1),direction = "both",
-        trace = F)
+
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 * drtsev.2 * drtsev.3, data = tempdf)
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
+                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3, data = tempdf)
 summary(winning.mod)
 
 #winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3 +(1|site_code),data = data.anpp.summary)
 #summary(winning.mod.lmer)
 
-visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "forestgreen"))+
+visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "dodgerblue"))+
   geom_point(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")+
