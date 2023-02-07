@@ -8,7 +8,7 @@ IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_tr
 cover_survey <- read.csv("C:/Users/ohler/Dropbox/IDE_data_May 2018/IDE Site Info/cover_survey_results.csv")
 
 #read in cover data
-full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/full_cover_11-17-2022.csv")%>%
+full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-02-06.csv")%>%
               subset(live == 1)
 full_cover$trt <- plyr::revalue(full_cover$trt, c("Control_Infrastructure"="Control"))
 
@@ -62,9 +62,10 @@ full_cover_v2 <- full_cover %>%
          yes = "drop me",
          no = "keep")) %>%
   # filter to all the rows we want to keep
-  filter(drop_me == "keep") %>%
+  dplyr::filter(drop_me == "keep") %>%
   # we don't need obs_count and drop_me anymore
   dplyr::select(-obs_count, -drop_me) %>%
+  subset(Taxon != "ALLIUM POLYRHIZUM")%>% ###A temporary fix to a problem at urat.cn that Ingrid should solve
   # put it back to wide format
   pivot_wider(names_from = "traits", values_from = "trait_values") %>%
   # reorder columns
@@ -92,7 +93,7 @@ full_cover_v2 <- full_cover_v2%>%
 #details <- full_biomass[, c("site_code", block, plot, subplot, year, )]
 
 #read in precip data
-ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2023-01-02.csv")
+ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2023-02-06.csv")
 
 #reduce column names to minimum
 ppt.1$ppt.1 <- ppt.1$ppt#change precip column names in lag files to reflect lags
@@ -103,7 +104,7 @@ ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"),
 
 
 #read in precip data
-ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2023-01-02.csv")
+ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2023-02-06.csv")
 
 #reduce column names to minimum
 ppt.2$ppt.2 <- ppt.2$ppt#change precip column names in lag files to reflect lags
@@ -113,7 +114,7 @@ ppt.2 <- ddply(ppt.2, c("site_code", "year", "trt"),
         ))
 
 #read in precip data
-ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2023-01-02.csv")
+ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2023-02-06.csv")
 
 #reduce column names to minimum
 ppt.3$ppt.3 <- ppt.3$ppt#change precip column names in lag files to reflect lags
@@ -123,7 +124,7 @@ ppt.3 <- ddply(ppt.3, c("site_code", "year", "trt"),
         ))
 
 #read in precip data
-ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2023-01-02.csv")
+ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2023-02-06.csv")
 
 #reduce column names to minimum
 ppt.4$ppt.4 <- ppt.4$ppt#change precip column names in lag files to reflect lags
@@ -182,11 +183,12 @@ cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", "year"))%>%
                     subset(trt == "Control"| trt == "Drought")%>%
                   left_join(cover_survey, by = "site_code")%>%
-  merge(site_map)
+                  merge(site_map)%>%
+                  subset(habitat.type=="Grassland"|habitat.type=="Shrubland")
 
 
 
-#write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-01-02.csv")
+#write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-02-06.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))
