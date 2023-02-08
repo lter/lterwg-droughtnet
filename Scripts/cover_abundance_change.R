@@ -17,7 +17,8 @@ drop_no_pretrt<-dat %>%
   select(-n_treat_years)
 
 dat2<-dat %>% 
-  right_join(drop_no_pretrt)
+  right_join(drop_no_pretrt) %>% 
+  filter(trt=="Drought")
 
 ###looping through site
 sc<-unique(dat2$site_code)
