@@ -65,7 +65,7 @@ full_cover_v2 <- full_cover %>%
   dplyr::filter(drop_me == "keep") %>%
   # we don't need obs_count and drop_me anymore
   dplyr::select(-obs_count, -drop_me) %>%
-  subset(Taxon != "ALLIUM POLYRHIZUM")%>% ###A temporary fix to a problem at urat.cn that Ingrid should solve
+  #subset(Taxon != "ALLIUM POLYRHIZUM")%>% ###A temporary fix to a problem at urat.cn that Ingrid should solve
   # put it back to wide format
   pivot_wider(names_from = "traits", values_from = "trait_values") %>%
   # reorder columns

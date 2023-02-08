@@ -125,7 +125,7 @@ length(unique(data.anpp.summary$site_code))
 
 #big.mod <- lmer(anpp_response~n_treat_days*drtsev.1 + (1|site_code), data = data.anpp.summary)
 #summary(big.mod)
-big.mod <- lme(anpp_response~n_treat_days*drtsev.1, random =~1|site_code, data = data.anpp.summary,anpp_response, correlation = corAR1())
+big.mod <- lme(anpp_response~n_treat_days*drtsev.1, random =~1|site_code, data = data.anpp.summary, correlation = corAR1())
 summary(big.mod)
 
 
@@ -225,8 +225,42 @@ visreg2d(winning.mod, "drtsev.2", "drtsev.3", plot.type="gg", col = c("red", "wh
   theme_base()  
 
 
+
+# Create a sequence of incrementally increasing (by 0.3 units) values for both wt and hp
+xgrid <-  seq(min(data.anpp.summary$drtsev.1), max(data.anpp.summary$drtsev.1), 0.3)
+ygrid <-  seq(min(data.anpp.summary$drtsev.2), max(data.anpp.summary$drtsev.2), 0.3)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(drtsev.1 = xgrid, drtsev.2 = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(winning.mod#, newdata = data.fit
+                   )
+plot(mtrx3d)
+
+ggplot(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
+  geom_point(aes(fill = anpp_response, size = 2), color = "black", pch = 21)+
+  scale_fill_gradient2(
+    low = "red",
+    mid = "white",
+    high = "blue",
+    midpoint = 0,
+    #space = "Lab",
+    #na.value = "grey50",
+    #guide = "colourbar",
+    #aesthetics = "fill"
+  )+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  
+  theme_base()
+
+
+
+# Abbreviated display of final matrix
+mtrx3d[1:4, 1:4]
+
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 , random = ~1|site_code, data=subset(data.anpp.summary, n_treat_years == 3))
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 , random = ~1|site_code, data=subset(data.anpp.summary, n_treat_years == 4))
 
 
 stepAIC(lmFull, scope = list(upper = lmFull,
@@ -258,6 +292,38 @@ visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "wh
   #geom_hline(yintercept = 0, linetype = "dashed")+
   #geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()  
+
+ggplot(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
+  geom_point(aes(fill = anpp_response, size = 2), color = "black", pch = 21)+
+  scale_fill_gradient2(
+    low = "red",
+    mid = "orange",
+    high = "white",
+    midpoint = 0,
+    #space = "Lab",
+    #na.value = "grey50",
+    #guide = "colourbar",
+    #aesthetics = "fill"
+  )+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  
+  theme_base()
+
+
+geom_raster(aes(fill = cut(z, zCuts))) +
+  scale_fill_brewer(palette = "RdBu"
+                    , drop = FALSE)
+
+ggplot(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
+  geom_point(aes(fill = cut(anpp_response, 5), size = 3), color = "black", pch = 21, alpha = 0.9)+
+   scale_fill_brewer(palette = "Reds", direction = -1
+                    , drop = FALSE)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  
+  theme_base()
+
 
 
 
