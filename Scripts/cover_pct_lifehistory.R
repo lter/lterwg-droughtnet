@@ -42,12 +42,15 @@ pctLifehistory<-dat2 %>%
   filter(n_treat_years==0) %>% 
   group_by(site_code, replicate, local_lifespan) %>% 
   summarize(sum=sum(max_cover)) %>% 
+  filter(site_code!="lygraold.no"&site_code!="lygraint.no"&site_code!="purdue.us"&site_code!="eea.br") %>% 
+  filter(local_lifespan!="NULL") %>% 
   pivot_wider(names_from = local_lifespan, values_from = sum, values_fill = 0) %>% 
-  pivot_longer(ANNUAL:NULL, names_to = "local_lifespan", values_to="sum") %>% 
+  pivot_longer(ANNUAL:UNK, names_to = "local_lifespan", values_to="sum") %>% 
   filter(local_lifespan=="ANNUAL") %>% 
   left_join(totalcover) %>% 
   mutate(PAnn=(sum/tot)*100) %>% 
   group_by(site_code) %>% 
   summarize(PctAnnual=mean(PAnn)) %>% 
-  left_join(pctLifeForm)
+  full_join(pctLifeForm)
 
+write.csv(pctLifehistory, "C:\\Users\\mavolio2\\Dropbox\\Prc_LifeHistory.csv", row.names=F)
