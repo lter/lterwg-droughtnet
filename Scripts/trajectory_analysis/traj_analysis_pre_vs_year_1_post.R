@@ -139,7 +139,7 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
       png(filename = file.path(nms_folder, paste0(a_site, "_nms.png")), width = 850, height = 850, units = "px")
       
       # Feed those vectors into the ordination function
-      helpR::nms_ord(mod = mds_obj, groupcol = comp$nms_group,
+      supportR::nms_ord(mod = mds_obj, groupcol = comp$nms_group,
                      shapes = rep(x = 21:25, times = 4),
                      colors = ide_colors,
                      lines = ide_lines,

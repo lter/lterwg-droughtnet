@@ -10,11 +10,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Housekeeping
 
-Begin by loading the packages that we will need for doing various community composition analysis and visualization. We need `tidyverse` for various wrangling tasks, `RRPP` for trajectory analysis, and Nick Lyon's development package `helpR` has a convenient NMS ordination function. We'll need `vegan` for multidimensional scaling (prerequisite to NMS).
+Begin by loading the packages that we will need for doing various community composition analysis and visualization. We need `tidyverse` for various wrangling tasks, `RRPP` for trajectory analysis, and Nick Lyon's development package `supportR` has a convenient NMS ordination function. We'll need `vegan` for multidimensional scaling (prerequisite to NMS).
 
 ```{r libraries, message = F, warning = F}
 # install.packages("librarian")
-librarian::shelf(tidyverse, RRPP, njlyon0/helpR, vegan)
+librarian::shelf(tidyverse, RRPP, supportR, vegan)
 ```
 
 We will also need to load some composition data to analyze.
@@ -101,7 +101,7 @@ ide_lines <- c(rep(1, times = col_length),
                 rep(2, times = col_length))
 
 # Feed those vectors into the ordination function
-helpR::nms_ord(mod = mds_obj, groupcol = comp$nms_group,
+supportR::nms_ord(mod = mds_obj, groupcol = comp$nms_group,
                shapes = rep(x = 21:25, times = 4),
                colors = ide_colors,
                lines = ide_lines,
