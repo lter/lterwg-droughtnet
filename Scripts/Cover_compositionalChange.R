@@ -1,4 +1,4 @@
-###Code to for each site what % grass/forb and annual/perennial species
+###Code to for how different control-treatment communities are with drought
 ###cody by Meghan Avolio, Feb 8, 2023
 
 library(tidyverse)
