@@ -7,7 +7,7 @@ rm(list = ls())
 
 # Load libraries
 # install.packages("librarian")
-librarian::shelf(tidyverse, RRPP, njlyon0/helpR, vegan)
+librarian::shelf(tidyverse, RRPP, supportR, vegan)
 
 # Name our export folders
 export_folder <- paste0("export_trajectories_", Sys.Date())
