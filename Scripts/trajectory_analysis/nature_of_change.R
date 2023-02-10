@@ -33,7 +33,13 @@ comp <- comp_raw %>%
   # Get average cover within year / treatment / block-plot-subplot
   dplyr::group_by(site_code, n_treat_years, year, trt, block_plot_subplot, Taxon) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  # Identify the number of treatment years for each site
+  dplyr::group_by(site_code) %>%
+  dplyr::mutate(year_ct = length(unique(year))) %>%
+  dplyr::ungroup() %>%
+  # Trajectory analysis can't be run / doesn't make sense for sites with only one year of data (no trajectory can exist with only one point per group)
+  dplyr::filter(year_ct > 1)
 
 # Check out what that yields
 dplyr::glimpse(comp)
@@ -41,6 +47,7 @@ dplyr::glimpse(comp)
 # Make sure filter steps worked as desired
 unique(comp$trt)
 range(comp$n_treat_years)
+range(comp$year_ct)
 
 ## -------------------------------------- ##
          # Trajectory Analysis ----
@@ -51,15 +58,20 @@ out_list <- list()
 
 # Make a vector of "bad" sites that will break the loop
 bad_sites <- c()
+# bad_sites <- c("cdpt_drt.us")
 # bad_sites <- c("chacra.ar", "cdpt_drt.us", "cobar.au", "eea.br", "hyide.de", 
 #                "indiana.us", "jrnchi.us", "morient.ar", "nnss.us", "octc.us", "qdtnorth.cl", 
 #                "sevblack.us", "sevblue.us", "sevmixed.us",
 #                "jilpanger.au", "kiskun.hu", "lcnorth.cl", "lcsouth.cl", "purdue.us",
 #                "qdtsouth.cl", "sand.us", "teshio.jp")
 
+# Note that sites with very few species (≤5) will not throw errors but won't be processed
+## These sites include the following
+few_spp <- c("bamboo.cn")
+
 # Loop across sites to get trajectory analysis results
-# for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
-for(focal_site in "allmendb.ch"){
+for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
+# for(focal_site in "allmendb.ch"){
   
   # Print starting message
   message("Processing begun for '", focal_site, "'")
@@ -80,11 +92,19 @@ for(focal_site in "allmendb.ch"){
     # Make it a matrix
     as.matrix()
   
+  # Stop if the community is too simple to make it through analysis (≤ 5 species)
+  if(ncol(sub_mat) <= 5){
+    message("Community at '", focal_site, "' has too few species to analyze here!") } 
+  
+  # If there are enough species, continue
+  if(ncol(sub_mat) > 5) {
+  
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
                                    "year" = sub_data$year,
                                    "plot" = sub_data$block_plot_subplot,
                                    "community" = sub_mat)
+  
   # Fit perMANOVA model
   sub_fit <- RRPP::lm.rrpp(community ~ treatment * year,
                            data = sub_rdf, iter = 999, RRPP = T)
@@ -110,6 +130,10 @@ for(focal_site in "allmendb.ch"){
   names(sub_dist_v2) <- c(paste0("dist_", names(sub_dist_v2)[1]),
                           paste0("dist_", names(sub_dist_v2)[2]),
                           "diff", "UCL_95perc", "Z_Score", "P_Value", "metric")
+  
+  # Make faux shape results if there are only two years so shape can't be assessed
+  if(length(unique(sub_data$n_treat_years)) < 2)
+  
   
   # Wrangle shape output
   sub_shape_v2 <- sub_shape$summary.table %>%
@@ -158,13 +182,13 @@ for(focal_site in "allmendb.ch"){
   sub_actual <- sub_combo %>%
     # Identify nature of change
     dplyr::mutate(change_nature = paste(significance, collapse = "__"),
-                  .before = dplyr::everything())
+                  .after = site_code)
   
   # Add this to an output list
   out_list[[focal_site]] <- sub_actual
   
   # Ending message
-  message("'", focal_site, "' complete") }
+  message("'", focal_site, "' complete") } }
 
 ## -------------------------------------- ##
                 # Export ----
@@ -175,7 +199,10 @@ out_df <- out_list %>%
   # Unlist by row binding
   list_rbind() %>%
   # And sort by change nature and site
-  dplyr::arrange(change_nature, site_code)
+  dplyr::arrange(change_nature, site_code) %>%
+  # Make a simpler change nature column
+  dplyr::mutate(change_simp = paste0("type ", as.numeric(as.factor(change_nature))),
+                .before = dplyr::everything())
  
 # Glimpse output
 dplyr::glimpse(out_df)
