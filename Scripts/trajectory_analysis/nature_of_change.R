@@ -49,6 +49,10 @@ unique(comp$trt)
 range(comp$n_treat_years)
 range(comp$year_ct)
 
+# Note that we've dropped sites with only one year of data as they cannot have a trajectory
+## Here is the set of all sites that were dropped between "comp_raw" and "comp"
+setdiff(x = unique(comp_raw$site_code), y = unique(comp$site_code))
+
 ## -------------------------------------- ##
          # Trajectory Analysis ----
 ## -------------------------------------- ##
@@ -57,17 +61,13 @@ range(comp$year_ct)
 out_list <- list()
 
 # Make a vector of "bad" sites that will break the loop
-bad_sites <- c()
-# bad_sites <- c("cdpt_drt.us")
-# bad_sites <- c("chacra.ar", "cdpt_drt.us", "cobar.au", "eea.br", "hyide.de", 
-#                "indiana.us", "jrnchi.us", "morient.ar", "nnss.us", "octc.us", "qdtnorth.cl", 
-#                "sevblack.us", "sevblue.us", "sevmixed.us",
-#                "jilpanger.au", "kiskun.hu", "lcnorth.cl", "lcsouth.cl", "purdue.us",
-#                "qdtsouth.cl", "sand.us", "teshio.jp")
-
-# Note that sites with very few species (≤5) will not throw errors but won't be processed
-## These sites include the following
-few_spp <- c("bamboo.cn")
+bad_sites <- c(
+  # Error in `RRPP::trajectory.analysis`
+  ## "Error: Not every trajectory point has replication (more than one observation)."
+  "chacra.ar", "cobar.au",
+  # Error in attempting to get angle results from trajectory analysis
+  ## "Error in if (any(y <= 0)) y = y - min(y) + 1e-04 : missing value where TRUE/FALSE needed"
+  "jorndrt.us")
 
 # Loop across sites to get trajectory analysis results
 for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
@@ -91,13 +91,6 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
     dplyr::select(-site_code:-block_plot_subplot) %>%
     # Make it a matrix
     as.matrix()
-  
-  # Stop if the community is too simple to make it through analysis (≤ 5 species)
-  if(ncol(sub_mat) <= 5){
-    message("Community at '", focal_site, "' has too few species to analyze here!") } 
-  
-  # If there are enough species, continue
-  if(ncol(sub_mat) > 5) {
   
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
@@ -131,10 +124,16 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
                           paste0("dist_", names(sub_dist_v2)[2]),
                           "diff", "UCL_95perc", "Z_Score", "P_Value", "metric")
   
-  # Make faux shape results if there are only two years so shape can't be assessed
-  if(length(unique(sub_data$n_treat_years)) < 2)
-  
-  
+  # If there are only two points we'll need to skip shape 
+  if(length(unique(sub_data$year)) == 2){
+    # Make an empty dummy df in this case
+    sub_shape_v2 <- data.frame("diff" = NA,
+                               "UCL_95perc" = NA,
+                               "Z_Score" = NA,
+                               "P_Value" = NA,
+                               "metric" = "shape")
+    # Otherwise...
+    } else {
   # Wrangle shape output
   sub_shape_v2 <- sub_shape$summary.table %>%
     # Rename columns
@@ -143,7 +142,7 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
                   Z_Score = Z,
                   P_Value = `Pr > d`) %>%
     # Make a metric column
-    dplyr::mutate(metric = "shape")
+    dplyr::mutate(metric = "shape") }
   
   # Wrangle angle output
   sub_angle_v2 <- sub_angle$summary.table %>%
@@ -169,9 +168,9 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
       ## Make a column for site
       site_code = focal_site,
       ## Identify whether each metric was significant
-      significance = ifelse(P_Value < 0.05, 
-                            yes = paste0(metric, "-sig"), 
-                            no = paste0(metric, "-NS")),
+      significance = ifelse(P_Value >= 0.05 | is.na(P_Value), 
+                            yes = paste0(metric, "-NS"), 
+                            no = paste0(metric, "-sig")),
       ## Move both columns all the way to the left
       .before = dplyr::everything())
     
@@ -188,7 +187,7 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
   out_list[[focal_site]] <- sub_actual
   
   # Ending message
-  message("'", focal_site, "' complete") } }
+  message("'", focal_site, "' complete") }
 
 ## -------------------------------------- ##
                 # Export ----
@@ -206,6 +205,11 @@ out_df <- out_list %>%
  
 # Glimpse output
 dplyr::glimpse(out_df)
+
+# How many change types?
+out_df %>%
+  dplyr::group_by(change_simp, change_nature) %>%
+  dplyr::summarize(site_ct = length(unique(site_code)))
 
 # Export locally
 write.csv(x = out_df, row.names = F, na = '',
