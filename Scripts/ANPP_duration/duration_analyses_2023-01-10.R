@@ -94,7 +94,8 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(trt == "Drought")%>%
   subset(n_years>=4)%>%
   left_join(num.treat.years, by = "site_code")%>%
-  subset(num.years == 4 | num.years == 3)
+  subset(num.years == 4 | num.years == 3
+         ) #change here if using 4 years
 
 ## subset to just sies with 3 years extreme
 #data.anpp2 <- left_join(ide.3year.edrt.sites.df, data.anpp2, by = "site_code")
@@ -113,6 +114,8 @@ data.anpp2$drtsev.4 <- ((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
 data.anpp.summary <- data.anpp2%>%
   ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map),
         function(x)data.frame(
+          mean_mass = mean(x$mass),
+          ppt.1 = mean(x$ppt.1),
           anpp_response = mean(x$anpp_response),
           anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1),
           n_treat_days = mean(x$n_treat_days)
@@ -252,13 +255,9 @@ ggplot(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
   )+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  
   theme_base()
 
 
-
-# Abbreviated display of final matrix
-mtrx3d[1:4, 1:4]
 
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
 lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + map + sand_mean, data=subset(data.anpp.summary, n_treat_years == 3))
@@ -279,8 +278,8 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
-                    map + drtsev.1:drtsev.2 + drtsev.2:drtsev.3, data = tempdf)
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + map + drtsev.3 + 
+                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3 + drtsev.1:drtsev.3, data = tempdf)
 summary(winning.mod)
 
 #winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3 +(1|site_code),data = data.anpp.summary)
@@ -294,19 +293,29 @@ visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "wh
   #geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()  
 
+visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="persp")#+
+  #points(x = data.anpp.summary$drtsev.1, y = data.anpp.summary$drtsev.1)
+  #geom_point(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2, x=anpp_response))
 
 
 
 ggplot(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
-  geom_point(aes(fill = cut(anpp_response, 5), size = 3), color = "black", pch = 21, alpha = 0.9)+
+  geom_point(aes(fill = cut(anpp_response, 6), size = 3), color = "black", pch = 21, alpha = 0.9)+
    scale_fill_brewer(palette = "Reds", direction = -1
                     , drop = FALSE)+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  
+  xlab("Year 3 drought severity")+
+  ylab("Year 2 drought severity")+
   theme_base()
 
-
+ggplot(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=anpp_response))+
+  geom_point(aes(fill = cut(drtsev.2,5), size = -drtsev.2), color = "black", pch = 21, alpha = 0.8)+
+  scale_fill_brewer(palette = "Reds", direction = -1
+                    , drop = FALSE)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme_base()
 
 
 ####drought severity figure by year
@@ -361,14 +370,14 @@ ggplot(ordered.df,  aes(site_code, anpp_response))+
 library(ggcorrplot)                                  
 
 p.mat <-  data.anpp.summary%>%
-  dplyr::select( -c("year", "anpp_response.error", "drtsev.1", "drtsev.2", 'drtsev.3', "drtsev.4", "n_treat_days"))%>%
+  dplyr::select( c("site_code", "n_treat_years", "anpp_response"))%>%
   pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
   dplyr::select(-site_code)%>%
   drop_na()%>%
   cor_pmat()
 
 data.anpp.summary%>%
-  dplyr::select( -c("year", "anpp_response.error", "drtsev.1", "drtsev.2", 'drtsev.3', "drtsev.4", "n_treat_days"))%>%
+  dplyr::select( c("site_code", "n_treat_years", "anpp_response"))%>%
   pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
   dplyr::select(-site_code)%>%
   drop_na()%>%
@@ -376,6 +385,12 @@ data.anpp.summary%>%
   ggcorrplot(type = "lower", lab = TRUE, p.mat = p.mat)
 
 
+data.anpp.summary%>%
+  dplyr::select( c("site_code", "n_treat_years", "anpp_response"))%>%
+  pivot_wider(names_from = "n_treat_years", values_from = c("anpp_response"))%>%
+ggplot( aes(`2`, `3`))+
+  geom_point()+
+  theme_base()
 
 
 ################
@@ -385,9 +400,9 @@ anpp.avg <- data.anpp2%>%
         ddply(.(site_code, n_treat_years, drtsev.1, mean.mass),function(x)data.frame(
           mass = mean(x$mass)
         ))%>%
-        subset(n_treat_years >= 1 & n_treat_years <=4)%>%
+        subset(n_treat_years >= 1 & n_treat_years <=3)%>%
         ddply(.(site_code, mean.mass),function(x)data.frame(
-          avg_mass = (sum(x$mass)/4),
+          avg_mass = (sum(x$mass)/3),
           avg.drtsev = mean(x$drtsev.1)
         ))
 
@@ -418,9 +433,183 @@ ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response))+
   geom_hline(yintercept = 0)+
   theme_base()
 
+ggplot(data.anpp.summary, aes(as.factor(n_treat_years), anpp_response))+
+         geom_beeswarm(aes(fill = cut(drtsev.1, 6), size = 3), color = "black", pch = 21, alpha = 0.9)+
+  scale_fill_brewer(palette = "Reds", direction = -1
+                    , drop = FALSE)+
+        geom_hline(yintercept = 0)+
+         theme_base()
+
+
 mod <- lme(anpp_response~as.factor(n_treat_years), random = ~1|site_code, data = data.anpp.summary,)
 summary(mod)
 
+ide.precip.ctrls.siteavgs$e.n <- ifelse(ide.precip.ctrls.siteavgs$ppt.map >0, "nominal", "extreme")
+data.anpp.summary1 <- left_join(data.anpp.summary, ide.precip.ctrls.siteavgs, by = c("site_code", "n_treat_years"))
+
+data.anpp.year <- data.anpp.summary1%>%
+  ddply(.(n_treat_years, e.n),
+        function(x)data.frame(
+          anpp_response = mean(x$anpp_response),
+          anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1)
+        ))%>%
+      subset(e.n != "NA")
+
+  
+ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response, color = history))+
+#  facet_wrap(~e.n)+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error),position=position_dodge(width=.25))+
+#  ylim(-1, 0)+
+  geom_hline(yintercept = 0)+
+  theme_base()
 
 
+en.df <- data.anpp.summary1 %>%
+  dplyr::select(site_code, n_treat_years, e.n)%>%
+  pivot_wider(names_from = "n_treat_years", values_from = "e.n")
+#en.df <-   subset(en.df, en.df[,4] == "extreme")
+
+
+en.df$history <- ifelse(en.df[,2] == "extreme" & en.df[,3] == "extreme", "extreme.extreme.extreme",
+                        ifelse(en.df[,2] == "nominal" & en.df[,3] == "extreme", "nominal.extreme.extreme",
+                               ifelse(en.df[,2] == "extreme" & en.df[,3] == "nominal", "extreme.nominal.extreme",
+                                      "nominal.nominal.extreme"
+                                      )))
+
+
+
+data.anpp.summary2 <- left_join(data.anpp.summary1, en.df, by = "site_code")
+
+data.anpp.year <- data.anpp.summary2%>%
+  ddply(.(n_treat_years, history),
+        function(x)data.frame(
+          anpp_response = mean(x$anpp_response),
+          anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          n = length(x$site_code)
+        ))%>%
+      subset(history != "NA")
+
+
+ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response, color = history))+
+    facet_wrap(~history)+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error),position=position_dodge(width=.25))+
+  #  ylim(-1, 0)+
+  geom_hline(yintercept = 0)+
+  theme_base()
+
+data.anpp.summary2%>%
+  subset(n_treat_years == 3)%>%
+  dplyr::rename("two"="2")%>%
+  subset(two != "NA")%>%
+ggplot(aes(drtsev.1, anpp_response))+
+    geom_point(aes( fill = two), color = "black", pch = 21, alpha = 0.8, size = 4)+
+  geom_smooth(aes(color = two), method = "lm", se = FALSE)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme_base()
+
+  
+  
+  
+##
+en.df <- data.anpp.summary1 %>%
+  dplyr::select(site_code, n_treat_years, e.n)%>%
+  pivot_wider(names_from = "n_treat_years", values_from = "e.n")
+en.df <-   subset(en.df, en.df[,3] == "extreme")
+
+
+en.df$history2 <- ifelse( en.df[,2] == "extreme", "extreme.extreme",
+                        "nominal.extreme")
+
+
+
+data.anpp.summary2 <- left_join(data.anpp.summary1, en.df, by = "site_code")%>%
+                      subset(n_treat_years != 3)
+
+data.anpp.year <- data.anpp.summary2%>%
+  ddply(.(n_treat_years, history2),
+        function(x)data.frame(
+          anpp_response = mean(x$anpp_response),
+          anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          n = length(x$site_code)
+        ))%>%
+  subset(history2 != "NA")
+
+t.test(subset(data.anpp.summary2, n_treat_years == 2 & history2 == "extreme.extreme")$anpp_response, subset(data.anpp.summary2, n_treat_years == 2 & history2 == "nominal.extreme")$anpp_response)
+
+mod <- lme(anpp_response~history2*as.factor(n_treat_years), random = ~1|site_code, data = subset(data.anpp.summary2, history2 != "NA"))
+summary(mod)
+
+ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response, color = history2))+
+  facet_wrap(~history2)+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error),position=position_dodge(width=.25))+
+  #  ylim(-1, 0)+
+  geom_hline(yintercept = 0)+
+  theme_base()
+
+
+############################
+####test a figure
+
+con.mass <-merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
+    subset(n_years>=4)%>%
+  subset(trt == "Control")%>%
+  ddply(.(site_code, year, ppt.1), function(x)data.frame(
+    mass = mean(x$mass)
+  ))
+
+
+
+mod <- lme(mass~ppt.1, random = ~1|site_code, data = temp)
+summary(mod)
+
+ggplot(subset(data.anpp.summary,n_treat_years == 3), aes(ppt.1, mean_mass))+
+  geom_point(aes(fill = cut(drtsev.2, 5), size = 3), color = "black", pch = 21, alpha = 0.9)+
+  scale_fill_brewer(palette = "Reds", direction = -1
+                    , drop = FALSE)+
+  geom_abline(intercept = 181.09679, slope = 0.07201)+
+  theme_base()
+
+
+
+site_vector <- unique(con.mass$site_code)
+
+temporalmodel_master <- {}
+
+for(i in 1:length(site_vector)) {
+    temp.df <- subset(con.mass, site_code == site_vector[i])
+    temp.model <- lm(mass~ppt.1, data = temp.df)
+    #temp.model$coefficients[1]#intercept
+    #temp.model$coefficients[1]#slope
+    #summary(temp.model)$adj.r.squared
+    
+    temporalmodel_temp <- data.frame(site_code = site_vector[i],
+               intercept = temp.model$coefficients[1],#intercept
+               slope = temp.model$coefficients[2],#slope
+               r2 = summary(temp.model)$r.squared
+               )
+    
+    
+  temporalmodel_master <- rbind(temporalmodel_master, temporalmodel_temp )
+  rm(temp.df, temp.model, temporalmodel_temp)
+  
+}
+
+
+hist(temporalmodel_master$r2)
+good.r2 <- subset(temporalmodel_master, r2 >= 0.5)%>%
+            left_join(data.anpp.summary, by  = "site_code")
+
+
+ggplot(good.r2, aes(ppt.1, mean_mass))+
+  facet_wrap(~site_code)+
+  geom_point(aes(fill = cut(drtsev.2, 4), size = 3), color = "black", pch = 21, alpha = 0.9)+
+  scale_fill_brewer(palette = "Reds", direction = -1
+                    , drop = FALSE)+
+  geom_abline(aes(intercept = intercept, slope = slope))+
+  theme_base()
+
+
+
+  
 
