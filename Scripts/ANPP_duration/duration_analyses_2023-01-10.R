@@ -128,12 +128,19 @@ length(unique(data.anpp.summary$site_code))
 
 
 
+days.mod<- lmer(anpp_response~n_treat_days+(1|site_code), data = data.anpp.summary)
+summary(days.mod)
+x <- ggpredict(days.mod,"n_treat_days")
+plot(x)+
+  geom_point(data = data.anpp.summary, aes(x=n_treat_days, y=anpp_response), shape = 1)+
+  theme_base()
 
-  
+
 #big.mod <- lmer(anpp_response~n_treat_days*drtsev.1 + (1|site_code), data = data.anpp.summary)
 #summary(big.mod)
-big.mod <- lme(anpp_response~n_treat_days*drtsev.1, random =~1|site_code, data = data.anpp.summary, correlation = corAR1())
+big.mod <- lme(anpp_response~n_treat_days*drtsev.1*drtsev.2, random =~1|site_code, data = data.anpp.summary, correlation = corAR1())
 summary(big.mod)
+visreg2d(big.mod)
 
 
 x <- ggpredict(big.mod,"n_treat_days")
@@ -332,15 +339,32 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==1))
 summary(mod)
+slopey1 <- coef(mod)[[2]]
+
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==2))
 summary(mod)
+slopey2 <- coef(mod)[[2]]
+
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==3))
 summary(mod)
+slopey3 <- coef(mod)[[2]]
+
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==4))
 summary(mod)
+slopey4 <- coef(mod)[[2]]
 
-mod <- lmer(anpp_response~drtsev.1*as.factor(n_treat_years)+ (1|site_code), data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 4))
+data.frame(n_treat_years = c(1, 2, 3), slope = c(slopey1, slopey2, slopey3))%>%
+ggplot(aes(n_treat_years, slope))+
+  geom_point( size = 5)+
+  geom_line()+
+  ylim(0,3)+
+  xlab("Treatment year")+
+  theme_base()
+
+mod <- lmer(anpp_response~drtsev.1*as.factor(n_treat_years)+ (1|site_code), data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3))
 summary(mod)
+library(emmeans)
+pairs(emtrends(mod, ~as.factor(n_treat_years), var="drtsev.1"))
 
 
 temp <- subset(data.anpp2,n_treat_years >=1 & n_treat_years <= 4)
@@ -508,9 +532,14 @@ ggplot(aes(drtsev.1, anpp_response))+
   geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()
 
-  
-  
-  
+tempdf <- data.anpp.summary2%>%
+  subset(n_treat_years == 3)%>%
+  dplyr::rename("two"="2")%>%
+  subset(two != "NA")
+mod <- lm(anpp_response~drtsev.1*two, data = tempdf)
+summary(mod)  
+
+
 ##
 en.df <- data.anpp.summary1 %>%
   dplyr::select(site_code, n_treat_years, e.n)%>%
@@ -525,6 +554,8 @@ en.df$history2 <- ifelse( en.df[,2] == "extreme", "extreme.extreme",
 
 data.anpp.summary2 <- left_join(data.anpp.summary1, en.df, by = "site_code")%>%
                       subset(n_treat_years != 3)
+
+
 
 data.anpp.year <- data.anpp.summary2%>%
   ddply(.(n_treat_years, history2),
