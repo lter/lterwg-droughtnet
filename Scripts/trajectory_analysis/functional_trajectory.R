@@ -84,7 +84,7 @@ comp_raw <- read.csv(file.path("cover_ppt_2023-01-02.csv"))
 # Do some preliminary wrangling
 comp <- comp_raw %>%
   # Filter to include only the *first* calendar year before treatment AND all post-treatment years
-  dplyr::filter(n_treat_days >= -365 & n_treat_years >= 0) %>%
+  dplyr::filter(n_treat_years >= 0) %>%
   # Filter to only accepted treatments
   dplyr::filter(trt %in% c("Control", "Drought")) %>%
   # Make some new columns
@@ -141,11 +141,15 @@ dplyr::glimpse(fxn_df)
 out_list <- list()
 
 # Make a vector of "bad" sites that will break the loop
-bad_sites <- c()
+bad_sites <- c(
+  # Error in `RRPP::lm.rrpp`: 
+  ## Error in (function (cond)  :  error in evaluating the argument 'x' in selecting a method for function 'as.matrix': subscript out of bounds
+  "eea.br"
+)
 
 # Loop across sites to get trajectory analysis results
-# for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
-  for(focal_site in "allmendb.ch"){
+for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
+  # for(focal_site in "allmendb.ch"){
   
   # Print starting message
   message("Processing begun for '", focal_site, "'")
@@ -199,7 +203,7 @@ bad_sites <- c()
   message("'", focal_site, "' complete") }
 
 ## -------------------------------------- ##
-# Export ----
+              # Family Export ----
 ## -------------------------------------- ##
 
 # Wrangle the output list into a flat dataframe
@@ -210,7 +214,9 @@ out_df <- out_list %>%
   dplyr::arrange(change_nature, site_code) %>%
   # Make a simpler change nature column
   dplyr::mutate(change_simp = paste0("type ", as.numeric(as.factor(change_nature))),
-                .before = dplyr::everything())
+                .before = dplyr::everything()) %>%
+  # Also make a column for what response this is
+  dplyr::mutate(response = "family abundance", .before = dplyr::everything())
 
 # Glimpse output
 dplyr::glimpse(out_df)
@@ -220,9 +226,15 @@ out_df %>%
   dplyr::group_by(change_simp, change_nature) %>%
   dplyr::summarize(site_ct = length(unique(site_code)))
 
+# Name response
+response <- "family"
+
 # Export locally
 write.csv(x = out_df, row.names = F, na = '',
-          file = file.path("traj-analysis_nature-of-change.csv"))
+          file = file.path(paste0("traj-analysis_", response, "-results.csv")))
+
+# Clean up environment
+rm(list = setdiff(ls(), c("comp")))
 
 
 
