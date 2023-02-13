@@ -11,7 +11,7 @@
 ## -------------------------------------- ##
 # Load libraries
 # install.packages("librarian")
-librarian::shelf(tidyverse, RRPP, supportR)
+librarian::shelf(tidyverse, RRPP)
 
 # Clear environment
 rm(list = ls())
@@ -108,11 +108,6 @@ comp <- comp_raw %>%
 
 # Check out what that yields
 dplyr::glimpse(comp)
-
-
-
-
-
 
 # Make sure filter steps worked as desired
 unique(comp$trt)
