@@ -11,7 +11,7 @@
 ## -------------------------------------- ##
 # Load libraries
 # install.packages("librarian")
-librarian::shelf(tidyverse, RRPP)
+librarian::shelf(tidyverse, RRPP, NCEAS/scicomptools)
 
 # Clear environment
 rm(list = ls())
@@ -121,46 +121,41 @@ range(comp$year_ct)
 setdiff(x = unique(comp_raw$site_code), y = unique(comp$site_code))
 
 ## -------------------------------------- ##
-# Function Trajectory Analysis ----
+            # Family Analysis ----
 ## -------------------------------------- ##
 
+# Wrangle composition object for this analysis
+fxn_df <- comp %>%
+  # Group by desired columns and summarize
+  dplyr::group_by(site_code, year, trt, block_plot_subplot, Family) %>% 
+  dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Filter out any unknown families
+  dplyr::filter(!is.na(Family))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Glimpse this
+dplyr::glimpse(fxn_df)
+## Now we can do the analytical workflow!
 
 # Make a list to export outputs to
 out_list <- list()
 
 # Make a vector of "bad" sites that will break the loop
-bad_sites <- c(
-  # Error in `RRPP::trajectory.analysis`
-  ## "Error: Not every trajectory point has replication (more than one observation)."
-  "chacra.ar", "cobar.au", "hyide.de")
+bad_sites <- c()
 
 # Loop across sites to get trajectory analysis results
-for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
-  # for(focal_site in "allmendb.ch"){
+# for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
+  for(focal_site in "allmendb.ch"){
   
   # Print starting message
   message("Processing begun for '", focal_site, "'")
   
   # Do necessary wrangling
-  sub_data <- comp %>%
+  sub_data <- fxn_df %>%
     # Filter data to only this site
     dplyr::filter(site_code == focal_site) %>%
     # Pivot to wide format
-    tidyr::pivot_wider(names_from = Taxon, 
+    tidyr::pivot_wider(names_from = Family, 
                        values_from = max_cover, 
                        values_fill = 0)
   
@@ -186,79 +181,13 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
                                         groups = sub_rdf$treatment,
                                         traj.pts = sub_rdf$year)
   
-  # Strip out parts of this
-  sub_dist <- summary(sub_traj, attribute = "MD")
-  sub_shape <- summary(sub_traj, attribute = "SD")
-  sub_angle <- summary(sub_traj, attribute = "TC", angle.type = "deg")
-  
-  # Wrangle the distance output
-  sub_dist_v2 <- tibble::as_tibble(as.list(sub_dist$x$PD$obs)) %>%
-    # Now bring in remaining summary values
-    cbind(sub_dist$summary.table) %>%
-    # Make a column identifying which metric this is
-    dplyr::mutate(metric = "distance")
-  
-  ## Fix column names
-  names(sub_dist_v2) <- c(paste0("dist_", names(sub_dist_v2)[1]),
-                          paste0("dist_", names(sub_dist_v2)[2]),
-                          "diff", "UCL_95perc", "Z_Score", "P_Value", "metric")
-  
-  # If there are only two points we'll need to skip shape 
-  if(length(unique(sub_data$year)) == 2){
-    # Make an empty dummy df in this case
-    sub_shape_v2 <- data.frame("diff" = NA,
-                               "UCL_95perc" = NA,
-                               "Z_Score" = NA,
-                               "P_Value" = NA,
-                               "metric" = "shape")
-    # Otherwise...
-  } else {
-    # Wrangle shape output
-    sub_shape_v2 <- sub_shape$summary.table %>%
-      # Rename columns
-      dplyr::rename(diff = d,
-                    UCL_95perc = `UCL (95%)`,
-                    Z_Score = Z,
-                    P_Value = `Pr > d`) %>%
-      # Make a metric column
-      dplyr::mutate(metric = "shape") }
-  
-  # Wrangle angle output
-  sub_angle_v2 <- sub_angle$summary.table %>%
-    # Rename columns
-    dplyr::rename(angle_r = r,
-                  diff = angle,
-                  UCL_95perc = `UCL (95%)`,
-                  Z_Score = Z,
-                  P_Value = `Pr > angle`) %>%
-    # Make a metric column
-    dplyr::mutate(metric = "angle")
-  
-  # Combine these extracted objects
-  sub_combo <- sub_dist_v2 %>%
-    # Bind distance, shape, and angle together by column name
-    dplyr::bind_rows(sub_shape_v2, sub_angle_v2) %>%
-    # Reorder columns
-    dplyr::select(metric, dplyr::starts_with("dist_"),
-                  angle_r, diff, UCL_95perc,
-                  Z_Score, P_Value) %>%
-    # Make some new columns
-    dplyr::mutate(
-      ## Make a column for site
-      site_code = focal_site,
-      ## Identify whether each metric was significant
-      significance = dplyr::case_when(
-        P_Value >= 0.05 ~ paste0(metric, "-NS"),
-        is.na(P_Value) ~ paste0(metric, "-NULL"),
-        TRUE ~ paste0(metric, "-sig")),
-      ## Move both columns all the way to the left
-      .before = dplyr::everything())
-  
-  # Drop the row names
-  rownames(sub_combo) <- NULL
+  # Extract relevant summary information
+  sub_metrics <- scicomptools::traj_extract(traj_mod = sub_traj, angle_type = "deg")
   
   # Finally, let's create an output object to preserve
-  sub_actual <- sub_combo %>%
+  sub_actual <- sub_metrics %>%
+    # Make a column for site
+    dplyr::mutate(site_code = focal_site, .before = dplyr::everything()) %>%
     # Identify nature of change
     dplyr::mutate(change_nature = paste(significance, collapse = "__"),
                   .after = site_code)
