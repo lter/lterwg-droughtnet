@@ -347,7 +347,15 @@ fxn_df <- comp %>%
   # Now that we've excluded some sites, we may have columns of all zeros so we need to drop them
   ## Can do this by pivoting long, dropping zeros, then pivoting wide again
   tidyr::pivot_longer(cols = -site_trt:-block_plot_subplot) %>%
-  dplyr::filter(value > 0)
+  dplyr::filter(value > 0) %>%
+  # Count whether there are more than 1 levels
+  dplyr::group_by(site_code) %>%
+  dplyr::mutate(level_ct = length(unique(name))) %>%
+  dplyr::ungroup() %>%
+  # Drop sites with only one level (i.e., not multivariate)
+  dplyr::filter(level_ct > 1) %>%
+  # Drop that column
+  dplyr::select(-level_ct)
 
 # See what we lost
 setdiff(x = unique(comp$site_code), y = unique(fxn_df$site_code))
@@ -363,7 +371,7 @@ out_list <- list()
 bad_sites <- c(
   # Error in `RRPP::trajectory.analysis`
   ## "Error in h(simpleError(msg, call)) : error in evaluating the argument 'x' in selecting a method for function 't': infinite or missing values in 'x'"
-  "kranz.de"
+  # "kranz.de"
 )
 
 # Iterate across sites
@@ -422,7 +430,7 @@ for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
   message("'", focal_site, "' complete") }
 
 ## -------------------------------------- ##
-# Function Export - Provenance ----
+    # Function Export - Provenance ----
 ## -------------------------------------- ##
 
 # Wrangle the output list into a flat dataframe
@@ -435,7 +443,7 @@ out_df <- out_list %>%
   dplyr::mutate(change_simp = paste0("type ", as.numeric(as.factor(change_nature))),
                 .before = dplyr::everything()) %>%
   # Make a reminder column about which response this is
-  dplyr::mutate(response = "family abundance", .before = dplyr::everything())
+  dplyr::mutate(response = "provenance abundance", .before = dplyr::everything())
 
 # Glimpse output
 dplyr::glimpse(out_df)
@@ -447,7 +455,7 @@ out_df %>%
 
 # Export locally
 write.csv(x = out_df, row.names = F, na = '',
-          file = file.path("traj-analysis_family-results.csv"))
+          file = file.path("traj-analysis_provenance-results.csv"))
 
 # Clean up environment
 rm(list = setdiff(ls(), c("comp")))
