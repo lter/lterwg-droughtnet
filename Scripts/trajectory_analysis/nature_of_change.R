@@ -23,7 +23,7 @@ comp_raw <- read.csv(file.path("cover_ppt_2023-01-02.csv"))
 # Do some preliminary wrangling
 comp <- comp_raw %>%
   # Filter to include only the *first* calendar year before treatment AND all post-treatment years
-  dplyr::filter(n_treat_days >= -365 & n_treat_years >= 0) %>%
+  dplyr::filter(n_treat_years >= 0) %>%
   # Filter to only accepted treatments
   dplyr::filter(trt %in% c("Control", "Drought")) %>%
   # Make some new columns
@@ -66,7 +66,8 @@ out_list <- list()
 bad_sites <- c(
   # Error in `RRPP::trajectory.analysis`
   ## "Error: Not every trajectory point has replication (more than one observation)."
-  "chacra.ar", "cobar.au", "hyide.de")
+  "chacra.ar", "cobar.au", "eea.br", "hyide.de"
+  )
 
 # Loop across sites to get trajectory analysis results
 for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
@@ -135,7 +136,9 @@ out_df <- out_list %>%
   dplyr::arrange(change_nature, site_code) %>%
   # Make a simpler change nature column
   dplyr::mutate(change_simp = paste0("type ", as.numeric(as.factor(change_nature))),
-                .before = dplyr::everything())
+                .before = dplyr::everything()) %>%
+  # Make a reminder column about which response this is
+  dplyr::mutate(response = "species abundance", .before = dplyr::everything())
  
 # Glimpse output
 dplyr::glimpse(out_df)
