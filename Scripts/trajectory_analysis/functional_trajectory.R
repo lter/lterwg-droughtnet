@@ -73,7 +73,39 @@ taxa_info <- read.csv(file.path("IDE_taxa_info_2023-02-06.csv")) %>%
   # Keep only unique rows (duplicates are produced by above `case_when` fixes)
   dplyr::distinct() %>%
   # Pivot back to wide format filling missing areas with NA
-  tidyr::pivot_wider(names_from = name, values_from = value, values_fill = NA)
+  tidyr::pivot_wider(names_from = name, values_from = value, values_fill = NA) %>%
+  # Standardize entries
+  ## Provenance (Native vs. Introduced vs. Unknown)
+  dplyr::mutate(provenance = dplyr::case_when(
+    provenance %in% c("NAT", "n", "Native", "Naturalised", "Native?", "native") ~ "NAT",
+    provenance %in% c("INT", "Introduced", "introduced") ~ "INT",
+    provenance %in% c("UNK",  "unknown") ~ "UNK",
+    is.na(provenance) ~ "UNK"),
+    ## Lifeform (growth form)
+    lifeform = dplyr::case_when(
+      lifeform %in% c("Forb", "forb/herb", "Forb/herb", "FORB/HERB",
+                      "NON-LEGUMINOUS FORB", "PERENNIAL FORB") ~ "FORB",
+      lifeform %in% c("ANNUAL GRASS", "Grass") ~ "GRASS",
+      lifeform %in% c("Graminoid") ~ "GRAMINOID",
+      lifeform %in% c("herb", "Herb", "HERB ", "HERB?", "HERBS") ~ "HERB",
+      lifeform %in% c("LEGUME FORB") ~ "LEGUME",
+      lifeform %in% c("SEDGE") ~ "GRAMINOID",
+      lifeform %in% c("SPIKE MOSS", "CLUBMOSS") ~ "MOSS",
+      lifeform %in% c("Shrub", "Shrubs", "SHUB", "SHURB",
+                      "CREEPING TUNDRA GROUND SHRUB") ~ "SHRUB",
+      lifeform %in% c("Shrublet", "SHRUBLET", "SUB-SHRUB",
+                      "DWARF SHRUB") ~ "SUBSHRUB",
+      lifeform %in% c("TREE/SHRUB", "Woody", "WOOD") ~ "WOODY",
+      lifeform %in% c("Vine") ~ "VINE",
+      ### Also need to remove some problem characters when these become column names
+      lifeform == "CORM/BULB" ~ "CORM_BULB",
+      lifeform == "FORB/VINE" ~ "FORB_VINE",
+      lifeform == "HERB/VINE" ~ "HERB_VINE",
+      TRUE ~ lifeform),
+    ## Fix problem characters when these become column names
+    ps_path = dplyr::case_when(
+      ps_path == "C3-C4 Intermediate" ~ "C3_C4_Intermediate",
+      TRUE ~ ps_path))
 
 # Glimpse it
 dplyr::glimpse(taxa_info)
@@ -284,6 +316,141 @@ write.csv(x = out_df, row.names = F, na = '',
 # Clean up environment
 rm(list = setdiff(ls(), c("comp")))
 
+## -------------------------------------- ##
+# Function Analysis - Provenance ----
+## -------------------------------------- ##
+
+# Wrangle composition object for this analysis
+fxn_df <- comp %>%
+  # Group by desired columns and summarize
+  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, provenance) %>% 
+  dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Filter out any unknown families
+  dplyr::filter(!is.na(provenance)) %>%
+  # Pivot to wide format
+  tidyr::pivot_wider(names_from = provenance, 
+                     values_from = max_cover, 
+                     values_fill = 0) %>%
+  # Count trajectory replicates
+  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::mutate(traj_reps = dplyr::n()) %>%
+  dplyr::ungroup() %>%
+  # Identify minimum replicates per site/treatment
+  dplyr::group_by(site_code) %>%
+  dplyr::mutate(min_reps = min(traj_reps, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Drop sites with insufficient replicates
+  dplyr::filter(min_reps > 1) %>%
+  # Drop the replicate counting columns
+  dplyr::select(-dplyr::ends_with("_reps")) %>%
+  # Now that we've excluded some sites, we may have columns of all zeros so we need to drop them
+  ## Can do this by pivoting long, dropping zeros, then pivoting wide again
+  tidyr::pivot_longer(cols = -site_trt:-block_plot_subplot) %>%
+  dplyr::filter(value > 0)
+
+# See what we lost
+setdiff(x = unique(comp$site_code), y = unique(fxn_df$site_code))
+
+# Glimpse this
+dplyr::glimpse(fxn_df)
+## Now we can do the analytical workflow!
+
+# Make a list to store this information
+out_list <- list()
+
+# Make a vector of "bad" sites that will break the loop
+bad_sites <- c(
+  # Error in `RRPP::trajectory.analysis`
+  ## "Error in h(simpleError(msg, call)) : error in evaluating the argument 'x' in selecting a method for function 't': infinite or missing values in 'x'"
+  "kranz.de"
+)
+
+# Iterate across sites
+for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
+  # for(focal_site in "allmendb.ch"){
+  
+  # Print starting message
+  message("Processing begun for '", focal_site, "'")
+  
+  # Do necessary wrangling
+  sub_data <- fxn_df %>%
+    # Filter data to only this site
+    dplyr::filter(site_code == focal_site) %>%
+    # Pivot to wide format
+    tidyr::pivot_wider(names_from = name, 
+                       values_from = value, 
+                       values_fill = 0)
+  
+  # Now make a matrix version of just the community composition
+  sub_mat <- sub_data %>%
+    # Drop group columns
+    dplyr::select(-site_trt:-block_plot_subplot) %>%
+    # Make it a matrix
+    as.matrix()
+  
+  # Make the special dataframe required by the RRPP package
+  sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
+                                   "year" = sub_data$year,
+                                   "plot" = sub_data$block_plot_subplot,
+                                   "community" = sub_mat)
+  
+  # Fit perMANOVA model
+  sub_fit <- RRPP::lm.rrpp(community ~ treatment * year,
+                           data = sub_rdf, iter = 999, RRPP = T)
+  
+  # Run trajectory analysis
+  sub_traj <- RRPP::trajectory.analysis(fit = sub_fit,
+                                        groups = sub_rdf$treatment,
+                                        traj.pts = sub_rdf$year)
+  
+  # Extract relevant summary information
+  sub_metrics <- scicomptools::traj_extract(traj_mod = sub_traj, angle_type = "deg")
+  
+  # Finally, let's create an output object to preserve
+  sub_actual <- sub_metrics %>%
+    # Make a site column
+    dplyr::mutate(site_code = focal_site, .before = dplyr::everything()) %>%
+    # Identify nature of change
+    dplyr::mutate(change_nature = paste(significance, collapse = "__"),
+                  .after = site_code)
+  
+  # Add this to an output list
+  out_list[[focal_site]] <- sub_actual
+  
+  # Ending message
+  message("'", focal_site, "' complete") }
+
+## -------------------------------------- ##
+# Function Export - Provenance ----
+## -------------------------------------- ##
+
+# Wrangle the output list into a flat dataframe
+out_df <- out_list %>%
+  # Unlist by row binding
+  list_rbind() %>%
+  # And sort by change nature and site
+  dplyr::arrange(change_nature, site_code) %>%
+  # Make a simpler change nature column
+  dplyr::mutate(change_simp = paste0("type ", as.numeric(as.factor(change_nature))),
+                .before = dplyr::everything()) %>%
+  # Make a reminder column about which response this is
+  dplyr::mutate(response = "family abundance", .before = dplyr::everything())
+
+# Glimpse output
+dplyr::glimpse(out_df)
+
+# How many change types?
+out_df %>%
+  dplyr::group_by(change_simp, change_nature) %>%
+  dplyr::summarize(site_ct = length(unique(site_code)))
+
+# Export locally
+write.csv(x = out_df, row.names = F, na = '',
+          file = file.path("traj-analysis_family-results.csv"))
+
+# Clean up environment
+rm(list = setdiff(ls(), c("comp")))
 
 
 
