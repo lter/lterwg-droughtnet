@@ -153,7 +153,7 @@ setdiff(x = unique(comp_v2$site_code), y = unique(comp$site_code))
 ## -------------------------------------- ##
 
 # Wrangle composition object for this analysis
-fam_df <- comp %>%
+fxn_df <- comp %>%
   # Group by desired columns and summarize
   dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, Family) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
@@ -179,53 +179,84 @@ fam_df <- comp %>%
   # Now that we've excluded some sites, we may have columns of all zeros so we need to drop them
   ## Can do this by pivoting long, dropping zeros, then pivoting wide again
   tidyr::pivot_longer(cols = -site_trt:-block_plot_subplot) %>%
-  dplyr::filter(value > 0) %>%
-  tidyr::pivot_wider(names_from = name, values_from = value, values_fill = 0)
+  dplyr::filter(value > 0)
   
 # See what we lost
-setdiff(x = unique(comp$site_code), y = unique(fam_df$site_code))
+setdiff(x = unique(comp$site_code), y = unique(fxn_df$site_code))
 
 # Glimpse this
-dplyr::glimpse(fam_df)
+dplyr::glimpse(fxn_df)
 ## Now we can do the analytical workflow!
 
-# Now make a matrix version of just the community composition
-fam_mat <- fam_df %>%
-  # Drop group columns
-  dplyr::select(-site_trt:-block_plot_subplot) %>%
-  # Make it a matrix
-  as.matrix()
+# Make a list to store this information
+out_list <- list()
 
-# Make the special dataframe required by the RRPP package
-fam_rdf <- RRPP::rrpp.data.frame("site_treatment" = fam_df$site_trt,
-                                 "year" = fam_df$year,
-                                 "plot" = fam_df$block_plot_subplot,
-                                 "community" = fam_mat)
+# Make a vector of "bad" sites that will break the loop
+bad_sites <- c(
+  # Error in `RRPP::trajectory.analysis`
+  ## "Error in h(simpleError(msg, call)) : error in evaluating the argument 'x' in selecting a method for function 't': infinite or missing values in 'x'"
+  "kranz.de"
+)
 
-# Fit perMANOVA model
-## Note: takes a few minutes
-fam_fit <- RRPP::lm.rrpp(community ~ site_treatment * year,
-                         data = fam_rdf, iter = 999, RRPP = T,
-                         print.progress = T)
+# Iterate across sites
+for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
+  # for(focal_site in "allmendb.ch"){
+  
+  # Print starting message
+  message("Processing begun for '", focal_site, "'")
+  
+  # Do necessary wrangling
+  sub_data <- fxn_df %>%
+    # Filter data to only this site
+    dplyr::filter(site_code == focal_site) %>%
+    # Pivot to wide format
+    tidyr::pivot_wider(names_from = name, 
+                       values_from = value, 
+                       values_fill = 0)
+  
+  # Now make a matrix version of just the community composition
+  sub_mat <- sub_data %>%
+    # Drop group columns
+    dplyr::select(-site_trt:-block_plot_subplot) %>%
+    # Make it a matrix
+    as.matrix()
+  
+  # Make the special dataframe required by the RRPP package
+  sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
+                                   "year" = sub_data$year,
+                                   "plot" = sub_data$block_plot_subplot,
+                                   "community" = sub_mat)
+  
+  # Fit perMANOVA model
+  sub_fit <- RRPP::lm.rrpp(community ~ treatment * year,
+                           data = sub_rdf, iter = 999, RRPP = T)
+  
+  # Run trajectory analysis
+  sub_traj <- RRPP::trajectory.analysis(fit = sub_fit,
+                                        groups = sub_rdf$treatment,
+                                        traj.pts = sub_rdf$year)
+  
+  # Extract relevant summary information
+  sub_metrics <- scicomptools::traj_extract(traj_mod = sub_traj, angle_type = "deg")
+  
+  # Finally, let's create an output object to preserve
+  sub_actual <- sub_metrics %>%
+    # Make a site column
+    dplyr::mutate(site_code = focal_site, .before = dplyr::everything()) %>%
+    # Identify nature of change
+    dplyr::mutate(change_nature = paste(significance, collapse = "__"),
+                  .after = site_code)
+  
+  # Add this to an output list
+  out_list[[focal_site]] <- sub_actual
+  
+  # Ending message
+  message("'", focal_site, "' complete") }
 
-# Run trajectory analysis
-## Note: takes several minutes
-fam_traj <- RRPP::trajectory.analysis(fit = fam_fit,
-                                      groups = fam_rdf$site_treatment,
-                                      traj.pts = fam_rdf$year)
+## -------------------------------------- ##
+            # Family Export ----
+## -------------------------------------- ##
 
-# Extract relevant summary information
-fam_metrics <- scicomptools::traj_extract(traj_mod = fam_traj, angle_type = "deg")
-
-# Finally, let's create an output object to preserve
-fam_actual <- fam_metrics %>%
-  # Make a column for site
-  dplyr::mutate(site_code = focal_site, .before = dplyr::everything()) %>%
-  # Identify nature of change
-  dplyr::mutate(change_nature = paste(significance, collapse = "__"),
-                .after = site_code)
-
-# Export this
 # Wrangle the output list into a flat dataframe
 out_df <- out_list %>%
   # Unlist by row binding
@@ -235,7 +266,7 @@ out_df <- out_list %>%
   # Make a simpler change nature column
   dplyr::mutate(change_simp = paste0("type ", as.numeric(as.factor(change_nature))),
                 .before = dplyr::everything()) %>%
-  # Also make a column for what response this is
+  # Make a reminder column about which response this is
   dplyr::mutate(response = "family abundance", .before = dplyr::everything())
 
 # Glimpse output
@@ -246,15 +277,25 @@ out_df %>%
   dplyr::group_by(change_simp, change_nature) %>%
   dplyr::summarize(site_ct = length(unique(site_code)))
 
-# Name response
-response <- "family"
-
 # Export locally
 write.csv(x = out_df, row.names = F, na = '',
-          file = file.path(paste0("traj-analysis_", response, "-results.csv")))
+          file = file.path("traj-analysis_family-results.csv"))
 
 # Clean up environment
 rm(list = setdiff(ls(), c("comp")))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
