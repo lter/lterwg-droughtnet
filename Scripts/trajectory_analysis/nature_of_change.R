@@ -22,8 +22,10 @@ comp_raw <- read.csv(file.path("cover_ppt_2023-01-02.csv"))
 
 # Do some preliminary wrangling
 comp <- comp_raw %>%
-  #Filter to only accepted treatments and years after treatment application
-  dplyr::filter(n_treat_years >= 1 & trt %in% c("Control", "Drought")) %>%
+  # Filter to include only the *first* calendar year before treatment AND all post-treatment years
+  dplyr::filter(n_treat_days >= -365 & n_treat_years >= 0) %>%
+  # Filter to only accepted treatments
+  dplyr::filter(trt %in% c("Control", "Drought")) %>%
   # Make some new columns
   dplyr::mutate(
     ## Concatenated block-plot-subplot column
@@ -64,10 +66,7 @@ out_list <- list()
 bad_sites <- c(
   # Error in `RRPP::trajectory.analysis`
   ## "Error: Not every trajectory point has replication (more than one observation)."
-  "chacra.ar", "cobar.au",
-  # Error in attempting to get angle results from trajectory analysis
-  ## "Error in if (any(y <= 0)) y = y - min(y) + 1e-04 : missing value where TRUE/FALSE needed"
-  "jorndrt.us")
+  "chacra.ar", "cobar.au", "hyide.de")
 
 # Loop across sites to get trajectory analysis results
 for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
@@ -168,9 +167,10 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
       ## Make a column for site
       site_code = focal_site,
       ## Identify whether each metric was significant
-      significance = ifelse(P_Value >= 0.05 | is.na(P_Value), 
-                            yes = paste0(metric, "-NS"), 
-                            no = paste0(metric, "-sig")),
+      significance = dplyr::case_when(
+        P_Value >= 0.05 ~ paste0(metric, "-NS"),
+        is.na(P_Value) ~ paste0(metric, "-NULL"),
+        TRUE ~ paste0(metric, "-sig")),
       ## Move both columns all the way to the left
       .before = dplyr::everything())
     
