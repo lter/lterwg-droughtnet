@@ -23,16 +23,16 @@ full_cover_v2 <- full_cover %>%
   # consolidating trait values into fewer categories
   dplyr::mutate(trait_values = case_when(
     nchar(trait_values) == 0 | is.na(trait_values) ~ "NULL",
-    trait_values %in% c("ANNUAL GRASS","Grass") ~ "GRASS",
+#    trait_values %in% c("ANNUAL GRASS","Grass") ~ "GRASS",
     trait_values %in% c("Forb","NON-LEGUMINOUS FORB", "PERENNIAL FORB") ~ "FORB",
     trait_values %in% c("Graminoid", "SEDGE") ~ "GRAMINOID",
     trait_values == "HERBS" ~ "HERB",
-    trait_values == "INDETERMINATE" ~ "NULL",
+    #trait_values == "INDETERMINATE" ~ "NULL", # INDETERMINATE is a valid category
     trait_values == "Introduced" ~ "INT",
     trait_values == "LEGUME FORB" ~ "LEGUME",
     trait_values %in% c("n","Native") ~ "NAT",
-    trait_values %in% c("Shrubs", "SHURB") ~ "SHRUB",
-    trait_values == "SUB-SHRUB" ~ "SUBSHRUB",
+#    trait_values %in% c("Shrubs", "SHURB") ~ "SHRUB", #should be fixed now
+    trait_values == "SUB-SHRUB" ~ "SUBSHRUB", #should be fixed now
     trait_values %in% c("unknown", "UNKNOWN") ~ "UNK",
     trait_values == "C3-C4 Intermediate" ~ "C3-C4 INTERMEDIATE",
     # fixing an error that someone made when entering the data
