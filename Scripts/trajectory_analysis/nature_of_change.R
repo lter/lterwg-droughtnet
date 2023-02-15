@@ -21,9 +21,11 @@ rm(list = ls())
 comp_raw <- read.csv(file.path("cover_ppt_2023-01-02.csv"))
 
 # Do some preliminary wrangling
-comp <- comp_raw %>%
+comp_v2 <- comp_raw %>%
   # Filter to include only the *first* calendar year before treatment AND all post-treatment years
   dplyr::filter(n_treat_years >= 0) %>%
+  # Now make n_treat_years a character
+  dplyr::mutate(n_treat_years = as.character(n_treat_years)) %>%
   # Filter to only accepted treatments
   dplyr::filter(trt %in% c("Control", "Drought")) %>%
   # Make some new columns
@@ -38,22 +40,46 @@ comp <- comp_raw %>%
   dplyr::ungroup() %>%
   # Identify the number of treatment years for each site
   dplyr::group_by(site_code) %>%
-  dplyr::mutate(year_ct = length(unique(year))) %>%
+  dplyr::mutate(year_ct = length(unique(n_treat_years))) %>%
   dplyr::ungroup() %>%
   # Trajectory analysis can't be run / doesn't make sense for sites with only one year of data (no trajectory can exist with only one point per group)
   dplyr::filter(year_ct > 1)
+
+# Now need to identify which (if any) sites have unequal replicates between treatments
+uneq_reps <- comp_v2 %>%
+  # Count number of replicates of site-treatment combinations
+  dplyr::group_by(site_code, trt) %>%
+  dplyr::summarize(traj_reps = length(unique(n_treat_years))) %>%
+  dplyr::ungroup() %>%
+  # Pivot that new column to wide format
+  tidyr::pivot_wider(names_from = trt, values_from = traj_reps) %>%
+  # Filter to only cases where control and drought DON'T have the same rep number
+  dplyr::filter(Control != Drought)
+
+# Check what that leaves
+uneq_reps
+
+# Final wrangling to composiiton object
+comp <- comp_v2 %>%
+  # Drop sites with unequal replicates
+  dplyr::filter(!site_code %in% c(uneq_reps$site_code)) %>%
+  # Make a site + treatment column
+  dplyr::mutate(site_trt = paste0(site_code, "_", trt),
+                .before = dplyr::everything())
 
 # Check out what that yields
 dplyr::glimpse(comp)
 
 # Make sure filter steps worked as desired
 unique(comp$trt)
-range(comp$n_treat_years)
+sort(unique(comp$n_treat_years))
 range(comp$year_ct)
 
-# Note that we've dropped sites with only one year of data as they cannot have a trajectory
-## Here is the set of all sites that were dropped between "comp_raw" and "comp"
-setdiff(x = unique(comp_raw$site_code), y = unique(comp$site_code))
+# Sites dropped for only 1 year of data
+setdiff(x = unique(comp_raw$site_code), y = unique(comp_v2$site_code))
+
+# Sites dropped for unequal drought vs. control year replicates
+setdiff(x = unique(comp_v2$site_code), y = unique(comp$site_code))
 
 ## -------------------------------------- ##
          # Trajectory Analysis ----
@@ -66,8 +92,7 @@ out_list <- list()
 bad_sites <- c(
   # Error in `RRPP::trajectory.analysis`
   ## "Error: Not every trajectory point has replication (more than one observation)."
-  "chacra.ar", "cobar.au", "eea.br", "hyide.de"
-  )
+  "chacra.ar", "cobar.au", "hyide.de")
 
 # Loop across sites to get trajectory analysis results
 for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
@@ -88,13 +113,13 @@ for(focal_site in setdiff(x = unique(comp$site_code), y = bad_sites)){
   # Now make a matrix version of just the community composition
   sub_mat <- sub_data %>%
     # Drop group columns
-    dplyr::select(-site_code:-block_plot_subplot) %>%
+    dplyr::select(-site_trt:-year_ct) %>%
     # Make it a matrix
     as.matrix()
   
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
-                                   "year" = sub_data$year,
+                                   "year" = sub_data$n_treat_years,
                                    "plot" = sub_data$block_plot_subplot,
                                    "community" = sub_mat)
   
