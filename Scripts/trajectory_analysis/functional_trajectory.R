@@ -11,7 +11,7 @@
 ## -------------------------------------- ##
 # Load libraries
 # install.packages("librarian")
-librarian::shelf(tidyverse, RRPP, NCEAS/scicomptools)
+librarian::shelf(tidyverse, RRPP, NCEAS/scicomptools, supportR)
 
 # Clear environment
 rm(list = ls())
@@ -314,7 +314,125 @@ write.csv(x = out_df, row.names = F, na = '',
           file = file.path("traj-analysis_family-results.csv"))
 
 # Clean up environment
-rm(list = setdiff(ls(), c("comp")))
+rm(list = setdiff(ls(), c("comp", "out_df")))
+
+## -------------------------------------- ##
+# Family Analysis - Part 2 ----
+## -------------------------------------- ##
+
+# Want to do a bonus analysis here:
+## Do cross-site trajectory analysis ONLY for sites that are significant above
+
+# Identify sites that had significance in first part of family analysis
+sig_sites <- out_df %>%
+  # Filter to only significant trajectory analysis results
+  dplyr::filter(P_Value < 0.05) %>%
+  # Pare down to needed columns
+  dplyr::select(site_code) %>%
+  # Get only unique sites (no duplicates for sites that are sig in multiple metrics)
+  dplyr::distinct() %>%
+  # Return as a vector
+  dplyr::pull()
+
+# Glimpse it
+dplyr::glimpse(sig_sites)
+
+# Use this to process a neat family level dataframe
+fam_df <- comp %>%
+  # Group by desired columns and summarize
+  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, Family) %>% 
+  dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Filter out any unknown families
+  dplyr::filter(!is.na(Family)) %>%
+  # Filter to only sites that were sig. in traj. analysis by themselves
+  dplyr::filter(site_code %in% sig_sites) %>%
+  # Pivot to wide format
+  tidyr::pivot_wider(names_from = Family, 
+                     values_from = max_cover, 
+                     values_fill = 0) %>%
+  # Count trajectory replicates
+  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::mutate(traj_reps = dplyr::n()) %>%
+  dplyr::ungroup() %>%
+  # Identify minimum replicates per site/treatment
+  dplyr::group_by(site_code) %>%
+  dplyr::mutate(min_reps = min(traj_reps, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Drop sites with insufficient replicates
+  dplyr::filter(min_reps > 1) %>%
+  # Drop the replicate counting columns
+  dplyr::select(-dplyr::ends_with("_reps")) %>%
+  # Now that we've excluded some sites, we may have columns of all zeros so we need to drop them
+  ## Can do this by pivoting long, dropping zeros, then pivoting wide again
+  tidyr::pivot_longer(cols = -site_trt:-block_plot_subplot) %>%
+  dplyr::filter(value > 0) %>%
+  tidyr::pivot_wider(names_from = name, values_from = value, values_fill = 0)
+
+# Glimpse this
+dplyr::glimpse(fam_df)
+
+# Check that no sites are included that shouldn't be
+supportR::diff_check(old = unique(fam_df$site_code), new = sig_sites)
+
+# Now make a matrix version of just the community composition
+fam_mat <- fam_df %>%
+  dplyr::select(-site_trt:-block_plot_subplot) %>%
+  as.matrix()
+
+# Make the special dataframe required by the RRPP package
+fam_rdf <- RRPP::rrpp.data.frame("site_treatment" = fam_df$site_trt,
+                                 "site" = fam_df$site_code,
+                                 "treatment" = fam_df$trt,
+                                 "year" = fam_df$year,
+                                 "plot" = fam_df$block_plot_subplot,
+                                 "community" = fam_mat)
+
+# Fit perMANOVA model
+## Note: takes a few minutes
+fam_fit <- RRPP::lm.rrpp(community ~ site_treatment * year,
+                         data = fam_rdf, iter = 999, RRPP = T,
+                         print.progress = T)
+
+# Run trajectory analysis
+## Note: takes several minutes
+fam_traj <- RRPP::trajectory.analysis(fit = fam_fit,
+                                      groups = fam_rdf$site_treatment,
+                                      traj.pts = fam_rdf$year)
+
+# Extract relevant summary information
+fam_metrics <- scicomptools::traj_extract(traj_mod = fam_traj, angle_type = "deg")
+
+# Finally, let's create an output object to preserve
+fam_actual <- fam_metrics %>%
+  # Make a column for site
+  dplyr::mutate(response = "family abundance", .before = dplyr::everything()) %>%
+  # Identify nature of change
+  dplyr::mutate(change_nature = paste(significance, collapse = "__"),
+                .after = response) %>%
+  dplyr::mutate(change_simp = paste0("type ", as.numeric(as.factor(change_nature))),
+                .before = change_nature)
+
+# Glimpse this
+dplyr::glimpse(fam_actual)
+
+# How many change types?
+out_df %>%
+  dplyr::group_by(change_simp, change_nature) %>%
+  dplyr::summarize(site_ct = dplyr::n())
+
+# Export
+write.csv(x = out_df, row.names = F, na = '',
+          file = file.path("traj-analysis_MULTI-SITE_family-results.csv"))
+
+# Clean up environment
+rm(list = setdiff(ls(), c("comp", "out_df")))
+
+
+
+
+# Clean up environment
+# rm(list = setdiff(ls(), c("comp")))
 
 ## -------------------------------------- ##
    # Function Analysis - Provenance ----
