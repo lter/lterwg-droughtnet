@@ -120,6 +120,8 @@ comp_raw <- read.csv(file.path("cover_ppt_2023-01-02.csv"))
 comp_v2 <- comp_raw %>%
   # Filter to include only the *first* calendar year before treatment AND all post-treatment years
   dplyr::filter(n_treat_years >= 0) %>%
+  # Now make n_treat_years a character
+  dplyr::mutate(n_treat_years = as.character(n_treat_years)) %>%
   # Filter to only accepted treatments
   dplyr::filter(trt %in% c("Control", "Drought")) %>%
   # Make some new columns
@@ -134,7 +136,7 @@ comp_v2 <- comp_raw %>%
   dplyr::ungroup() %>%
   # Identify the number of treatment years for each site
   dplyr::group_by(site_code) %>%
-  dplyr::mutate(year_ct = length(unique(year))) %>%
+  dplyr::mutate(year_ct = length(unique(n_treat_years))) %>%
   dplyr::ungroup() %>%
   # Trajectory analysis can't be run / doesn't make sense for sites with only one year of data (no trajectory can exist with only one point per group)
   dplyr::filter(year_ct > 1) %>%
@@ -148,7 +150,7 @@ dplyr::glimpse(comp_v2)
 uneq_reps <- comp_v2 %>%
   # Count number of replicates of site-treatment combinations
   dplyr::group_by(site_code, trt) %>%
-  dplyr::summarize(traj_reps = length(unique(year))) %>%
+  dplyr::summarize(traj_reps = length(unique(n_treat_years))) %>%
   dplyr::ungroup() %>%
   # Pivot that new column to wide format
   tidyr::pivot_wider(names_from = trt, values_from = traj_reps) %>%
@@ -171,7 +173,7 @@ dplyr::glimpse(comp)
 
 # Make sure filter steps worked as desired
 unique(comp$trt)
-range(comp$n_treat_years)
+sort(unique(comp$n_treat_years))
 range(comp$year_ct)
 
 # Sites dropped for only 1 year of data
@@ -187,7 +189,7 @@ setdiff(x = unique(comp_v2$site_code), y = unique(comp$site_code))
 # Wrangle composition object for this analysis
 fxn_df <- comp %>%
   # Group by desired columns and summarize
-  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, Family) %>% 
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years, block_plot_subplot, Family) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
@@ -197,7 +199,7 @@ fxn_df <- comp %>%
                      values_from = max_cover, 
                      values_fill = 0) %>%
   # Count trajectory replicates
-  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years) %>%
   dplyr::mutate(traj_reps = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Identify minimum replicates per site/treatment
@@ -224,15 +226,12 @@ dplyr::glimpse(fxn_df)
 out_list <- list()
 
 # Make a vector of "bad" sites that will break the loop
-bad_sites <- c(
-  # Error in `RRPP::trajectory.analysis`
-  ## "Error in h(simpleError(msg, call)) : error in evaluating the argument 'x' in selecting a method for function 't': infinite or missing values in 'x'"
-  "kranz.de"
-)
+bad_sites <- c()
 
 # Iterate across sites
 for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
-  # for(focal_site in "allmendb.ch"){
+  # for(focal_site in "kranz.de"){
+    
   
   # Print starting message
   message("Processing begun for '", focal_site, "'")
@@ -255,7 +254,7 @@ for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
   
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
-                                   "year" = sub_data$year,
+                                   "year" = sub_data$n_treat_years,
                                    "plot" = sub_data$block_plot_subplot,
                                    "community" = sub_mat)
   
@@ -317,7 +316,7 @@ write.csv(x = out_df, row.names = F, na = '',
 rm(list = setdiff(ls(), c("comp", "out_df")))
 
 ## -------------------------------------- ##
-# Family Analysis - Part 2 ----
+      # Family Analysis - Part 2 ----
 ## -------------------------------------- ##
 
 # Want to do a bonus analysis here:
@@ -340,7 +339,7 @@ dplyr::glimpse(sig_sites)
 # Use this to process a neat family level dataframe
 fam_df <- comp %>%
   # Group by desired columns and summarize
-  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, Family) %>% 
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years, block_plot_subplot, Family) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
@@ -352,7 +351,7 @@ fam_df <- comp %>%
                      values_from = max_cover, 
                      values_fill = 0) %>%
   # Count trajectory replicates
-  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years) %>%
   dplyr::mutate(traj_reps = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Identify minimum replicates per site/treatment
@@ -384,7 +383,7 @@ fam_mat <- fam_df %>%
 fam_rdf <- RRPP::rrpp.data.frame("site_treatment" = fam_df$site_trt,
                                  "site" = fam_df$site_code,
                                  "treatment" = fam_df$trt,
-                                 "year" = fam_df$year,
+                                 "year" = fam_df$n_treat_years,
                                  "plot" = fam_df$block_plot_subplot,
                                  "community" = fam_mat)
 
@@ -429,7 +428,7 @@ write.csv(x = out_df, row.names = F, na = '',
 rm(list = setdiff(ls(), c("comp")))
 
 ## -------------------------------------- ##
-# Family Analysis - Part 3 ----
+      # Family Analysis - Part 3 ----
 ## -------------------------------------- ##
 
 # Want to do another bonus analysis here:
@@ -438,7 +437,7 @@ rm(list = setdiff(ls(), c("comp")))
 # Use this to process a neat family level dataframe
 fam_df <- comp %>%
   # Group by desired columns and summarize
-  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, Family) %>% 
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years, block_plot_subplot, Family) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
@@ -448,7 +447,7 @@ fam_df <- comp %>%
                      values_from = max_cover, 
                      values_fill = 0) %>%
   # Count trajectory replicates
-  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years) %>%
   dplyr::mutate(traj_reps = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Identify minimum replicates per site/treatment
@@ -477,7 +476,7 @@ fam_mat <- fam_df %>%
 fam_rdf <- RRPP::rrpp.data.frame("site_treatment" = fam_df$site_trt,
                                  "site" = fam_df$site_code,
                                  "treatment" = fam_df$trt,
-                                 "year" = fam_df$year,
+                                 "year" = fam_df$n_treat_years,
                                  "plot" = fam_df$block_plot_subplot,
                                  "community" = fam_mat)
 
@@ -497,7 +496,7 @@ fam_aov_out <- as.data.frame(fam_aov$table) %>%
 # Get pairwise comparisons
 fam_site_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$site_code)
 fam_trt_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$trt)
-fam_year_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$year)
+fam_year_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$n_treat_years)
 
 # Strip relevant parts of that
 fam_site_pairs_out <- as.data.frame(summary(fam_site_pairs, test.type = "dist")$summary.table) %>%
@@ -540,7 +539,7 @@ rm(list = setdiff(ls(), c("comp")))
 # Wrangle composition object for this analysis
 fxn_df <- comp %>%
   # Group by desired columns and summarize
-  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, provenance) %>% 
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years, block_plot_subplot, provenance) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
@@ -550,7 +549,7 @@ fxn_df <- comp %>%
                      values_from = max_cover, 
                      values_fill = 0) %>%
   # Count trajectory replicates
-  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years) %>%
   dplyr::mutate(traj_reps = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Identify minimum replicates per site/treatment
@@ -612,7 +611,7 @@ for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
   
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
-                                   "year" = sub_data$year,
+                                   "year" = sub_data$n_treat_years,
                                    "plot" = sub_data$block_plot_subplot,
                                    "community" = sub_mat)
   
@@ -680,7 +679,7 @@ rm(list = setdiff(ls(), c("comp")))
 # Wrangle composition object for this analysis
 fxn_df <- comp %>%
   # Group by desired columns and summarize
-  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, lifeform) %>% 
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years, block_plot_subplot, lifeform) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
@@ -690,7 +689,7 @@ fxn_df <- comp %>%
                      values_from = max_cover, 
                      values_fill = 0) %>%
   # Count trajectory replicates
-  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years) %>%
   dplyr::mutate(traj_reps = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Identify minimum replicates per site/treatment
@@ -752,7 +751,7 @@ for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
   
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
-                                   "year" = sub_data$year,
+                                   "year" = sub_data$n_treat_years,
                                    "plot" = sub_data$block_plot_subplot,
                                    "community" = sub_mat)
   
@@ -820,7 +819,7 @@ rm(list = setdiff(ls(), c("comp")))
 # Wrangle composition object for this analysis
 fxn_df <- comp %>%
   # Group by desired columns and summarize
-  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, lifespan) %>% 
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years, block_plot_subplot, lifespan) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
@@ -830,7 +829,7 @@ fxn_df <- comp %>%
                      values_from = max_cover, 
                      values_fill = 0) %>%
   # Count trajectory replicates
-  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years) %>%
   dplyr::mutate(traj_reps = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Identify minimum replicates per site/treatment
@@ -892,7 +891,7 @@ for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
   
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
-                                   "year" = sub_data$year,
+                                   "year" = sub_data$n_treat_years,
                                    "plot" = sub_data$block_plot_subplot,
                                    "community" = sub_mat)
   
@@ -960,7 +959,7 @@ rm(list = setdiff(ls(), c("comp")))
 # Wrangle composition object for this analysis
 fxn_df <- comp %>%
   # Group by desired columns and summarize
-  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, ps_path) %>% 
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years, block_plot_subplot, ps_path) %>% 
   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
@@ -970,7 +969,7 @@ fxn_df <- comp %>%
                      values_from = max_cover, 
                      values_fill = 0) %>%
   # Count trajectory replicates
-  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::group_by(site_trt, site_code, trt, n_treat_years) %>%
   dplyr::mutate(traj_reps = dplyr::n()) %>%
   dplyr::ungroup() %>%
   # Identify minimum replicates per site/treatment
@@ -1008,16 +1007,12 @@ out_list <- list()
 bad_sites <- c(
   # Error in `RRPP::trajectory.analysis`
   ## "Error in dimnames(to) <- list(gl, gl) : length of 'dimnames' [1] not equal to array extent"
-  "charleville.au",
-  # Error in `scicomptools::traj_extract`
-  ### Likely due to problem with "angle" metric
-  ## "Error in if (any(y <= 0)) y = y - min(y) + 1e-04 : missing value where TRUE/FALSE needed"
-  "jilpanger.au"
+  "charleville.au"
 )
 
 # Iterate across sites
 for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
-  # for(focal_site in "allmendb.ch"){
+  # for(focal_site in "jilpanger.au"){
   
   # Print starting message
   message("Processing begun for '", focal_site, "'")
@@ -1040,7 +1035,7 @@ for(focal_site in setdiff(x = unique(fxn_df$site_code), y = bad_sites)){
   
   # Make the special dataframe required by the RRPP package
   sub_rdf <- RRPP::rrpp.data.frame("treatment" = sub_data$trt,
-                                   "year" = sub_data$year,
+                                   "year" = sub_data$n_treat_years,
                                    "plot" = sub_data$block_plot_subplot,
                                    "community" = sub_mat)
   
