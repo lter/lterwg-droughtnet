@@ -426,13 +426,112 @@ write.csv(x = out_df, row.names = F, na = '',
           file = file.path("traj-analysis_MULTI-SITE_family-results.csv"))
 
 # Clean up environment
-rm(list = setdiff(ls(), c("comp", "out_df")))
+rm(list = setdiff(ls(), c("comp")))
 
+## -------------------------------------- ##
+# Family Analysis - Part 3 ----
+## -------------------------------------- ##
 
+# Want to do another bonus analysis here:
+## Do cross-site perMANOVA for all sites
 
+# Use this to process a neat family level dataframe
+fam_df <- comp %>%
+  # Group by desired columns and summarize
+  dplyr::group_by(site_trt, site_code, trt, year, block_plot_subplot, Family) %>% 
+  dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Filter out any unknown families
+  dplyr::filter(!is.na(Family)) %>%
+  # Pivot to wide format
+  tidyr::pivot_wider(names_from = Family, 
+                     values_from = max_cover, 
+                     values_fill = 0) %>%
+  # Count trajectory replicates
+  dplyr::group_by(site_trt, site_code, trt, year) %>%
+  dplyr::mutate(traj_reps = dplyr::n()) %>%
+  dplyr::ungroup() %>%
+  # Identify minimum replicates per site/treatment
+  dplyr::group_by(site_code) %>%
+  dplyr::mutate(min_reps = min(traj_reps, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Drop sites with insufficient replicates
+  dplyr::filter(min_reps > 1) %>%
+  # Drop the replicate counting columns
+  dplyr::select(-dplyr::ends_with("_reps")) %>%
+  # Now that we've excluded some sites, we may have columns of all zeros so we need to drop them
+  ## Can do this by pivoting long, dropping zeros, then pivoting wide again
+  tidyr::pivot_longer(cols = -site_trt:-block_plot_subplot) %>%
+  dplyr::filter(value > 0) %>%
+  tidyr::pivot_wider(names_from = name, values_from = value, values_fill = 0)
+
+# Glimpse this
+dplyr::glimpse(fam_df)
+
+# Now make a matrix version of just the community composition
+fam_mat <- fam_df %>%
+  dplyr::select(-site_trt:-block_plot_subplot) %>%
+  as.matrix()
+
+# Make the special dataframe required by the RRPP package
+fam_rdf <- RRPP::rrpp.data.frame("site_treatment" = fam_df$site_trt,
+                                 "site" = fam_df$site_code,
+                                 "treatment" = fam_df$trt,
+                                 "year" = fam_df$year,
+                                 "plot" = fam_df$block_plot_subplot,
+                                 "community" = fam_mat)
+
+# Fit perMANOVA model
+## Note: takes a few minutes
+fam_fit <- RRPP::lm.rrpp(community ~ treatment * year + site,
+                         data = fam_rdf, iter = 999, RRPP = T,
+                         print.progress = T)
+
+# Check out summary of this
+fam_aov <- RRPP::anova.lm.rrpp(object = fam_fit, effect.type = "F", print.progress = T)
+
+# Strip out summary stats table
+fam_aov_out <- as.data.frame(fam_aov$table) %>%
+  dplyr::mutate(model_term = row.names(.), .before = dplyr::everything())
+
+# Get pairwise comparisons
+fam_site_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$site_code)
+fam_trt_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$trt)
+fam_year_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$year)
+
+# Strip relevant parts of that
+fam_site_pairs_out <- as.data.frame(summary(fam_site_pairs, test.type = "dist")$summary.table) %>%
+  dplyr::rename(UCL_95perc = `UCL (95%)`,
+                P_Value = `Pr > d`) %>%
+  dplyr::mutate(pairs = row.names(.), .before = dplyr::everything())
+## For treatment pairwise comparisons too
+fam_trt_pairs_out <- as.data.frame(summary(fam_trt_pairs, test.type = "dist")$summary.table) %>%
+  dplyr::rename(UCL_95perc = `UCL (95%)`,
+                P_Value = `Pr > d`) %>%
+  dplyr::mutate(pairs = row.names(.), .before = dplyr::everything())
+## And year pairwise comparisons
+fam_year_pairs_out <- as.data.frame(summary(fam_year_pairs, test.type = "dist")$summary.table) %>%
+  dplyr::rename(UCL_95perc = `UCL (95%)`,
+                P_Value = `Pr > d`) %>%
+  dplyr::mutate(pairs = row.names(.), .before = dplyr::everything())
+
+# Glimpse these
+dplyr::glimpse(fam_site_pairs_out)
+dplyr::glimpse(fam_trt_pairs_out)
+dplyr::glimpse(fam_year_pairs_out)
+
+# Export all outputs
+write.csv(x = fam_aov_out, row.names = F, na = '',
+          file = file.path("permanova_MULTI-SITE_family-results_aov-table.csv"))
+write.csv(x = fam_site_pairs_out, row.names = F, na = '',
+          file = file.path("permanova_MULTI-SITE_family-results_site-pairwise.csv"))
+write.csv(x = fam_trt_pairs_out, row.names = F, na = '',
+          file = file.path("permanova_MULTI-SITE_family-results_trt-pairwise.csv"))
+write.csv(x = fam_year_pairs_out, row.names = F, na = '',
+          file = file.path("permanova_MULTI-SITE_family-results_year-pairwise.csv"))
 
 # Clean up environment
-# rm(list = setdiff(ls(), c("comp")))
+rm(list = setdiff(ls(), c("comp")))
 
 ## -------------------------------------- ##
    # Function Analysis - Provenance ----
