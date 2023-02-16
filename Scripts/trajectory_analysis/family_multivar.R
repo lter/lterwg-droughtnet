@@ -186,7 +186,7 @@ write.csv(x = fam_aov_out, row.names = F, na = '',
 rm(list = setdiff(ls(), c("comp")))
 
 ## -------------------------------------- ##
-    # perMANOVA - Incl. Family Term ----
+# Univariate perANOVA - Incl. Family Term ----
 ## -------------------------------------- ##
 
 # Choose minimum percent threshold for families to be included
@@ -257,64 +257,62 @@ write.csv(x = fam_aov_out, row.names = F, na = '',
 write.csv(x = fam_pairs_out, row.names = F, na = '',
           file = file.path("family-permanova_long-data_family-pairwise.csv"))
 
-
-
-
-
-# Get pairwise comparisons
-fam_site_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$site_code)
-fam_trt_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$trt)
-fam_year_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$n_treat_years)
-
-# Strip relevant parts of that
-fam_site_pairs_out <- as.data.frame(summary(fam_site_pairs, test.type = "dist")$summary.table) %>%
-  dplyr::rename(UCL_95perc = `UCL (95%)`,
-                P_Value = `Pr > d`) %>%
-  dplyr::mutate(pairs = row.names(.), .before = dplyr::everything())
-## For treatment pairwise comparisons too
-fam_trt_pairs_out <- as.data.frame(summary(fam_trt_pairs, test.type = "dist")$summary.table) %>%
-  dplyr::rename(UCL_95perc = `UCL (95%)`,
-                P_Value = `Pr > d`) %>%
-  dplyr::mutate(pairs = row.names(.), .before = dplyr::everything())
-## And year pairwise comparisons
-fam_year_pairs_out <- as.data.frame(summary(fam_year_pairs, test.type = "dist")$summary.table) %>%
-  dplyr::rename(UCL_95perc = `UCL (95%)`,
-                P_Value = `Pr > d`) %>%
-  dplyr::mutate(pairs = row.names(.), .before = dplyr::everything())
-
-# Glimpse these
-dplyr::glimpse(fam_site_pairs_out)
-dplyr::glimpse(fam_trt_pairs_out)
-dplyr::glimpse(fam_year_pairs_out)
-
-# Export all outputs
-write.csv(x = fam_aov_out, row.names = F, na = '',
-          file = file.path("permanova_MULTI-SITE_family-results_aov-table.csv"))
-write.csv(x = fam_site_pairs_out, row.names = F, na = '',
-          file = file.path("permanova_MULTI-SITE_family-results_site-pairwise.csv"))
-write.csv(x = fam_trt_pairs_out, row.names = F, na = '',
-          file = file.path("permanova_MULTI-SITE_family-results_trt-pairwise.csv"))
-write.csv(x = fam_year_pairs_out, row.names = F, na = '',
-          file = file.path("permanova_MULTI-SITE_family-results_year-pairwise.csv"))
-
 # Clean up environment
 rm(list = setdiff(ls(), c("comp")))
 
-
-
-
-
 ## -------------------------------------- ##
-# Family & Function perMANOVA ----
+     # Family & Function perANOVA ----
 ## -------------------------------------- ##
 
+# Do necessary wrangling
+fxn_df <- comp %>%
+  # Need fully complete family/function information
+  dplyr::filter(!is.na(Family) & !is.na(provenance) & !is.na(lifeform) & !is.na(lifespan)) %>%
+  # Get average within family / functional groups of interest
+  dplyr::group_by(site_code, n_treat_years, trt, block_plot_subplot,
+                  Family, provenance, lifeform, lifespan) %>%
+  dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
+  dplyr::ungroup()
 
-# Get average within family / functional groups of interest
-# Also need fully complete family/function information
-# dplyr::filter(!is.na(Family) & !is.na(provenance) & !is.na(lifeform) & !is.na(lifespan)) %>%
-  # dplyr::group_by(site_code, n_treat_years, n_treat_days, trt, block_plot_subplot,
-#                 Family, provenance, lifeform, lifespan) %>%
-#   dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
-#   dplyr::ungroup() %>%
+# Lose any sites by dropping incomplete trait information?
+setdiff(x = unique(comp$site_code), y = unique(fxn_df$site_code))
+
+# Glimpse it
+dplyr::glimpse(fxn_df)
+
+# Make the special dataframe required by the RRPP package
+fxn_rdf <- RRPP::rrpp.data.frame("site" = fxn_df$site_code,
+                                 "treatment" = fxn_df$trt,
+                                 "treatment_years" = fxn_df$n_treat_years,
+                                 "provenance" = fxn_df$provenance,
+                                 "lifeform" = fxn_df$lifeform,
+                                 "lifespan" = fxn_df$lifespan,
+                                 "family" = fxn_df$Family,
+                                 "plot" = fxn_df$block_plot_subplot,
+                                 "cover" = fxn_df$max_cover)
+
+# Fit perMANOVA model
+## Note: takes a few minutes
+fxn_fit <- RRPP::lm.rrpp(cover ~ treatment * treatment_years + family + site + 
+                           provenance + lifeform + lifespan,
+                         data = fxn_rdf, iter = 999, RRPP = T,
+                         print.progress = T)
+
+# Check out summary of this
+fxn_aov <- RRPP::anova.lm.rrpp(object = fxn_fit, effect.type = "F", print.progress = T)
+
+# Strip out summary stats table
+fxn_aov_out <- as.data.frame(fxn_aov$table) %>%
+  dplyr::mutate(model_term = row.names(.), .before = dplyr::everything())
+
+# Check that out
+fxn_aov_out
+
+# Export output(s)
+write.csv(x = fxn_aov_out, row.names = F, na = '',
+          file = file.path("functional-grp-peranova_long-data-aov.csv"))
+
+# Clean up environment
+rm(list = setdiff(ls(), c("comp")))
 
 # End ----
