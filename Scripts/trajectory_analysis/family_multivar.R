@@ -131,11 +131,66 @@ write.csv(x = fam_aov_out, row.names = F, na = '',
 rm(list = setdiff(ls(), c("comp")))
 
 ## -------------------------------------- ##
+        # perMANOVA - n_treat_days ----
+## -------------------------------------- ##
+
+# Use this to process a neat family level dataframe
+fam_df <- comp %>%
+  # Group by desired columns and summarize
+  dplyr::group_by(site_code, trt, n_treat_days, block_plot_subplot, Family) %>% 
+  dplyr::summarize(max_cover = mean(max_cover, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Filter out any unknown families
+  dplyr::filter(!is.na(Family)) %>%
+  # Pivot to wide format
+  tidyr::pivot_wider(names_from = Family, 
+                     values_from = max_cover, 
+                     values_fill = 0)
+
+# Glimpse this
+dplyr::glimpse(fam_df)
+
+# Now make a matrix version of just the community composition
+fam_mat <- fam_df %>%
+  dplyr::select(-site_code:-block_plot_subplot) %>%
+  as.matrix()
+
+# Make the special dataframe required by the RRPP package
+fam_rdf <- RRPP::rrpp.data.frame("site" = fam_df$site_code,
+                                 "treatment" = fam_df$trt,
+                                 "treatment_days" = fam_df$n_treat_days,
+                                 "plot" = fam_df$block_plot_subplot,
+                                 "community" = fam_mat)
+
+# Fit perMANOVA model
+## Note: takes a few minutes
+fam_fit <- RRPP::lm.rrpp(community ~ treatment * treatment_days + site,
+                         data = fam_rdf, iter = 999, RRPP = T,
+                         print.progress = T)
+
+# Check out summary of this
+fam_aov <- RRPP::anova.lm.rrpp(object = fam_fit, effect.type = "F", print.progress = T)
+
+# Strip out summary stats table
+fam_aov_out <- as.data.frame(fam_aov$table) %>%
+  dplyr::mutate(model_term = row.names(.), .before = dplyr::everything())
+
+# Check that out
+fam_aov_out
+
+# Export this
+write.csv(x = fam_aov_out, row.names = F, na = '',
+          file = file.path("family-permanova_n-treat-days-aov.csv"))
+
+# Clean up environment
+rm(list = setdiff(ls(), c("comp")))
+
+## -------------------------------------- ##
     # perMANOVA - Incl. Family Term ----
 ## -------------------------------------- ##
 
 # Choose minimum percent threshold for families to be included
-cutoff_thresh <- 0.05
+cutoff_thresh <- 5
 
 # Use this to process a neat family level dataframe
 fam_df <- comp %>%
@@ -145,37 +200,23 @@ fam_df <- comp %>%
   dplyr::ungroup() %>%
   # Filter out any unknown families
   dplyr::filter(!is.na(Family)) %>%
-  # Find maximum cover per site / year
-  dplyr::group_by(site_code, n_treat_years) %>%
+  # Find maximum cover per site / family
+  dplyr::group_by(site_code, Family) %>%
   dplyr::mutate(maximum_cover = max(max_cover, na.rm = T)) %>%
-  dplyr::ungroup()
-  
-  
-  
-  # Calculate total cover per site (across treatments & blocks)
-  dplyr::group_by(site_code) %>% 
-  dplyr::mutate(tot_cover = mean(max_cover, na.rm = T)) %>%
   dplyr::ungroup() %>%
-  # Calculate that threshold as a percent
-  dplyr::mutate(perc_cutoff = tot_cover * cutoff_thresh)
-
-# Check this out
-fam_df %>%
-  filter(site_code == "allmendb.ch" & n_treat_years == 0) %>%
-  view()
-
-  
-  
-   %>%
-  # Calculate per site percentages of each family
-  dplyr::group_by(site_code, n_treat_years, Family) %>%
-  dplyr::mutate(fam_perc = (max_cover / tot_cover) * 100) %>%
-  dplyr::ungroup() %>%
-  # Keep only rows above this percentage
-  dplyr::filter(fam_perc >= perc_cutoff)
+  # Keep only families that are above the cutoff threshold
+  dplyr::filter(maximum_cover >= cutoff_thresh) %>%
+  # Drop misleadingly named maximum cover column
+  dplyr::select(-maximum_cover)
 
 # Glimpse it
 dplyr::glimpse(fam_df)
+
+# Any families completely dropped?
+sort(setdiff(x = unique(comp$Family), y = unique(fam_df$Family)))
+
+# How many remaining?
+length(unique(fam_df$Family))
 
 # Make the special dataframe required by the RRPP package
 fam_rdf <- RRPP::rrpp.data.frame("site" = fam_df$site_code,
@@ -201,10 +242,20 @@ fam_aov_out <- as.data.frame(fam_aov$table) %>%
 # Check that out
 fam_aov_out
 
+# Strip relevant pairwise comparisons
+fam_pairs <- RRPP::pairwise(fit = fam_fit, groups = fam_df$Family)
 
+# Strip relevant parts of that
+fam_pairs_out <- as.data.frame(summary(fam_pairs, test.type = "dist")$summary.table) %>%
+  dplyr::rename(UCL_95perc = `UCL (95%)`,
+                P_Value = `Pr > d`) %>%
+  dplyr::mutate(pairs = row.names(.), .before = dplyr::everything())
 
-
-
+# Export all outputs
+write.csv(x = fam_aov_out, row.names = F, na = '',
+          file = file.path("family-permanova_long-data-aov.csv"))
+write.csv(x = fam_pairs_out, row.names = F, na = '',
+          file = file.path("family-permanova_long-data_family-pairwise.csv"))
 
 
 
