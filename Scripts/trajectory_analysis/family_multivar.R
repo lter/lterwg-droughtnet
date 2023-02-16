@@ -127,17 +127,6 @@ fam_aov_out
 write.csv(x = fam_aov_out, row.names = F, na = '',
           file = file.path("family-permanova_triple-ixn-aov.csv"))
 
-# Get dostamce matrix from data
-fam_dist <- vegan::vegdist(x = fam_mat, method = "jaccard")
-
-# Get an ordination
-fam_ord <- ape::pcoa(D = fam_dist)
-
-# Actually make the plot
-supportR::pcoa_ord(mod = fam_ord, groupcol = paste0(fam_df$trt, "_", fam_df$n_treat_years))
-
-
-
 # Clean up environment
 rm(list = setdiff(ls(), c("comp")))
 
