@@ -376,7 +376,7 @@ visreg(mod)
 
 #####Can I remake stitches plots by year and plot drought severity and response by year?
 ordered.df <- subset(data.anpp.summary,n_treat_years ==1)%>%
-  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
+  
   rbind(subset(data.anpp.summary,n_treat_years ==2))%>%
   rbind(subset(data.anpp.summary,n_treat_years ==3))%>%
   rbind(subset(data.anpp.summary,n_treat_years ==4))
@@ -390,6 +390,22 @@ ggplot(ordered.df,  aes(site_code, anpp_response))+
   xlab("")+
   coord_flip()+
   theme_bw()
+
+data.anpp.summary%>%
+  subset( n_treat_years == 3)%>%
+  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
+ggplot(  aes(site_code, anpp_response))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error, fill = cut(drtsev.1, 6)))+
+  scale_fill_brewer(palette = "Reds", direction = -1
+                    , drop = FALSE)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(c(-6.3,5))+ #this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
+  ylab("anpp_response")+
+  xlab("")+
+  coord_flip()+
+  theme_bw()
+
+
 
 library(ggcorrplot)                                  
 
@@ -451,10 +467,12 @@ data.anpp.year <- data.anpp.summary%>%
           anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1)
         ))
 
-ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response))+
+
+ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
   ylim(-1, 0)+
   geom_hline(yintercept = 0)+
+  coord_flip()+
   theme_base()
 
 ggplot(data.anpp.summary, aes(as.factor(n_treat_years), anpp_response))+
