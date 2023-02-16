@@ -160,7 +160,7 @@ uneq_reps <- comp_v2 %>%
 # Check what that leaves
 uneq_reps
 
-# Final wrangling to composiiton object
+# Final wrangling to composition object
 comp <- comp_v2 %>%
   # Drop sites with unequal replicates
   dplyr::filter(!site_code %in% c(uneq_reps$site_code)) %>%
