@@ -102,17 +102,17 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
 
 
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
-data.anpp2$drtsev.1 <- ((data.anpp2$ppt.1-data.anpp2$map)/data.anpp2$map)
-data.anpp2$drtsev.2 <- ((data.anpp2$ppt.2-data.anpp2$map)/data.anpp2$map)
-data.anpp2$drtsev.3 <- ((data.anpp2$ppt.3-data.anpp2$map)/data.anpp2$map)
-data.anpp2$drtsev.4 <- ((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.1 <- -((data.anpp2$ppt.1-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.2 <- -((data.anpp2$ppt.2-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.3 <- -((data.anpp2$ppt.3-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.4 <-1-((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
 
 
 
 
 
 data.anpp.summary <- data.anpp2%>%
-  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map),
+  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map, habitat.type),
         function(x)data.frame(
           mean_mass = mean(x$mass),
           ppt.1 = mean(x$ppt.1),
@@ -140,7 +140,6 @@ plot(x)+
 #summary(big.mod)
 big.mod <- lme(anpp_response~n_treat_days*drtsev.1*drtsev.2, random =~1|site_code, data = data.anpp.summary, correlation = corAR1())
 summary(big.mod)
-visreg2d(big.mod)
 
 
 x <- ggpredict(big.mod,"n_treat_days")
@@ -165,8 +164,6 @@ plot(x)+
   geom_vline(xintercept = 0)+
   theme_base()
 
-ggplot(data.anpp.summary, aes(drtsev.1, anpp_response))+
-  geom_smooth(method = "lm", formula= exp(y)~x)
 
 visreg2d(big.mod, "n_treat_days","drtsev.1",  plot.type="gg", col = c("red", "white", "dodgerblue"))+
   geom_point(data = data.anpp.summary, aes(x=n_treat_days, y=drtsev.1), shape = 1)+
@@ -338,15 +335,17 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
 
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==1))
-summary(mod)
+mod.2 <- lm(anpp_response~poly(drtsev.1,2), data = subset(data.anpp.summary,n_treat_years ==1))
+summary(mod) #R-squared 0.10
 slopey1 <- coef(mod)[[2]]
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==2))
-summary(mod)
+summary(mod)#R-squared 0.17
 slopey2 <- coef(mod)[[2]]
 
+
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==3))
-summary(mod)
+summary(mod)#R-squared 0.25
 slopey3 <- coef(mod)[[2]]
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==4))
@@ -357,7 +356,7 @@ data.frame(n_treat_years = c(1, 2, 3), slope = c(slopey1, slopey2, slopey3))%>%
 ggplot(aes(n_treat_years, slope))+
   geom_point( size = 5)+
   geom_line()+
-  ylim(0,3)+
+  ylim(-3,0)+
   xlab("Treatment year")+
   theme_base()
 
@@ -406,6 +405,26 @@ ggplot(  aes(site_code, anpp_response))+
   theme_bw()
 
 
+h <- data.anpp.summary1%>%
+  ddply(.(n_treat_years, habitat.type, e.n),function(x)data.frame(
+    anpp_response =mean(x$anpp_response),
+    anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1)
+  ))
+
+nh <- data.anpp.summary1%>%
+  ddply(.(n_treat_years, e.n),function(x)data.frame(
+    anpp_response =mean(x$anpp_response),
+    anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1)
+  ))
+nh$habitat.type <- "all"
+
+rbind(h, nh)%>%
+subset(e.n != "NA")%>%
+ggplot( aes(as.factor(n_treat_years), anpp_response, color = e.n))+
+  facet_wrap(~habitat.type)+
+    geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error), position = position_dodge(0.3))+
+  theme_base()
+
 
 library(ggcorrplot)                                  
 
@@ -432,31 +451,6 @@ ggplot( aes(`2`, `3`))+
   geom_point()+
   theme_base()
 
-
-################
-##average drought severity and average anpp response over 4 years
-
-anpp.avg <- data.anpp2%>%
-        ddply(.(site_code, n_treat_years, drtsev.1, mean.mass),function(x)data.frame(
-          mass = mean(x$mass)
-        ))%>%
-        subset(n_treat_years >= 1 & n_treat_years <=3)%>%
-        ddply(.(site_code, mean.mass),function(x)data.frame(
-          avg_mass = (sum(x$mass)/3),
-          avg.drtsev = mean(x$drtsev.1)
-        ))
-
-anpp.avg$lrr_avg <- log(anpp.avg$avg_mass/anpp.avg$mean.mass)
-
-mod <- lm(lrr_avg~avg.drtsev, data = anpp.avg)
-summary(mod)
-
-ggplot(anpp.avg, aes(avg.drtsev, lrr_avg))+
-  geom_smooth(method = "lm")+
-  geom_point()+
-  geom_hline(yintercept = 0)+
-  geom_vline(xintercept = 0)+
-  theme_base()
 
 
 ##################################
