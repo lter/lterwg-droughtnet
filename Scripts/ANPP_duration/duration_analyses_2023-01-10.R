@@ -105,7 +105,7 @@ data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
 data.anpp2$drtsev.1 <- -((data.anpp2$ppt.1-data.anpp2$map)/data.anpp2$map)
 data.anpp2$drtsev.2 <- -((data.anpp2$ppt.2-data.anpp2$map)/data.anpp2$map)
 data.anpp2$drtsev.3 <- -((data.anpp2$ppt.3-data.anpp2$map)/data.anpp2$map)
-data.anpp2$drtsev.4 <-1-((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
+data.anpp2$drtsev.4 <- -((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
 
 
 
@@ -335,18 +335,35 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
 
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==1))
-mod.2 <- lm(anpp_response~poly(drtsev.1,2), data = subset(data.anpp.summary,n_treat_years ==1))
+mod1 <- lm(anpp_response~poly(drtsev.1,2), data = subset(data.anpp.summary,n_treat_years ==1))
+mod2 <- lm(anpp_response~poly(drtsev.1,3), data = subset(data.anpp.summary,n_treat_years ==1))
+mod3 <- lm(anpp_response~poly(drtsev.1,4), data = subset(data.anpp.summary,n_treat_years ==1))
+AIC(mod, mod1, mod2, mod3)#mod best
 summary(mod) #R-squared 0.10
 slopey1 <- coef(mod)[[2]]
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==2))
-summary(mod)#R-squared 0.17
+mod1 <- lm(anpp_response~poly(drtsev.1,2), data = subset(data.anpp.summary,n_treat_years ==2))
+mod2 <- lm(anpp_response~poly(drtsev.1,3), data = subset(data.anpp.summary,n_treat_years ==2))
+mod3 <- lm(anpp_response~poly(drtsev.1,4), data = subset(data.anpp.summary,n_treat_years ==2))
+AIC(mod, mod1, mod2, mod3)#mod1 best
+summary(mod1)#R-squared 0.17
 slopey2 <- coef(mod)[[2]]
+ggplot(subset(data.anpp.summary,n_treat_years ==2), aes(drtsev.1, anpp_response))+
+  geom_point()+
+  geom_smooth(method = "lm", formula = y~poly(x,2))
 
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==3))
-summary(mod)#R-squared 0.25
+mod1 <- lm(anpp_response~poly(drtsev.1,2), data = subset(data.anpp.summary,n_treat_years ==3))
+mod2 <- lm(anpp_response~poly(drtsev.1,3), data = subset(data.anpp.summary,n_treat_years ==3))
+mod3 <- lm(anpp_response~poly(drtsev.1,4), data = subset(data.anpp.summary,n_treat_years ==3))
+AIC(mod, mod1, mod2, mod3)#mod best
+summary(mod2)#R-squared 0.25
 slopey3 <- coef(mod)[[2]]
+ggplot(subset(data.anpp.summary,n_treat_years ==3), aes(drtsev.1, anpp_response))+
+  geom_point()+
+  geom_smooth(method = "lm", formula = y~poly(x,3))
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==4))
 summary(mod)
@@ -469,16 +486,11 @@ ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
   coord_flip()+
   theme_base()
 
-ggplot(data.anpp.summary, aes(as.factor(n_treat_years), anpp_response))+
-         geom_beeswarm(aes(fill = cut(drtsev.1, 6), size = 3), color = "black", pch = 21, alpha = 0.9)+
-  scale_fill_brewer(palette = "Reds", direction = -1
-                    , drop = FALSE)+
-        geom_hline(yintercept = 0)+
-         theme_base()
 
 
 mod <- lme(anpp_response~as.factor(n_treat_years), random = ~1|site_code, data = data.anpp.summary,)
 summary(mod)
+
 
 ide.precip.ctrls.siteavgs$e.n <- ifelse(ide.precip.ctrls.siteavgs$ppt.map >0, "nominal", "extreme")
 data.anpp.summary1 <- left_join(data.anpp.summary, ide.precip.ctrls.siteavgs, by = c("site_code", "n_treat_years"))
@@ -521,16 +533,36 @@ data.anpp.year <- data.anpp.summary2%>%
         function(x)data.frame(
           anpp_response = mean(x$anpp_response),
           anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
-          n = length(x$site_code)
+          n = length(x$site_code),
+          anpp_response.se = sd(x$anpp_response)/sqrt(length(x$site_code))
         ))%>%
       subset(history != "NA")
 
 
-ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response, color = history))+
-    facet_wrap(~history)+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error),position=position_dodge(width=.25))+
+ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
+    #facet_wrap(~history)+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se),position=position_dodge(width=.25))+
   #  ylim(-1, 0)+
   geom_hline(yintercept = 0)+
+  theme_base()
+
+temp.df <- data.anpp.summary2%>%
+  subset( history == "extreme.extreme.extreme")
+temp.df$n_treat_years <- as.factor(temp.df$n_treat_years)
+mod <- lm(anpp_response~n_treat_years,data = temp.df )
+summary(mod)
+a <- aov(mod)
+TukeyHSD(a, "n_treat_years")
+
+
+temp.df <- data.anpp.summary2%>%
+  subset( history == "extreme.extreme.extreme")
+temp.df$n_treat_years <- as.factor(temp.df$n_treat_years)
+mod <- lme(anpp_response~n_treat_days, random = ~1|site_code, data = temp.df)
+summary(mod)
+ggplot(temp.df, aes(n_treat_days, anpp_response))+
+  geom_point()+
+  geom_smooth(method = "lm")+
   theme_base()
 
 data.anpp.summary2%>%
