@@ -264,7 +264,8 @@ ggplot(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
 
 
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + map + sand_mean, data=subset(data.anpp.summary, n_treat_years == 3))
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + map + sand_mean
+             , data=subset(data.anpp.summary, n_treat_years == 3))
 
 
 #stepAIC(lmFull, scope = list(upper = lmFull,
@@ -282,8 +283,8 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + map + drtsev.3 + 
-                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3 + drtsev.1:drtsev.3, data = tempdf)
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.4  
+                    , data = tempdf)
 summary(winning.mod)
 
 #winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3 +(1|site_code),data = data.anpp.summary)
@@ -323,7 +324,7 @@ ggplot(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=a
 
 
 ####drought severity figure by year
-subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
+subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   ggplot( aes(drtsev.1, anpp_response))+
   facet_wrap(~n_treat_years)+
   geom_point()+
@@ -383,7 +384,7 @@ library(emmeans)
 pairs(emtrends(mod, ~as.factor(n_treat_years), var="drtsev.1"))
 
 
-temp <- subset(data.anpp2,n_treat_years >=1 & n_treat_years <= 4)
+temp <- subset(data.anpp2,n_treat_years >=1 & n_treat_years <= 3)
 mod <- lmer(anpp_response~drtsev.1 * as.factor(n_treat_years) + (1|site_code), data = temp)
 summary(mod)
 r.squaredGLMM(mod)
