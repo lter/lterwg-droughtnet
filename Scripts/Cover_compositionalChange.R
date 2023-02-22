@@ -96,10 +96,13 @@ drt<-dat %>%
   mutate(drtseverity=(ppt.1-map)/map) %>% 
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
 
-site_types<-read.csv("C:\\Users\\mavolio2\\Dropbox\\Prc_LifeHistory.csv")
+site_types<-read.csv("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\Prc_LifeHistory_2023-02-09.csv")
 
 continent<-read.csv("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\Site_Elev-Disturb.csv") %>% 
   select(site_code, continent)
+
+subset<-continent %>% 
+  right_join(drop_no_pretrt)
 
 #write.csv(drt, "C:\\Users\\mavolio2\\Dropbox\\IDE_DroughtSeverity.csv", row.names=F)
 
@@ -128,9 +131,43 @@ ggplot(data=subset(difflong, n_treat_years==1|n_treat_years==2|n_treat_years==3)
 
 # Statistical analyses of difference --------------------------------------
 #############doing statistical tests of this
+rich<-difflong %>% 
+  filter(measure=="richness_diff")
+t.test(rich$value, mu=0, alternative = "two.sided")
+#this is sig.
+even<-difflong %>% 
+  filter(measure=="evenness_diff")
+t.test(even$value, mu=0, alternative = "two.sided")
+#this is NOT sig.
+
+boxplot(comp$value)
+
+rank<-difflong %>% 
+  filter(measure=="rank_diff")
+t.test(rank$value, mu=0, alternative = "two.sided")
+#this is NOT sig.
+sp<-difflong %>% 
+  filter(measure=="species_diff")
+t.test(sp$value, mu=0, alternative = "two.sided")
+#this is sig.
+
+comp<-difflong %>% 
+  filter(measure=="composition_diff")
+t.test(comp$value, mu=0, alternative = "two.sided")
+#this is sig.
+disp<-GlassD %>% 
+  filter(measure=="dispersion_change")
+t.test(disp$RR, mu=0, alternative = "two.sided")
+#this is NOT sig.
+
+
+
+
 rd<-lmer(value~as.factor(n_treat_years)+(1|site_code), data=subset(difflong, measure=="richness_diff"))
 summary(rd)
 #Sig intercept.
+
+
 
 rd<-lmer(value~drtseverity+map+PctGrass+PctAnnual+(1|site_code), data=subset(difflong, measure=="richness_diff"))
 summary(rd)
@@ -278,7 +315,7 @@ years<-deltamult %>%
   select(site_code, year, n_treat_years) %>% 
   unique()
 
-dom<-read.csv("C:\\Users\\mavolio2\\Dropbox\\IDE_BP_index_change.csv") %>% 
+dom<-read.csv("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\BP_index_change.csv") %>% 
   select(-X, -plot) %>% 
   rename(replicate=rep, value=BP_index_change) %>% 
   mutate(measure="dominance") %>% 
@@ -453,3 +490,27 @@ ggplot(data=subset(RR2, measure=="dispersion_change"), aes(x=PctGrass, y=RR))+
   geom_point()+
   geom_smooth(method="lm", color="black")+
   ylab("Dispersion Response")
+
+###pairs
+allwide<-GlassD %>% 
+  select(-cntSD) %>% 
+   pivot_wider(names_from="measure", values_from = "RR") %>% 
+  select(-dominance, -dispersion_change, -rank_change)
+
+
+
+panel.cor <- function(x, y, cex.cor = 0.8, method = "pearson", ...) {
+  options(warn = -1)                   # Turn of warnings (e.g. tied ranks)
+  usr <- par("usr"); on.exit(par(usr)) # Saves current "usr" and resets on exit
+  par(usr = c(0, 1, 0, 1))             # Set plot size to 1 x 1
+  r <- cor(x, y, method = method, use = "pair")               # correlation coef
+  p <- cor.test(x, y, method = method)$p.val                  # p-value
+  n <- sum(complete.cases(x, y))                              # How many data pairs
+  txt <- format(r, digits = 3)                                # Format r-value
+  txt1 <- format(p, digits = 3)                                 # Format p-value
+  txt2 <- paste0("r= ", txt, '\n', "p= ", txt1, '\n', 'n= ', n) # Make panel text
+  text(0.5, 0.5, txt2, cex = cex.cor, ...)                      # Place panel text
+  options(warn = 0)                                             # Reset warning
+}
+
+pairs(allwide[,7:11], lower.panel = panel.cor, cex.cor=2)
