@@ -205,6 +205,7 @@ visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "wh
   theme_base()  
 
 visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="persp")#+
+
 #points(x = data.anpp.summary$drtsev.1, y = data.anpp.summary$drtsev.1)
 #geom_point(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2, x=anpp_response))
 
