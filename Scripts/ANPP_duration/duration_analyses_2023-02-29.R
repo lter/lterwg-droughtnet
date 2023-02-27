@@ -32,6 +32,15 @@ precip.ctrls$ppt.minus.map <- precip.ctrls$ppt.1 - precip.ctrls$map
 precip.ctrls$e.n <- ifelse(precip.ctrls$ppt.minus.map > 0, "nominal", "extreme")
 EN.df <- dplyr::select(precip.ctrls, c("site_code", "year", "e.n"))
 
+##this code from Mghan Avolio does the same thing as the chunk above but in one step
+#extremeyrs <- subset(anpp, trt == "Control")%>%
+#  select(site_code, n_treat_years, year, ppt.1, map)%>%
+#  unique() %>%
+#  mutate(ppt.minus.map=ppt.1-map,
+#         e.n.=ifelse(ppt.minus.map>0, "nominal", "extreme")) %>%
+#  select(site_code, year, n_treat_years, e.n.)
+##
+
 
 #Only using sites with >= 2 reps for drought and >=1 rep for control
 #Counting the number of reps for each treatment and year
