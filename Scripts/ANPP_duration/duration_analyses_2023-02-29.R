@@ -9,6 +9,7 @@ library(MuMIn)
 library(ggthemes)
 library(ggeffects)
 library(MASS)
+library(emmeans)
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-02-06.csv")%>%
@@ -24,22 +25,12 @@ anpp.mean <- data.anpp%>%
 
 
 ##Calculate which years are extreme vs nominal for each site in each year
-precip.ctrls <- subset(data.anpp, trt == "Control")%>%
-                    dplyr::select(site_code, year, ppt.1, map)%>%
-                    unique()
-
-precip.ctrls$ppt.minus.map <- precip.ctrls$ppt.1 - precip.ctrls$map
-precip.ctrls$e.n <- ifelse(precip.ctrls$ppt.minus.map > 0, "nominal", "extreme")
-EN.df <- dplyr::select(precip.ctrls, c("site_code", "year", "e.n"))
-
-##this code from Mghan Avolio does the same thing as the chunk above but in one step
-#extremeyrs <- subset(anpp, trt == "Control")%>%
-#  select(site_code, n_treat_years, year, ppt.1, map)%>%
-#  unique() %>%
-#  mutate(ppt.minus.map=ppt.1-map,
-#         e.n.=ifelse(ppt.minus.map>0, "nominal", "extreme")) %>%
-#  select(site_code, year, n_treat_years, e.n.)
-##
+extremeyrs <- subset(data.anpp, trt == "Control")%>%
+  dplyr::select(site_code, n_treat_years, year, ppt.1, map)%>%
+  unique() %>%
+  mutate(ppt.minus.map=ppt.1-map,
+         e.n=ifelse(ppt.minus.map>0, "nominal", "extreme")) %>%
+  dplyr::select(site_code, year, n_treat_years, e.n)
 
 
 #Only using sites with >= 2 reps for drought and >=1 rep for control
@@ -86,6 +77,7 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(trt == "Drought")%>%
   subset(n_years>=4)%>% #Does long-term control average include at least 4 years?
   left_join(num.treat.years, by = "site_code")%>%
+  left_join(extremeyrs, by = c("site_code", "year", "n_treat_years"))%>%
   subset(num.years == 4 | num.years == 3
   ) #change here if using 4 years #reduces dataset to focal sites
 
@@ -104,7 +96,7 @@ data.anpp2$drtsev.4 <- -((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
 
 ##Summarize responses by site and year
 data.anpp.summary <- data.anpp2%>%
-  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map, habitat.type),
+  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map, habitat.type, e.n),
         function(x)data.frame(
           mean_mass = mean(x$mass),
           ppt.1 = mean(x$ppt.1),
@@ -115,9 +107,6 @@ data.anpp.summary <- data.anpp2%>%
   subset(n_treat_years >= 1 & n_treat_years<= 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
 
 
-
-
-############################ONLY CHECKED THIS FAR
 
 ##add some covariates to try out in model selection
 #sand, MAP, ln(aridity), CV of MAP--- %graminoids is tricky, skpping for now
@@ -140,52 +129,27 @@ data.anpp.summary <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")
 
 
-#Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lme(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + map +  AI + cv_ppt_inter, random = ~1|site_code, data=data.anpp.summary, method = "ML", na.action = na.exclude, correlation = corAR1(form=~year))
+#Forward model selection
+lmFull <- lme(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + map #+  AI #+ cv_ppt_inter #+ sand_mean
+              , random = ~1|site_code, data=data.anpp.summary, method = "ML", na.action = na.exclude, correlation = corAR1(form=~year))
 #missing sand_mean from marcdrt.ar and santa cruz
-
-#stepAIC(lmFull, scope = list(upper = lmFull,
-#                            lower = ~1),
-#        trace = F)
 
 lmNull <- lme(anpp_response~1, random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1(form=~year))
 
-
-#Forward model selection
 stepAIC(lmNull, scope = list(upper = lmFull,
                              lower = ~1),
         trace = F)
 
-winning.mod <- lme(anpp_response ~ drtsev.1 + cv_ppt_inter + drtsev.2 + drtsev.3 +      drtsev.1:drtsev.2 + drtsev.2:drtsev.3 + drtsev.1:drtsev.3 , random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1(form=~year))
+winning.mod <- lme(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + map + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3   , random = ~ 1 |site_code, data = data.anpp.summary, method = "ML",  na.action=na.exclude, correlation = corAR1(form=~year))
 summary(winning.mod)
 
 
-ggplot(data = data.anpp.summary, aes(x=drtsev.1, y=drtsev.2))+
-  geom_point(aes(fill = anpp_response, size = 2), color = "black", pch = 21)+
-  scale_fill_gradient2(
-    low = "red",
-    mid = "white",
-    high = "blue",
-    midpoint = 0,
-    #space = "Lab",
-    #na.value = "grey50",
-    #guide = "colourbar",
-    #aesthetics = "fill"
-  )+
-  geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_vline(xintercept = 0, linetype = "dashed")+
-  theme_base()
 
-
-
+##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + map + sand_mean + AI + cv_ppt_inter
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + map #+ sand_mean + AI + cv_ppt_inter
              , data=subset(data.anpp.summary, n_treat_years == 3))
 
-
-#stepAIC(lmFull, scope = list(upper = lmFull,
-##                             lower = ~1),
-#        trace = F)
 
 lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3),  na.action=na.exclude)
 
@@ -198,14 +162,12 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.4  
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
+                    map + drtsev.1:drtsev.2 + drtsev.2:drtsev.3  
                   , data = tempdf)
 summary(winning.mod)
 
-#winning.mod.lmer <- lmer(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + drtsev.1:drtsev.2 +      drtsev.2:drtsev.3 + drtsev.1:drtsev.3 +(1|site_code),data = data.anpp.summary)
-#summary(winning.mod.lmer)
-
-visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "white", "dodgerblue"))+
+visreg2d(winning.mod, "drtsev.1", "map", plot.type="gg", col = c("red", "white", "dodgerblue"))+
   geom_point(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
   xlab("Current year drought severity")+
   ylab("Previous year drought severity")+
@@ -213,31 +175,22 @@ visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="gg", col = c("red", "wh
   #geom_vline(xintercept = 0, linetype = "dashed")+
   theme_base()  
 
-visreg2d(winning.mod, "drtsev.1", "drtsev.2", plot.type="persp")#+
 
-#points(x = data.anpp.summary$drtsev.1, y = data.anpp.summary$drtsev.1)
-#geom_point(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2, x=anpp_response))
+history.df <- data.anpp.summary%>%
+  dplyr::select(site_code, n_treat_years, e.n)%>%
+  pivot_wider(names_from = n_treat_years, values_from = e.n)%>%
+  dplyr::rename(y1 = "1", y2 = "2", y3 = '3')
 
-
-
-ggplot(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
-  geom_point(aes(fill = cut(anpp_response, 6), size = 3), color = "black", pch = 21, alpha = 0.9)+
-  scale_fill_brewer(palette = "Reds", direction = -1
-                    , drop = FALSE)+
-  geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_vline(xintercept = 0, linetype = "dashed")+
-  xlab("Year 3 drought severity")+
-  ylab("Year 2 drought severity")+
-  theme_base()
-
-ggplot(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=anpp_response))+
-  geom_point(aes(fill = cut(drtsev.2,5), size = -drtsev.2), color = "black", pch = 21, alpha = 0.8)+
-  scale_fill_brewer(palette = "Reds", direction = -1
-                    , drop = FALSE)+
-  geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_vline(xintercept = 0, linetype = "dashed")+
-  theme_base()
-
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3)%>%
+ggplot(aes(drtsev.1, anpp_response, color = y2))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  theme_bw()
+  
 
 ####drought severity figure by year
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
@@ -296,15 +249,7 @@ data.frame(n_treat_years = c(1, 2, 3), slope = c(slopey1, slopey2, slopey3))%>%
 
 mod <- lmer(anpp_response~drtsev.1*as.factor(n_treat_years)+ (1|site_code), data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3))
 summary(mod)
-library(emmeans)
 pairs(emtrends(mod, ~as.factor(n_treat_years), var="drtsev.1"))
-
-
-temp <- subset(data.anpp2,n_treat_years >=1 & n_treat_years <= 3)
-mod <- lmer(anpp_response~drtsev.1 * as.factor(n_treat_years) + (1|site_code), data = temp)
-summary(mod)
-r.squaredGLMM(mod)
-visreg(mod)
 
 
 #####Can I remake stitches plots by year and plot drought severity and response by year?
@@ -338,6 +283,8 @@ data.anpp.summary%>%
   coord_flip()+
   theme_bw()
 
+
+#######################################CHECKED THIS FAR
 
 h <- data.anpp.summary1%>%
   ddply(.(n_treat_years, habitat.type, e.n),function(x)data.frame(
