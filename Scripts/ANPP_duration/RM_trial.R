@@ -6,6 +6,7 @@ library(visreg)
 library(MuMIn)
 library(ggthemes)
 library(ggeffects)
+library(ggpmisc)
 
 
 
@@ -147,7 +148,7 @@ data.anpp2 <- data.anpp1%>%
         function(x)data.frame(
         mass = mean(x$mass),
         ppt = max(x$ppt.1)))%>%
-  subset(n_treat_years >= 1 & n_treat_years<= 4)%>%
+  subset(n_treat_years >= 1 & n_treat_years<= 3)%>%
     pivot_wider(names_from = "trt", values_from = c("mass", "ppt"))%>%
   left_join(EN.df, by = c("site_code", "year"))
 
@@ -156,7 +157,7 @@ data.anpp2$PR <- ((data.anpp2$mass_Control-data.anpp2$mass_Drought)/data.anpp2$m
 data.anpp2%>%
 #  subset(n_treat_years == 3)%>%
   subset(site_code != "hyide.de" & site_code != "stubai.at")%>%
-  subset(e.n == "extreme")%>%
+ # subset(e.n == "extreme")%>%
 ggplot(aes(map, PR))+
   facet_wrap(~n_treat_years)+
   geom_point()+
@@ -215,6 +216,30 @@ en.df$history <- ifelse(en.df[,2] == "extreme" & en.df[,3] == "extreme", "extrem
 data.anpp4 <- left_join(data.anpp3, en.df, by = "site_code")
 
 
+data.anpp4%>%
+#  subset(history == "extreme.extreme.extreme")%>%
+  subset(n_years > 3)%>%
+  subset(site_code != "hyide.de" & site_code != "stubai.at")%>%
+  #subset(e.n == "extreme")%>%
+  ggplot(aes(map, RM))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  stat_poly_eq(formula = y~x)+
+  theme_base()
+
+data.anpp4%>%
+  #  subset(history == "extreme.extreme.extreme")%>%
+  subset(n_years > 3)%>%
+  subset(site_code != "hyide.de" & site_code != "stubai.at")%>%
+  #subset(e.n == "extreme")%>%
+  ggplot(aes(map, PR))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  stat_poly_eq(formula = y~x)+
+  theme_base()
+
 
 
 data.anpp4%>%
@@ -241,4 +266,21 @@ tempdf <- data.anpp4%>%
   subset(history == "extreme.extreme.extreme")%>%
   subset(n_years > 3)
 mod <- lm(RM~as.factor(n_treat_years), tempdf)
+summary(mod)
+
+
+
+data.anpp4%>%
+  subset(history == "extreme.extreme.extreme")%>%
+  subset(n_years > 3)%>%
+  #subset(site_code != "hyide.de" & site_code != "stubai.at")%>%
+  #subset(e.n == "extreme")%>%
+  ggplot(aes(as.factor(n_treat_years), PR))+
+  geom_boxplot()+
+  theme_base()
+
+tempdf <- data.anpp4%>%
+  subset(history == "extreme.extreme.extreme")%>%
+  subset(n_years > 3)
+mod <- lm(PR~as.factor(n_treat_years), tempdf)
 summary(mod)
