@@ -10,7 +10,7 @@ library(plyr)
 #read n_treat_years data
 IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_11-17-2022.csv")
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-02-06.csv")
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-03-16.csv")
 
 
 
@@ -125,6 +125,6 @@ anpp_ppt.end <- data.all%>%
 
 
 
-write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-02-06.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-03-16.csv")
 
 
