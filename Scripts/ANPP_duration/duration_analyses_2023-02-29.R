@@ -12,7 +12,7 @@ library(MASS)
 library(emmeans)
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-02-06.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-03-16.csv")%>%
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")#%>%
 
 length(unique(data.anpp$site_code)) #112
@@ -143,14 +143,6 @@ winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 +
                   , data = tempdf)
 summary(winning.mod)
 
-visreg2d(winning.mod, "drtsev.1", "map", plot.type="gg", col = c("red", "white", "dodgerblue"))+
-  geom_point(data = subset(data.anpp.summary, n_treat_years == 3), aes(x=drtsev.1, y=drtsev.2))+
-  xlab("Current year drought severity")+
-  ylab("Previous year drought severity")+
-  #geom_hline(yintercept = 0, linetype = "dashed")+
-  #geom_vline(xintercept = 0, linetype = "dashed")+
-  theme_base()  
-
 
 history.df <- data.anpp.summary%>%
   dplyr::select(site_code, n_treat_years, e.n)%>%
@@ -159,15 +151,15 @@ history.df <- data.anpp.summary%>%
 
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
-  subset(n_treat_years == 3)%>%
+  subset(n_treat_years == 3 & y2 != "NA")%>%
 ggplot(aes(drtsev.1, anpp_response, color = y2))+
   geom_point()+
-  geom_smooth(method = "lm")+
+  geom_smooth(method = "lm", se = FALSE)+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
   xlab("Drought severity")+
   ylab("Treatment ANPP / Avg ANPP")+
-  theme_bw()
+  theme_base()
   
 
 ####drought severity figure by year
@@ -237,7 +229,7 @@ data.frame(n_treat_years = c(1, 2, 3), slope = c(slopey1, slopey2, slopey3))%>%
   ggplot(aes(n_treat_years, slope))+
   geom_point( size = 5)+
   geom_line()+
-  ylim(-3,0)+
+ # ylim(-3,0)+
   xlab("Treatment year")+
   theme_base()
 
@@ -290,7 +282,7 @@ data.anpp.year <- data.anpp.summary%>%
 
 ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
-  ylim(-1, 0)+
+  ylim(-1.1, 0)+
   geom_hline(yintercept = 0)+
   xlab("Treatment year")+
   ylab("Treatment ANPP / Avg ANPP")+
@@ -305,7 +297,7 @@ summary(mod)
 
 ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response, color = history))+
   #  facet_wrap(~e.n)+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error),position=position_dodge(width=.25))+
+  geom_pointrange(data=data.anpp.year,aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error),position=position_dodge(width=.25))+
   #  ylim(-1, 0)+
   geom_hline(yintercept = 0)+
   theme_base()
