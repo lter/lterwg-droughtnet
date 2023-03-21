@@ -2,7 +2,7 @@ library(plyr)
 library(tidyverse)
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_11-17-2022.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023_02_20.csv")
 
 #read in cover data survey
 cover_survey <- read.csv("C:/Users/ohler/Dropbox/IDE_data_May 2018/IDE Site Info/cover_survey_results.csv")
@@ -30,7 +30,7 @@ full_cover_v2 <- full_cover %>%
     #trait_values == "INDETERMINATE" ~ "NULL", # INDETERMINATE is a valid category
     trait_values == "Introduced" ~ "INT",
     trait_values == "LEGUME FORB" ~ "LEGUME",
-    trait_values %in% c("n","Native") ~ "NAT",
+    trait_values %in% c("n","Native", "Native?") ~ "NAT",
 #    trait_values %in% c("Shrubs", "SHURB") ~ "SHRUB", #should be fixed now
     trait_values == "SUB-SHRUB" ~ "SUBSHRUB", #should be fixed now
     trait_values %in% c("unknown", "UNKNOWN") ~ "UNK",
@@ -58,14 +58,24 @@ full_cover_v2 <- full_cover %>%
   dplyr::mutate(obs_count = n()) %>%
   ungroup() %>%
   # if trait_values is UNKNOWN or NULL and if obs_count is greater than 1, we drop that row
-  dplyr::mutate(drop_me = ifelse(test = trait_values %in% c("UNKNOWN","NULL") & obs_count > 1,
+  dplyr::mutate(drop_me = ifelse(test = trait_values %in% c("UNKNOWN", "UNK", "INT", "NULL") & obs_count > 1,
          yes = "drop me",
          no = "keep")) %>%
   # filter to all the rows we want to keep
   dplyr::filter(drop_me == "keep") %>%
   # we don't need obs_count and drop_me anymore
   dplyr::select(-obs_count, -drop_me) %>%
-  #subset(Taxon != "ALLIUM POLYRHIZUM")%>% ###A temporary fix to a problem at urat.cn that Ingrid should solve
+  
+  ###
+#  dplyr::select(-trait_values)%>%
+##  group_by(site_name, site_code, block, plot, subplot,              
+#           year, first_treatment_year, first_treatment_date, cover_date, n_treat_days,         
+#           n_treat_years, trt, Family, Taxon, live, max_cover, traits)%>%
+#  filter(n() > 1)
+ #x <- duplicated(full_cover_v2)
+  ###
+  
+  subset(Taxon != "ALLIUM POLYRHIZUM")%>% ###A temporary fix to a problem at urat.cn that Ingrid should solve
   # put it back to wide format
   pivot_wider(names_from = "traits", values_from = "trait_values") %>%
   # reorder columns
@@ -84,6 +94,65 @@ full_cover_v2 <- full_cover_v2%>%
     n_treat_days = max(x$n_treat_days),
     max_cover = max(x$max_cover)
   ))
+
+
+
+
+#####################################################################
+##############GAP FILL VARIOUS TRAIT DATA
+NutNet_funcgroup_C3C4 <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/NutNet_cover_C3C4.csv")%>%
+  dplyr::select(Taxon, functional_group, ps_path)%>%
+  dplyr::rename(c(functional_group_nutnet = functional_group, ps_path_nutnet = ps_path))
+
+
+######C3/C4
+unique(full_cover_v2$ps_path)
+length(subset(full_cover_v2, ps_path == "NULL")$ps_path) #36246 need ps path
+
+
+comb <- full_cover_v2%>%
+  left_join(NutNet_funcgroup_C3C4, by = "Taxon")
+
+comb$ps_path <- ifelse(comb$ps_path == "NULL", comb$ps_path_nutnet, comb$ps_path)
+
+length(dplyr::filter(comb, is.na(ps_path))$ps_path) #27087 need ps path
+
+
+#####FUNCTIONAL GROUP 
+unique(comb$functional_group)
+length(subset(comb, functional_group == "NULL" | functional_group == "UNK")$functional_group) #151
+
+#this section doesn't help anything. The IDE functional group column is quite good and only misses species that are unknowns/genus level or are not in this nutnet sheet
+#comb$functional_group_nutnet <- replace_na(comb$functional_group_nutnet, replace= "NULL")
+#comb$functional_group_revised <- ifelse(comb$functional_group == "NULL" | comb$functional_group == "UNK", #comb$functional_group_nutnet, comb$functional_group)
+#length(subset(comb, functional_group_revised == "NULL")$functional_group_revised) #cut down on 150 Nulls
+
+comb$functional_group <- ifelse(comb$functional_group != "NULL", comb$functional_group,
+                                 ifelse(comb$Family == "Poaceae" | comb$Family == "Juncaceae" | comb$Family == "Cyperaceae", "GRAMINOID",
+                                ifelse(comb$Family == "Fabaceae", "LEGUME",
+                               ifelse(comb$Family == "Cactaceae", "CACTUS",
+                              ifelse(comb$Family == "Oxalidaceae" | comb$Family == "Compositae" | comb$Family == "Polygonaceae" | comb$Family == "Malvaceae" | comb$Family == "Lamiaceae" | comb$Family == "Apiaceae" | comb$Family == "Convolvulaceae", "FORB",
+                             ifelse(comb$Family == "Cistaceae", "WOODY",
+                                    "NULL"))))))
+
+
+length(subset(comb, functional_group == "NULL")$functional_group) #cut down on ~75 unknowns/NULLS
+
+
+
+
+######N FIXER
+unique(comb$N_fixer)
+length(subset(comb, N_fixer == "NULL")$N_fixer) #22618 NULLS
+
+comb$N_fixer <- ifelse(comb$N_fixer != "NULL", comb$N_fixer,
+                ifelse(comb$Family == "Fabaceae", "1",
+                               "0"))
+
+length(subset(comb, N_fixer == "NULL")$N_fixer) #0 NULLS
+
+
+comb <- dplyr::select(comb, -c("functional_group_nutnet", "ps_path_nutnet"))
 
 #treatment_info <- read.csv("C:/Users/ohler/Downloads/full_biomass_test.csv")
 #treatment_info <- treatment_info[, c("site_code", "year", "n_treat_days", "block", "plot", "subplot")]
@@ -142,7 +211,7 @@ full_ppt <- merge(ppt.1, ppt.2, by = c("site_code", "year", "trt"), all.x = TRUE
  unique()
 
 
-cover_ppt <- merge(full_cover_v2, full_ppt, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
+cover_ppt <- merge(comb, full_ppt, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
  subset(live == 1)
 
 
@@ -153,7 +222,7 @@ cover_ppt <- merge(full_cover_v2, full_ppt, by = c("site_code", "year", "trt"), 
 
 
 #specify n_trt_years with n_treat_days
-cover_ppt <- cover_ppt[-c(12)]#remove old column which isn't trustworthy
+#cover_ppt <- cover_ppt[-c(12)]#remove old column which isn't trustworthy
 cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 
 #temp <- cover_ppt[,c("site_code", "n_treat_days", "year")]
