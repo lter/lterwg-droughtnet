@@ -81,7 +81,7 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(num.years == 4 | num.years == 3
   ) #change here if using 4 years #reduces dataset to focal sites
 
-length(unique(data.anpp2$site_code)) #70
+length(unique(data.anpp2$site_code)) #67
 
 
 ##Create anpp_response and drought severity metrics
@@ -104,7 +104,7 @@ data.anpp.summary <- data.anpp2%>%
           anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1),
           n_treat_days = mean(x$n_treat_days)
         ))%>%
-  subset(n_treat_years >= 1 & n_treat_years<= 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
+  subset(n_treat_years >= 1 & n_treat_years<= 4) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
 
 
 
@@ -123,7 +123,7 @@ cv1<-cv%>%
 
 ##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + map #+ sand_mean + AI + cv_ppt_inter
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4  #+ sand_mean + AI + cv_ppt_inter
              , data=subset(data.anpp.summary, n_treat_years == 3))
 
 
@@ -139,7 +139,7 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
 winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
-                    map + drtsev.1:drtsev.2 + drtsev.2:drtsev.3  
+                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3  
                   , data = tempdf)
 summary(winning.mod)
 
@@ -160,7 +160,26 @@ ggplot(aes(drtsev.1, anpp_response, color = y2))+
   xlab("Drought severity")+
   ylab("Treatment ANPP / Avg ANPP")+
   theme_base()
+
+
+
+##MAP interactions with current year and precious year precipitation
+
+tempdf <- subset(data.anpp.summary, n_treat_years == 3)
+current_year.mod <- lm(anpp_response ~ drtsev.1 + drtsev.1:map, data = tempdf)
+summary(current_year.mod)
+
+previous_year.mod <- lm(anpp_response ~ drtsev.2 + drtsev.2:map, data = tempdf)
+summary(previous_year.mod)
   
+visreg2d(current_year.mod, xvar = "map", yvar = "drtsev.1")
+visreg(current_year.mod)
+visreg(previous_year.mod)
+visreg2d(previous_year.mod, xvar = "map", yvar = "drtsev.2")
+
+map.mod <- lm(anpp_response ~  map, data = tempdf)
+summary(map.mod)
+visreg(map.mod)
 
 ####drought severity figure by year
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
@@ -364,3 +383,12 @@ summary(mod)
 
 
 
+
+
+
+
+
+
+
+temp <- subset(data.anpp1, n_treat_days >1209 & n_treat_days < 1574)#1574
+length(unique(temp$site_code))
