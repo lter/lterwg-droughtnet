@@ -5,7 +5,7 @@ library(plyr)
 
 
 
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_02-06-2023.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_03-30-2023.csv")%>%
               select(site_code, year, n_treat_days)%>%
               unique()
 
@@ -64,4 +64,4 @@ comb1$n_treat_years1 <- case_when(
 combfin <- select(comb1, site_code, year, n_treat_years1)%>%
           dplyr::rename(n_treat_years=n_treat_years1)
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-02-20.csv")
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-04-05.csv")
