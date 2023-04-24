@@ -123,7 +123,7 @@ cv1<-cv%>%
 
 ##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4  #+ sand_mean + AI + cv_ppt_inter
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * map #drtsev.4  #+ sand_mean + AI + cv_ppt_inter
              , data=subset(data.anpp.summary, n_treat_years == 3))
 
 
@@ -139,7 +139,7 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
 winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
-                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3  
+                    map + drtsev.1:drtsev.2 + drtsev.2:drtsev.3 + drtsev.2:map
                   , data = tempdf)
 summary(winning.mod)
 
@@ -169,9 +169,15 @@ tempdf <- subset(data.anpp.summary, n_treat_years == 3)
 current_year.mod <- lm(anpp_response ~ drtsev.1 + drtsev.1:map, data = tempdf)
 summary(current_year.mod)
 
+current_year.mod <- lm(anpp_response ~ drtsev.1 *map, data = tempdf)
+summary(current_year.mod)
+
 previous_year.mod <- lm(anpp_response ~ drtsev.2 + drtsev.2:map, data = tempdf)
 summary(previous_year.mod)
-  
+
+previous_year.mod <- lm(anpp_response ~ drtsev.2 *map, data = tempdf)
+summary(previous_year.mod)
+
 visreg2d(current_year.mod, xvar = "map", yvar = "drtsev.1")
 visreg(current_year.mod)
 visreg(previous_year.mod)
@@ -180,6 +186,14 @@ visreg2d(previous_year.mod, xvar = "map", yvar = "drtsev.2")
 map.mod <- lm(anpp_response ~  map, data = tempdf)
 summary(map.mod)
 visreg(map.mod)
+
+
+tempdf$map.cat <- ifelse(tempdf$map > 400, "High_MAP", "Low_MAP")
+tempdf%>%
+  subset(anpp_response > -4)%>%
+ggplot(aes(drtsev.2, anpp_response, color = map.cat))+
+  geom_point()+
+  geom_smooth(method = "lm")
 
 ####drought severity figure by year
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
@@ -365,6 +379,8 @@ temp.df <- data.anpp.summary1%>%
   subset( history == "extreme.extreme.extreme")
 temp.df$n_treat_years <- as.factor(temp.df$n_treat_years)
 mod <- lme(anpp_response~n_treat_days, random = ~1|site_code, data = temp.df)
+summary(mod)
+mod <- lme(anpp_response~n_treat_years, random = ~1|site_code, data = temp.df)
 summary(mod)
 ggplot(temp.df, aes(n_treat_days, anpp_response))+
   geom_point()+
