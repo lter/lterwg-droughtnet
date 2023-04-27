@@ -32,6 +32,11 @@ extremeyrs <- subset(data.anpp, trt == "Control")%>%
          e.n=ifelse(ppt.minus.map>0, "nominal", "extreme")) %>%
   dplyr::select(site_code, year, n_treat_years, e.n)
 
+extremeyrs.prev <- extremeyrs%>%
+                  dplyr::select(site_code, year, e.n)%>%
+                  dplyr::rename(prev_e.n = e.n)
+extremeyrs.prev$year <- extremeyrs.prev$year + 1
+
 
 #Only using sites with >= 2 reps for drought and >=1 rep for control
 #Counting the number of reps for each treatment and year
@@ -78,6 +83,7 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(n_years>=4)%>% #Does long-term control average include at least 4 years?
   left_join(num.treat.years, by = "site_code")%>%
   left_join(extremeyrs, by = c("site_code", "year", "n_treat_years"))%>%
+  left_join(extremeyrs.prev, by = c("site_code", "year"))%>%
   subset(num.years == 4 | num.years == 3
   ) #change here if using 4 years #reduces dataset to focal sites
 
@@ -96,7 +102,7 @@ data.anpp2$drtsev.4 <- -((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
 
 ##Summarize responses by site and year
 data.anpp.summary <- data.anpp2%>%
-  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map, habitat.type, e.n),
+  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map, habitat.type, e.n, prev_e.n),
         function(x)data.frame(
           mean_mass = mean(x$mass),
           ppt.1 = mean(x$ppt.1),
@@ -104,7 +110,7 @@ data.anpp.summary <- data.anpp2%>%
           anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1),
           n_treat_days = mean(x$n_treat_days)
         ))%>%
-  subset(n_treat_years >= 1 & n_treat_years<= 4) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
+  subset(n_treat_years >= 1 & n_treat_years<= 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
 
 
 
@@ -123,11 +129,11 @@ cv1<-cv%>%
 
 ##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * map #drtsev.4  #+ sand_mean + AI + cv_ppt_inter
-             , data=subset(data.anpp.summary, n_treat_years == 3))
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4  #+ sand_mean + AI + cv_ppt_inter
+             , data=subset(data.anpp.summary, n_treat_years == 3 & drtsev.1 != "NA"))
 
 
-lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3),  na.action=na.exclude)
+lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3& drtsev.1 != "NA"))
 
 
 #Forward model selection
@@ -138,8 +144,7 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
-                    map + drtsev.1:drtsev.2 + drtsev.2:drtsev.3 + drtsev.2:map
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.4
                   , data = tempdf)
 summary(winning.mod)
 
@@ -153,18 +158,20 @@ data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 3 & y2 != "NA")%>%
 ggplot(aes(drtsev.1, anpp_response, color = y2))+
-  geom_point()+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
   geom_smooth(method = "lm", se = FALSE)+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
   xlab("Drought severity")+
   ylab("Treatment ANPP / Avg ANPP")+
+  scale_color_manual(values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
 
 
 ##MAP interactions with current year and precious year precipitation
 
+  
 tempdf <- subset(data.anpp.summary, n_treat_years == 3)
 current_year.mod <- lm(anpp_response ~ drtsev.1 + drtsev.1:map, data = tempdf)
 summary(current_year.mod)
@@ -188,12 +195,19 @@ summary(map.mod)
 visreg(map.mod)
 
 
-tempdf$map.cat <- ifelse(tempdf$map > 400, "High_MAP", "Low_MAP")
+tempdf$map.cat <- ifelse(tempdf$map > 500, "High_MAP", "Low_MAP")
+tempdf$drtsev.2.cat <- ifelse(tempdf$drtsev.2 > 0.5, "High_severity", "Less_severity")
+tempdf <- unite(tempdf, "map.prev_e.n", c("map.cat","prev_e.n"), remove = FALSE)
+
 tempdf%>%
-  subset(anpp_response > -4)%>%
-ggplot(aes(drtsev.2, anpp_response, color = map.cat))+
-  geom_point()+
-  geom_smooth(method = "lm")
+  #subset(anpp_response > -4)%>%
+ggplot(aes(map.prev_e.n, anpp_response))+
+  facet_wrap(~prev_e.n)+
+  geom_boxplot()+
+geom_point()
+
+tempdf%>%
+ggplot(aes(interaction()))
 
 ####drought severity figure by year
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
@@ -206,6 +220,8 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   xlab("Drought severity")+
   ylab("Treatment ANPP / Avg ANPP")+
   theme_bw()
+
+
 
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==1))
@@ -298,7 +314,7 @@ data.anpp.summary%>%
                     , drop = FALSE)+
   geom_hline(yintercept = 0,linetype="dashed")+
   ylim(c(-6.3,5))+ #this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
-  ylab("Treatment ANPP / Avg ANPP")+
+  ylab("log(Treatment ANPP / Avg ANPP)")+
   xlab("")+
   coord_flip()+
   theme_bw()
@@ -316,9 +332,9 @@ data.anpp.year <- data.anpp.summary%>%
 ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
   ylim(-1.1, 0)+
-  geom_hline(yintercept = 0)+
+  geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Treatment year")+
-  ylab("Treatment ANPP / Avg ANPP")+
+  ylab("log(Treatment ANPP / Avg ANPP)")+
   coord_flip()+
   theme_base()
 
@@ -386,7 +402,7 @@ ggplot(temp.df, aes(n_treat_days, anpp_response))+
   geom_point()+
   geom_smooth(method = "lm")+
   theme_base()
-
+length(unique(temp.df$site_code))
 
 
 tempdf <- data.anpp.summary1%>%
