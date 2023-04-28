@@ -108,6 +108,7 @@ data.anpp.summary <- data.anpp2%>%
           ppt.1 = mean(x$ppt.1),
           anpp_response = mean(x$anpp_response),
           anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1),
+          anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)),
           n_treat_days = mean(x$n_treat_days)
         ))%>%
   subset(n_treat_years >= 1 & n_treat_years<= 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
@@ -163,7 +164,7 @@ ggplot(aes(drtsev.1, anpp_response, color = y2))+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
   xlab("Drought severity")+
-  ylab("Treatment ANPP / Avg ANPP")+
+  ylab("log(Treatment ANPP / Avg ANPP)")+
   scale_color_manual(values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
@@ -213,12 +214,12 @@ ggplot(aes(interaction()))
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   ggplot( aes(drtsev.1, anpp_response))+
   facet_wrap(~n_treat_years)+
-  geom_point()+
+  geom_point(alpha = 0.8,pch = 21,size=3)+
   geom_smooth(method = "lm")+
-  geom_hline(yintercept = 0)+
-  geom_vline(xintercept = 0)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity")+
-  ylab("Treatment ANPP / Avg ANPP")+
+  ylab("log(Treatment ANPP / Avg ANPP)")+
   theme_bw()
 
 
@@ -231,6 +232,7 @@ mod3 <- lm(anpp_response~poly(drtsev.1,4), data = subset(data.anpp.summary,n_tre
 AIC(mod, mod1, mod2, mod3)#mod best
 summary(mod) #R-squared 0.10
 slopey1 <- coef(mod)[[2]]
+se1 <- summary(mod)$coefficients[2,2]
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==2))
 mod1 <- lm(anpp_response~poly(drtsev.1,2), data = subset(data.anpp.summary,n_treat_years ==2))
@@ -239,6 +241,7 @@ mod3 <- lm(anpp_response~poly(drtsev.1,4), data = subset(data.anpp.summary,n_tre
 AIC(mod, mod1, mod2, mod3)#mod1 best
 summary(mod1)#R-squared 0.17
 slopey2 <- coef(mod)[[2]]
+se2 <- summary(mod)$coefficients[2,2]
 ggplot(subset(data.anpp.summary,n_treat_years ==2), aes(drtsev.1, anpp_response))+
   geom_point()+
   geom_smooth(method = "lm", formula = y~poly(x,2))+
@@ -257,6 +260,7 @@ mod3 <- lm(anpp_response~poly(drtsev.1,4), data = subset(data.anpp.summary,n_tre
 AIC(mod, mod1, mod2, mod3)#mod2 best
 summary(mod2)#R-squared 0.25
 slopey3 <- coef(mod)[[2]]
+se3 <- summary(mod)$coefficients[2,2]
 ggplot(subset(data.anpp.summary,n_treat_years ==3), aes(drtsev.1, anpp_response))+
   geom_point()+
   geom_smooth(method = "lm", formula = y~poly(x,3))+
@@ -282,6 +286,13 @@ data.frame(n_treat_years = c(1, 2, 3), slope = c(slopey1, slopey2, slopey3))%>%
   xlab("Treatment year")+
   theme_base()
 
+data.frame(n_treat_years = c("1", "2", "3"), slope = c(slopey1, slopey2, slopey3), se = c(se1, se2, se3))%>%
+  ggplot(aes(n_treat_years, slope))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_pointrange(aes(ymin = slope-se, ymax = slope+se))+
+  xlab("Treatment year")+
+  theme_base()
+  
 mod <- lmer(anpp_response~drtsev.1*as.factor(n_treat_years)+ (1|site_code), data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3))
 summary(mod)
 pairs(emtrends(mod, ~as.factor(n_treat_years), var="drtsev.1"))
@@ -309,11 +320,11 @@ data.anpp.summary%>%
   subset( n_treat_years == 3)%>%
   dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
   ggplot(  aes(site_code, anpp_response))+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error, fill = cut(drtsev.1, 6)))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se, fill = cut(drtsev.1, 6)))+
   scale_fill_brewer(palette = "Reds", direction = -1
                     , drop = FALSE)+
   geom_hline(yintercept = 0,linetype="dashed")+
-  ylim(c(-6.3,5))+ #this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
+  ylim(c(-6,1.5))+ #this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
   ylab("log(Treatment ANPP / Avg ANPP)")+
   xlab("")+
   coord_flip()+
@@ -325,12 +336,13 @@ data.anpp.year <- data.anpp.summary%>%
   ddply(.(n_treat_years),
         function(x)data.frame(
           anpp_response = mean(x$anpp_response),
-          anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1)
+          anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code))
         ))
 
 
 ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se))+
   ylim(-1.1, 0)+
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Treatment year")+
@@ -356,11 +368,15 @@ en.df <- data.anpp.summary %>%
   dplyr::select(site_code, n_treat_years, e.n)%>%
   pivot_wider(names_from = "n_treat_years", values_from = "e.n")
 
-en.df$history <- ifelse(en.df[,2] == "extreme" & en.df[,3] == "extreme", "extreme.extreme.extreme",
-                        ifelse(en.df[,2] == "nominal" & en.df[,3] == "extreme", "nominal.extreme.extreme",
-                               ifelse(en.df[,2] == "extreme" & en.df[,3] == "nominal", "extreme.nominal.extreme",
-                                      "nominal.nominal.extreme"
-                               )))
+en.df$history <- ifelse(en.df[,2] == "extreme" & en.df[,3] == "extreme" &en.df[,4] == "extreme", "extreme.extreme.extreme",
+                 ifelse(en.df[,2] == "extreme" & en.df[,3] == "extreme" &en.df[,4] == "nominal", "extreme.extreme.nominal",
+                 ifelse(en.df[,2] == "extreme" & en.df[,3] == "nominal" &en.df[,4] == "extreme", "extreme.nominal.extreme",
+                 ifelse( en.df[,2] == "nominal" & en.df[,3] == "extreme" &en.df[,4] == "extreme", "nominal.extreme.extreme",
+                 ifelse(en.df[,2] == "extreme" & en.df[,3] == "nominal" &en.df[,4] == "nominal", "extreme.nominal.nominal",
+                 ifelse(en.df[,2] == "nominal" & en.df[,3] == "nominal" &en.df[,4] == "extreme", "nominal.nominal.extreme",
+                 ifelse(en.df[,2] == "nominal" & en.df[,3] == "extreme" &en.df[,4] == "nominal", "nominal.extreme.nominal",
+                                      "nominal.nominal.nominal"
+                               )))))))
 
 data.anpp.summary1 <- left_join(data.anpp.summary, en.df, by = "site_code")
 
@@ -379,7 +395,9 @@ ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.fact
   #facet_wrap(~history)+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se),position=position_dodge(width=.25))+
   #  ylim(-1, 0)+
-  geom_hline(yintercept = 0)+
+  geom_hline(yintercept = 0,linetype = "dashed")+
+  xlab("Treatment year")+
+  ylab("log(Treatment ANPP / Avg ANPP)")+
   theme_base()
 
 temp.df <- data.anpp.summary1%>%
