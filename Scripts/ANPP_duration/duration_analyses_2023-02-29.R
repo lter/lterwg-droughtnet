@@ -12,7 +12,7 @@ library(MASS)
 library(emmeans)
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-03-16.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-05-01.csv")%>%
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")#%>%
 
 length(unique(data.anpp$site_code)) #112
@@ -87,7 +87,7 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(num.years == 4 | num.years == 3
   ) #change here if using 4 years #reduces dataset to focal sites
 
-length(unique(data.anpp2$site_code)) #67
+length(unique(data.anpp2$site_code)) #68
 
 
 ##Create anpp_response and drought severity metrics
@@ -145,7 +145,8 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.4
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
+                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3
                   , data = tempdf)
 summary(winning.mod)
 

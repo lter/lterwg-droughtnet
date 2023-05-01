@@ -5,12 +5,12 @@ library(plyr)
 
 
 
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_03-30-2023.csv")%>%
-              select(site_code, year, n_treat_days)%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_05-01-2023.csv")%>%
+              dplyr::select(site_code, year, n_treat_days)%>%
               unique()
 
-data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-02-06.csv")%>%
-              select(site_code, year, n_treat_days)%>%
+data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-05-01.csv")%>%
+              dplyr::select(site_code, year, n_treat_days)%>%
               unique()%>%
               subset(n_treat_days != "NULL")#marcdrt.ar has some null values for unknown reasons
 data.cover$n_treat_days <- as.numeric(data.cover$n_treat_days)
@@ -32,7 +32,7 @@ first_treat_year <- subset(comb, n_treat_days >= 200 & n_treat_days < 800  )%>%
 #hist(first_treat_year$n_treat_days)
 
 half_treat_year <- subset(comb, n_treat_days >= 30 & n_treat_days < 200  )%>%
-                  select(site_code, year)
+                  dplyr::select(site_code, year)
 half_treat_year$n_treat_years_half <- "0.5"
 
 pretreatment_year <- subset(comb, n_treat_days <30)%>%
@@ -61,7 +61,7 @@ comb1$n_treat_years1 <- case_when(
   TRUE ~ comb1$n_treat_years
 )
 
-combfin <- select(comb1, site_code, year, n_treat_years1)%>%
+combfin <- dplyr::select(comb1, site_code, year, n_treat_years1)%>%
           dplyr::rename(n_treat_years=n_treat_years1)
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-04-05.csv")
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-05-01.csv")
