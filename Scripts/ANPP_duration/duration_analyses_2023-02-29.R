@@ -394,6 +394,7 @@ data.anpp.year <- data.anpp.summary1%>%
 ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
   #facet_wrap(~history)+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se),position=position_dodge(width=.25))+
+  geom_violin(data = subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
   #  ylim(-1, 0)+
   geom_hline(yintercept = 0,linetype = "dashed")+
   xlab("Treatment year")+
