@@ -1,25 +1,26 @@
 ###Code to for each site what % grass/forb and annual/perennial species
-###cody by Meghan Avolio, Feb 8, 2023
+###code by Meghan Avolio, Feb 8, 2023
 
 library(tidyverse)
 #library(codyn)
 
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
+setwd("E:Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-02-06.csv") %>% 
+dat<-read.csv("cover_ppt_2023-05-01.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"),
          lifeform2=ifelse(local_lifeform=="GRAMINOID", "GRASS", local_lifeform))
 
-# #dropping datasets without pretreatment
-# drop_no_pretrt<-dat %>% 
-#   select(site_code, n_treat_years) %>% 
-#   unique() %>% 
-#   filter(n_treat_years==0) %>% 
-#   select(-n_treat_years)
-# 
-#doing this for yr1 controls
+#dropping datasets without pretreatment
+drop_no_pretrt<-dat %>%
+  select(site_code, n_treat_years) %>%
+  unique() %>%
+  filter(n_treat_years==0) %>%
+  select(-n_treat_years)
+
+#doing this on pretreatment data
 dat2<-dat %>%
-  filter(trt=="Control"&n_treat_years==1)
+  filter(n_treat_years==0)
 
 totalcover<-dat2 %>% 
   group_by(site_code, replicate) %>% 
@@ -39,7 +40,6 @@ pctLifeForm<-dat2 %>%
 pctLifehistory<-dat2 %>% 
   group_by(site_code, replicate, local_lifespan) %>% 
   summarize(sum=sum(max_cover)) %>% 
-  filter(site_code!="lygraold.no"&site_code!="lygraint.no"&site_code!="purdue.us"&site_code!="eea.br") %>% 
   filter(local_lifespan!="NULL") %>% 
   pivot_wider(names_from = local_lifespan, values_from = sum, values_fill = 0) %>% 
   pivot_longer(ANNUAL:UNK, names_to = "local_lifespan", values_to="sum") %>% 
@@ -50,4 +50,4 @@ pctLifehistory<-dat2 %>%
   summarize(PctAnnual=mean(PAnn)) %>% 
   full_join(pctLifeForm)
 
-write.csv(pctLifehistory, "C:\\Users\\mavolio2\\Dropbox\\Prc_LifeHistory_Yr1Controls.csv", row.names=F)
+write.csv(pctLifehistory, "community_comp\\Prc_LifeHistory_May2023.csv", row.names=F)
