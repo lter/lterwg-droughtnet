@@ -1,18 +1,21 @@
 ###Code to for how different control-treatment communities are with drought
 ###cody by Meghan Avolio, Feb 8, 2023
 ###March 21, 2023. Working to include all communities for the difference analysis.
+###May 4th, 2023, updating analyses with updated data. Are looking at change
 
 library(tidyverse)
 library(codyn)
 library(lme4)
 library(lmerTest)
 library(vegan)
+#library(plyr)
 
 theme_set(theme_bw(20))
 
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
+setwd("E:\\Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-02-06.csv") %>% 
+dat<-read.csv("cover_ppt_2023-05-01.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
 #dropping sites with less than 5 species in the controls
@@ -28,53 +31,53 @@ dat<-read.csv("cover_ppt_2023-02-06.csv") %>%
 #   geom_hline(yintercept = 2)+
 #   facet_wrap(~site_code, scales="free")
 
-# Getting measures of differences -----------------------------------------
-
-
-###looping through site to get at differences
-datall<-dat%>% 
-  mutate(rep=paste(site_code, replicate, sep=";")) %>% 
-  filter(n_treat_years!=0.5&n_treat_years!=-1) %>% 
-  filter(n_treat_years==1)
-
-sc<-unique(datall$site_code)
-
-diff_metrics<-data.frame()
-
-for (i in 1:length(sc)){
-  
-  subset<-datall%>%
-    filter(site_code==sc[i])
-  
-  nyrs<-subset %>% 
-    select(year, n_treat_years) %>% 
-    unique()
-  
-  scode<-unique(subset$site_code)
-  
-  diff_mult<-multivariate_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
-    select(-trt, -trt2)
-  
-  diff_ranks<-RAC_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
-    mutate(site_code=scode) %>% 
-    select(-replicate2, -trt, -trt2) %>% 
-    group_by(site_code, year, replicate) %>% 
-    summarize_all(mean) %>% 
-    select(-replicate) %>% 
-    group_by(site_code, year) %>% 
-    summarize_all(mean)
-  
-  diffmetrics<-diff_ranks %>% 
-    left_join(diff_mult) %>% 
-    left_join(nyrs)
-  
-  
-  diff_metrics<-diff_metrics %>% 
-    bind_rows(diffmetrics)
-}
-
-
-#write.csv(diff_metrics, "C:\\Users\\mavolio2\\Dropbox\\IDE_DiffMeasures_Yr1.csv", row.names=F)
+# # Getting measures of differences -----------------------------------------
+# 
+# 
+# ###looping through site to get at differences
+# datall<-dat%>% 
+#   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
+#   filter(n_treat_years!=0.5&n_treat_years!=-1) %>% 
+#   filter(n_treat_years==1)
+# 
+# sc<-unique(datall$site_code)
+# 
+# diff_metrics<-data.frame()
+# 
+# for (i in 1:length(sc)){
+#   
+#   subset<-datall%>%
+#     filter(site_code==sc[i])
+#   
+#   nyrs<-subset %>% 
+#     select(year, n_treat_years) %>% 
+#     unique()
+#   
+#   scode<-unique(subset$site_code)
+#   
+#   diff_mult<-multivariate_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
+#     select(-trt, -trt2)
+#   
+#   diff_ranks<-RAC_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
+#     mutate(site_code=scode) %>% 
+#     select(-replicate2, -trt, -trt2) %>% 
+#     group_by(site_code, year, replicate) %>% 
+#     summarize_all(mean) %>% 
+#     select(-replicate) %>% 
+#     group_by(site_code, year) %>% 
+#     summarize_all(mean)
+#   
+#   diffmetrics<-diff_ranks %>% 
+#     left_join(diff_mult) %>% 
+#     left_join(nyrs)
+#   
+#   
+#   diff_metrics<-diff_metrics %>% 
+#     bind_rows(diffmetrics)
+# }
+# 
+# 
+# #write.csv(diff_metrics, "C:\\Users\\mavolio2\\Dropbox\\IDE_DiffMeasures_Yr1.csv", row.names=F)
 
 # Calculating drought severity -------------------------------------------
 
@@ -87,120 +90,120 @@ drt<-dat %>%
   mutate(drtseverity=(ppt.1-map)/map) %>% 
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
 
-site_types<-read.csv("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\Prc_LifeHistory_Yr1Controls.csv")
+site_types<-read.csv("community_comp\\Prc_LifeHistory_May2023.csv")
 
-continent<-read.csv("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\Site_Elev-Disturb.csv") %>% 
+continent<-read.csv("Site_Elev-Disturb.csv") %>% 
   select(site_code, continent)
 
 
 #write.csv(drt, "C:\\Users\\mavolio2\\Dropbox\\IDE_DroughtSeverity.csv", row.names=F)
 
 
-#looking at data
-difflong<-diff_metrics %>% 
-  select(-abs_dispersion_diff, -trt_greater_disp) %>% 
-  pivot_longer(names_to = 'measure', values_to = 'value', richness_diff:composition_diff) %>% 
-  left_join(drt) %>% 
-  left_join(site_types)
-
-unique(diff_metrics$site_code)
-
-ggplot(data=difflong, aes(x=drtseverity, y=value))+
-  geom_point()+
-  geom_smooth(method='lm')+
-  facet_grid(measure~n_treat_years, scales="free")
-
-
-
-# Statistical analyses of difference --------------------------------------
-#############doing statistical tests of this
-rich<-difflong %>% 
-  filter(measure=="richness_diff")
-t.test(rich$value, mu=0, alternative = "two.sided")
-#this is sig.
-even<-difflong %>% 
-  filter(measure=="evenness_diff")
-t.test(even$value, mu=0, alternative = "two.sided")
-#this is NOT sig.
-rank<-difflong %>% 
-  filter(measure=="rank_diff")
-t.test(rank$value, mu=0, alternative = "two.sided")
-#this is sig.
-sp<-difflong %>% 
-  filter(measure=="species_diff")
-t.test(sp$value, mu=0, alternative = "two.sided")
-#this is sig.
-
-comp<-difflong %>% 
-  filter(measure=="composition_diff")
-t.test(comp$value, mu=0, alternative = "two.sided")
-#this is sig.
-
-rd<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="richness_diff"))
-summary(rd)
-
-ggplot(data=subset(difflong, measure=="richness_diff"), aes(x=map, y=value))+
-  geom_point()+
-  ylab("Richness Diff")+
-  geom_hline(yintercept=0)+
-  geom_smooth(method="lm", color="black")+
-  xlab("MAP")+
-  annotate("text", x=-Inf, y=-Inf, vjust=-1, hjust=-1 ,label="p < 0.01")
-
-ed<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="evenness_diff"))
-summary(ed)
-#pct grass
-
-ggplot(data=subset(difflong, measure=="evenness_diff"), aes(x=PctGrass, y=value))+
-  geom_point()+
-  ylab("Evenness Diff")+
-  geom_hline(yintercept=0)+
-  geom_smooth(method="lm", color="black")+
-  xlab("% Grass")+
-  annotate("text", x=-Inf, y=-Inf, vjust=-1, hjust=-1 ,label="p < 0.01")
-
-ra<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="rank_diff"))
-summary(ra)
-#not sig
-
-spd<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="species_diff"))
-summary(spd)
-#sig
-
-
-cd<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="composition_diff"))
-summary(cd)
-
-ggplot(data=subset(difflong, measure=="composition_diff"), aes(x=PctAnnual, y=value))+
-  geom_point()+
-  geom_smooth(method = "lm", color="black")+
-  ylab("Composition Diff")+
-  xlab("% Annual")
-
-# Permanova ---------------------------------------------------------------
-
-site_vec <- unique(datall$site_code)
-
-permanova_out_master <- {}
-
-for(i in 1:length(site_vec)) {
-  ide_temp <- datall %>% 
-    filter(site_code==site_vec[i]) %>% 
-    select(site_code, trt, Taxon, max_cover, replicate) %>% 
-    pivot_wider(names_from = Taxon, values_from = max_cover, values_fill = 0)
-
-  permanova_temp <- adonis2(ide_temp[4:ncol(ide_temp)] ~ trt, data=ide_temp, permutations=99)
-      
-  perm_out_temp <- data.frame(
-        site_code = site_vec[i],
-        perm_Pvalue =  permanova_temp$'Pr(>F)'[1]
-      )
-      
-      permanova_out_master <- rbind(permanova_out_master, perm_out_temp)
-      
-    }
-  
-
+# #looking at data
+# difflong<-diff_metrics %>% 
+#   select(-abs_dispersion_diff, -trt_greater_disp) %>% 
+#   pivot_longer(names_to = 'measure', values_to = 'value', richness_diff:composition_diff) %>% 
+#   left_join(drt) %>% 
+#   left_join(site_types)
+# 
+# unique(diff_metrics$site_code)
+# 
+# ggplot(data=difflong, aes(x=drtseverity, y=value))+
+#   geom_point()+
+#   geom_smooth(method='lm')+
+#   facet_grid(measure~n_treat_years, scales="free")
+# 
+# 
+# 
+# # Statistical analyses of difference --------------------------------------
+# #############doing statistical tests of this
+# rich<-difflong %>% 
+#   filter(measure=="richness_diff")
+# t.test(rich$value, mu=0, alternative = "two.sided")
+# #this is sig.
+# even<-difflong %>% 
+#   filter(measure=="evenness_diff")
+# t.test(even$value, mu=0, alternative = "two.sided")
+# #this is NOT sig.
+# rank<-difflong %>% 
+#   filter(measure=="rank_diff")
+# t.test(rank$value, mu=0, alternative = "two.sided")
+# #this is sig.
+# sp<-difflong %>% 
+#   filter(measure=="species_diff")
+# t.test(sp$value, mu=0, alternative = "two.sided")
+# #this is sig.
+# 
+# comp<-difflong %>% 
+#   filter(measure=="composition_diff")
+# t.test(comp$value, mu=0, alternative = "two.sided")
+# #this is sig.
+# 
+# rd<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="richness_diff"))
+# summary(rd)
+# 
+# ggplot(data=subset(difflong, measure=="richness_diff"), aes(x=map, y=value))+
+#   geom_point()+
+#   ylab("Richness Diff")+
+#   geom_hline(yintercept=0)+
+#   geom_smooth(method="lm", color="black")+
+#   xlab("MAP")+
+#   annotate("text", x=-Inf, y=-Inf, vjust=-1, hjust=-1 ,label="p < 0.01")
+# 
+# ed<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="evenness_diff"))
+# summary(ed)
+# #pct grass
+# 
+# ggplot(data=subset(difflong, measure=="evenness_diff"), aes(x=PctGrass, y=value))+
+#   geom_point()+
+#   ylab("Evenness Diff")+
+#   geom_hline(yintercept=0)+
+#   geom_smooth(method="lm", color="black")+
+#   xlab("% Grass")+
+#   annotate("text", x=-Inf, y=-Inf, vjust=-1, hjust=-1 ,label="p < 0.01")
+# 
+# ra<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="rank_diff"))
+# summary(ra)
+# #not sig
+# 
+# spd<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="species_diff"))
+# summary(spd)
+# #sig
+# 
+# 
+# cd<-lm(value~drtseverity+map+PctGrass+PctAnnual, data=subset(difflong, measure=="composition_diff"))
+# summary(cd)
+# 
+# ggplot(data=subset(difflong, measure=="composition_diff"), aes(x=PctAnnual, y=value))+
+#   geom_point()+
+#   geom_smooth(method = "lm", color="black")+
+#   ylab("Composition Diff")+
+#   xlab("% Annual")
+# 
+# # Permanova ---------------------------------------------------------------
+# 
+# site_vec <- unique(datall$site_code)
+# 
+# permanova_out_master <- {}
+# 
+# for(i in 1:length(site_vec)) {
+#   ide_temp <- datall %>% 
+#     filter(site_code==site_vec[i]) %>% 
+#     select(site_code, trt, Taxon, max_cover, replicate) %>% 
+#     pivot_wider(names_from = Taxon, values_from = max_cover, values_fill = 0)
+# 
+#   permanova_temp <- adonis2(ide_temp[4:ncol(ide_temp)] ~ trt, data=ide_temp, permutations=99)
+#       
+#   perm_out_temp <- data.frame(
+#         site_code = site_vec[i],
+#         perm_Pvalue =  permanova_temp$'Pr(>F)'[1]
+#       )
+#       
+#       permanova_out_master <- rbind(permanova_out_master, perm_out_temp)
+#       
+#     }
+#   
+# 
 
 
 # Getting measures of change ----------------------------------------------
@@ -218,9 +221,9 @@ dat2<-dat %>%
 
 ###looping through site for changes with pretreatmetn as a reference year
 
-#having problems with eea.br, dropping this. not sure why
+#having problems with cdpt_drt.us and eea.br and lygraint.no, they only have year 0 data. dropping this. not sure why
 dat3<-dat2 %>% 
-  filter(site_code!="eea.br")
+  filter(site_code!="cdpt_drt.us"&site_code!="eea.br"&site_code!="lygraint.no")
 
 sc<-unique(dat3$site_code)
 
@@ -263,17 +266,31 @@ for (i in 1:length(sc)){
     bind_rows(change_ranks)
 }
 
+###calcluaing bp change
+  
+bp_yr0<-dat3 %>% 
+    group_by(site_code, year, n_treat_years, trt, replicate) %>% 
+    summarise(max=max(max_cover), sum=sum(max_cover)) %>%
+    mutate(bp=max/sum) %>% 
+    ungroup() %>% 
+    filter(n_treat_years==0) %>% 
+    select(-max, -sum, -n_treat_years, -year) %>% 
+    rename(bp0=bp)
+
+bp_change<-dat3 %>% 
+    group_by(site_code, year, n_treat_years, trt, replicate) %>% 
+    summarise(max=max(max_cover), sum=sum(max_cover)) %>%
+    mutate(bp=max/sum) %>% 
+    filter(n_treat_years!=0) %>%
+    left_join(bp_yr0) %>% 
+    mutate(bpchange=bp-bp0) %>% 
+    group_by(year, trt, site_code) %>% 
+    summarize(bpchange=mean(bpchange))
 
 ##looking at data a bit
 years<-deltamult %>% 
   select(site_code, year, n_treat_years) %>% 
   unique()
-
-dom<-read.csv("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\BP_index_change.csv") %>% 
-  select(-X, -plot) %>% 
-  rename(replicate=rep, value=BP_index_change) %>% 
-  mutate(measure="dominance") %>% 
-  left_join(years)
 
 RRMult<-deltamult %>% 
   pivot_longer(names_to="measure", values_to = "value", composition_change:dispersion_change) %>%
@@ -283,7 +300,7 @@ RRMult<-deltamult %>%
 
 chgRaclong<-deltaracs %>% 
   pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
-  bind_rows(dom)
+  bind_rows(bochange)
 
 chgRacMeans<-chgRaclong%>% 
   group_by(site_code, year, trt, measure) %>% 
