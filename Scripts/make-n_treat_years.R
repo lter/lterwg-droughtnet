@@ -58,10 +58,19 @@ comb1$n_treat_years <- (comb1$year - comb1$first_year)+1
 comb1$n_treat_years1 <- case_when(
   comb1$n_treat_years_half == 0.5 ~ 0.5,
   comb1$n_treat_years_pre == 0 ~ 0,
+  comb1$site_code == "buoya.no" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "haver.no" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
   TRUE ~ comb1$n_treat_years
 )
 
 combfin <- dplyr::select(comb1, site_code, year, n_treat_years1)%>%
           dplyr::rename(n_treat_years=n_treat_years1)
+
+subset(combfin, is.na(n_treat_years) == TRUE)
+
+
+
+
+
 
 write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-05-01.csv")
