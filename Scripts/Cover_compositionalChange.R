@@ -15,7 +15,7 @@ theme_set(theme_bw(20))
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 setwd("E:\\Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-05-01.csv") %>% 
+dat<-read.csv("cover_ppt_2023-05-05.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
 #dropping sites with less than 5 species in the controls
@@ -223,7 +223,7 @@ dat2<-dat %>%
 
 #having problems with cdpt_drt.us and eea.br and lygraint.no, they only have year 0 data. dropping this. not sure why
 dat3<-dat2 %>% 
-  filter(site_code!="cdpt_drt.us"&site_code!="eea.br"&site_code!="lygraint.no")
+  filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
 
 sc<-unique(dat3$site_code)
 
@@ -283,91 +283,114 @@ bp_change<-dat3 %>%
     mutate(bp=max/sum) %>% 
     filter(n_treat_years!=0) %>%
     left_join(bp_yr0) %>% 
-    mutate(bpchange=bp-bp0) %>% 
-    group_by(year, trt, site_code) %>% 
-    summarize(bpchange=mean(bpchange))
+    mutate(value=bp-bp0) %>% 
+    mutate(measure="Dominance") %>% 
+  select(-sum, -max,-bp, -bp0)
 
 ##looking at data a bit
 years<-deltamult %>% 
   select(site_code, year, n_treat_years) %>% 
   unique()
 
+#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. postive values means drought had higher values than contorl
 RRMult<-deltamult %>% 
   pivot_longer(names_to="measure", values_to = "value", composition_change:dispersion_change) %>%
   pivot_wider(names_from = "trt", values_from = "value") %>% 
-  mutate(RR=(Drought-Control)/Control) %>% 
-  select(-Drought, -Control, -n_treat_years)
+  mutate(RR=(Drought-Control)) %>% 
+  select(-Drought, -Control, n_treat_years)
 
-chgRaclong<-deltaracs %>% 
+RRRac<-deltaracs %>% 
   pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
-  bind_rows(bochange)
+  bind_rows(bp_change) %>% 
+  group_by(site_code, year, n_treat_years, trt, measure) %>% 
+  summarise(value=mean(value)) %>% 
+  pivot_wider(names_from = "trt", values_from = "value") %>% 
+  mutate(RR=(Drought-Control)) %>% 
+  select(-Drought, -Control, n_treat_years)
 
-chgRacMeans<-chgRaclong%>% 
-  group_by(site_code, year, trt, measure) %>% 
-  summarize(mean=mean(abs(value))) %>% 
-  pivot_wider(names_from="trt", values_from = "mean")
-
-ChgCntlSD<-chgRaclong %>% 
-  filter(trt=="Control") %>% 
-  group_by(site_code, year, measure) %>% 
-  summarize(cntSD=sd(value))
-
-GlassD<-chgRacMeans %>% 
-  left_join(ChgCntlSD) %>% 
-  mutate(RR=(Drought-Control)/cntSD) %>% 
-  filter(RR!=Inf&RR!=-Inf) %>% 
-  select(-Drought, -Control) %>% 
+RRall<-RRRac%>% 
   bind_rows(RRMult) %>% 
   left_join(drt) %>% 
   filter(n_treat_years<4)
 
+# chgRacMeans<-chgRaclong%>% 
+#   group_by(site_code, year, trt, measure) %>% 
+#   summarize(mean=mean(abs(value))) %>% 
+#   pivot_wider(names_from="trt", values_from = "mean")
 
-ggplot(data = subset(GlassD, -20<RR&RR<20), aes(x=measure, y=RR))+
+# ChgCntlSD<-chgRaclong %>% 
+#   filter(trt=="Control") %>% 
+#   group_by(site_code, year, measure) %>% 
+#   summarize(cntSD=sd(value))
+
+
+#boxplot
+ggplot(data = subset(RRall, measure!="dispersion_change"), aes(x=measure, y=RR))+
   geom_boxplot(aes(group=measure))+
-  scale_x_discrete(limits=c("richness_change", "evenness_change", "dominance", 'rank_change', 'gains', 'losses', 'composition_change', 'dispersion_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition", "Dispersion"))+
+  scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
   geom_hline(yintercept = 0)+
-  annotate("text", x=2, y=10, label="*", size=8, color="red")+
-  annotate("text", x=5, y=12, label="*", size=8, color="red")+
-  annotate("text", x=6, y=16, label="*", size=8,color="red")+
-  annotate("text", x=7, y=8, label="*", size=8,color="red")+
+  annotate("text", x=1, y=.5, label="*", size=8, color="red")+
+  annotate("text", x=5, y=.6, label="*", size=8, color="red")+
+  annotate("text", x=6, y=.5, label="*", size=8,color="red")+
+  annotate("text", x=7, y=.5, label="*", size=8,color="red")+
   xlab("Measure of Community Change")+
-  ylab("Glass's D")
+  ylab("Drought-Control Difference")
+
+meanglassD<-RRall %>% 
+  na.omit() %>% 
+  group_by(measure) %>% 
+  summarize(mean=mean(RR), n=length(RR), sd=sd(RR)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96)
   
+
+ggplot(data = subset(meanglassD, measure!="dispersion_change"), aes(x=measure, y=mean))+
+  geom_point()+
+  scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
+  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI))+
+  geom_hline(yintercept = 0)+
+  annotate("text", x=1, y=.07, label="*", size=8, color="red")+
+  annotate("text", x=5, y=.07, label="*", size=8, color="red")+
+  annotate("text", x=6, y=.07, label="*", size=8,color="red")+
+  annotate("text", x=7, y=.07, label="*", size=8,color="red")+
+  xlab("Measure of Community Change")+
+  ylab("Control-Treatment Differences")
+
 
 
 # doing stats on change ---------------------------------------------------
 
 ##1) Are there differences from zero?
 
-rich<-GlassD %>% 
+rich<-RRall %>% 
   filter(measure=="richness_change")
 t.test(rich$RR, mu=0, alternative = "two.sided")
 #this is NOT sig.
-even<-GlassD %>% 
+even<-RRall %>% 
   filter(measure=="evenness_change")
 t.test(even$RR, mu=0, alternative = "two.sided")
 #this is sig.
-dom<-GlassD %>% 
-  filter(measure=="dominance")
+dom<-RRall %>% 
+  filter(measure=="Dominance")
 t.test(dom$RR, mu=0, alternative = "two.sided")
-#this is not sig.
-rank<-GlassD %>% 
+#this is sig.
+rank<-RRall %>% 
   filter(measure=="rank_change")
 t.test(rank$RR, mu=0, alternative = "two.sided")
 #this is NOT sig.
-gain<-GlassD %>% 
+gain<-RRall %>% 
   filter(measure=="gains")
 t.test(gain$RR, mu=0, alternative = "two.sided")
 #this is sig.
-loss<-GlassD %>% 
+loss<-RRall %>% 
   filter(measure=="losses")
 t.test(loss$RR, mu=0, alternative = "two.sided")
 #this is sig.
-comp<-GlassD %>% 
+comp<-RRall %>% 
   filter(measure=="composition_change")
 t.test(comp$RR, mu=0, alternative = "two.sided")
 #this is sig.
-disp<-GlassD %>% 
+#I think i should drop dispersion
+disp<-RRall %>% 
   filter(measure=="dispersion_change")
 t.test(disp$RR, mu=0, alternative = "two.sided")
 #this is NOT sig.
@@ -383,16 +406,18 @@ summary(meven)
 #no effect of year
 mdom<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=dom)
 summary(mdom)
-#Sig effect of year
-ggplot(data=dom, aes(x=n_treat_years, y=RR))+
-  geom_point()+
-  geom_smooth(method = "lm", color="black")+
-  ylab("Dominance Glass's D")+
-  xlab("Year of Drought")
+#no effect year
 
 mrank<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=rank)
 summary(mrank)
-#no effect of year
+
+ggplot(data=rank, aes(x=n_treat_years, y=RR))+
+  geom_point()+
+  geom_smooth(method = "lm", color="black")+
+  ylab("Rank Drought\nControl Difference")+
+  xlab("Year of Drought")
+#sig effect of year - but so minor
+
 mgain<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=gain)
 summary(mgain)
 #no effect of year
@@ -401,66 +426,62 @@ summary(mloss)
 #no effect of year
 mcomp<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=comp)
 summary(mcomp)
-#no effect of year
-mdisp<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=disp)
-summary(mdisp)
-#no effect of year
+# #no effect of year
+# mdisp<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=disp)
+# summary(mdisp)
+# #no effect of year
 
 
 
-RR2<-GlassD %>% 
+RR2<-RRall %>% 
   left_join(site_types) %>% 
-  left_join(continent) 
+  left_join(continent) %>% 
+  na.omit() %>% 
+  mutate(MAP=(as.numeric(map)/1000),
+         PAnn=(as.numeric(PctAnnual)/100),
+         PGras=(as.numeric(PctGrass)/100))
 
-
-
+str(RR2)
 
 ###looking at local and regional drivers
-mrich<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="richness_change"))
+mrich<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
 summary(mrich)
-#effect of percent annual
+#nothing
 
-ggplot(data=subset(RR2, measure=="richness_change"), aes(x=PctAnnual, y=RR))+
-  geom_point()+
-  ylab("Richness Glass's D")+
-  geom_smooth(method="lm", color="black")
-
-
-meven<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="evenness_change"))
+meven<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="evenness_change"))
 summary(meven)
 #no effect of anything
-mrank<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="rank_change"))
+
+mrank<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="rank_change"))
 summary(mrank)
 #nothing
-mgain<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="gains"))
+
+mgain<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="gains"))
 summary(mgain)
-#what does sig intercept mean? mild relationship with MAP
+#nothing
 
-ggplot(data=subset(RR2, measure=="gains"), aes(x=map, y=RR))+
-  geom_point()+
-  ylab("Gains Glass's D")+
-  xlab("MAP")+
-  geom_smooth(method = "lm", color="black")
-
-mloss<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="losses"))
+mloss<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="losses"))
 summary(mloss)
-#nothing is significant
-mcomp<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="composition_change"))
+#sig effect map
+
+ggplot(data=subset(RR2, measure="losses"), aes(x=MAP*1000, y=RR))+
+  geom_point()+
+  geom_smooth(method="lm", color="black")+
+  ylab("Losses Drought\nControl Differences")+
+  xlab("MAP")
+
+mcomp<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="composition_change"))
 summary(mcomp)
-#percent annaul mild manner
-ggplot(data=subset(RR2, measure=="composition_change"), aes(x=PctAnnual, y=RR))+
-  geom_point()+
-  geom_smooth(method="lm", color="black")+
-  ylab("Composition Response")
+#noting
+# 
+# mdisp<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="dispersion_change"))
+# summary(mdisp)
+# #big effect percent grass
 
-mdisp<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="dispersion_change"))
-summary(mdisp)
-#big effect percent grass
-
-ggplot(data=subset(RR2, measure=="dispersion_change"), aes(x=PctGrass, y=RR))+
-  geom_point()+
-  geom_smooth(method="lm", color="black")+
-  ylab("Dispersion Response")
+# ggplot(data=subset(RR2, measure=="dispersion_change"), aes(x=PctGrass, y=RR))+
+#   geom_point()+
+#   geom_smooth(method="lm", color="black")+
+#   ylab("Dispersion Response")
 
 ###pairs
 allwide<-GlassD %>% 
