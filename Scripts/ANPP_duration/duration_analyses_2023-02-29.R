@@ -436,10 +436,51 @@ summary(mod)
 
 
 
+############################remake the response by year plot but try to use max data
+
+data.anpp.max <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
+  subset(trt == "Drought")%>%
+  #subset(n_years>=4) #Does long-term control average include at least 4 years?
+  ddply(.(site_code, trt, n_treat_years, mean.mass), function(x)data.frame(
+    mass = mean(x$mass)
+  ))
+  
+  
+length(unique(data.anpp.max$site_code)) #108
+
+
+##Create anpp_response and drought severity metrics
+data.anpp.max$anpp_response <- log(data.anpp.max$mass/data.anpp.max$mean.mass)
+
+
+max.anpp.year <- data.anpp.max%>%
+  ddply(.(n_treat_years),
+        function(x)data.frame(
+          anpp_response = mean(x$anpp_response),
+          anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)),
+          n = length(x$site_code)
+        ))
 
 
 
+max.anpp.year%>%
+  subset(n_treat_years >= 1 & n_treat_years <=4)%>%
+ggplot(aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se))+
+  ylim(-.75, 0)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  xlab("Treatment year")+
+  ylab("log(Treatment ANPP / Control ANPP)")+
+  coord_flip()+
+  theme_base()
 
+
+mod <- lme(anpp_response~as.factor(n_treat_years), random = ~1|site_code, data = subset(data.anpp.max,n_treat_years >= 1 & n_treat_years <=4))
+summary(mod)
+
+mod <- lm(anpp_response~as.factor(n_treat_years), data = subset(data.anpp.max,n_treat_years >= 1 & n_treat_years <=4))
+summary(mod)
 
 
 temp <- subset(data.anpp1, n_treat_days >1209 & n_treat_days < 1574)#1574
