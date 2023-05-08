@@ -39,7 +39,7 @@ vignettes/*.pdf
 .Renviron
 
 # Add R project file to gitignore
-*.Rproj
+# *.Rproj
 
 # Add any folders we don't want Git tracking
 Data
