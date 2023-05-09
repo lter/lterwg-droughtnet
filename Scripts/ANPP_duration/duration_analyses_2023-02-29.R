@@ -111,6 +111,7 @@ data.anpp.summary <- data.anpp2%>%
           anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)),
           n_treat_days = mean(x$n_treat_days)
         ))%>%
+  #subset(n_treat_years == 0 | n_treat_years == 1 | n_treat_years == 2 | n_treat_years == 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
   subset(n_treat_years >= 1 & n_treat_years<= 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
 
 
@@ -416,9 +417,9 @@ temp.df <- data.anpp.summary1%>%
 temp.df$n_treat_years <- as.factor(temp.df$n_treat_years)
 mod <- lme(anpp_response~n_treat_days, random = ~1|site_code, data = temp.df)
 summary(mod)
-mod <- lme(anpp_response~n_treat_years, random = ~1|site_code, data = temp.df)
+mod <- lme(anpp_response~as.numeric(n_treat_years), random = ~1|site_code, data = temp.df)
 summary(mod)
-ggplot(temp.df, aes(n_treat_days, anpp_response))+
+ggplot(temp.df, aes(n_treat_years, anpp_response))+
   geom_point()+
   geom_smooth(method = "lm")+
   theme_base()
