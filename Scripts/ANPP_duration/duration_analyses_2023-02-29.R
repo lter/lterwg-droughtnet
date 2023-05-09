@@ -165,11 +165,10 @@ ggplot(aes(drtsev.1, anpp_response, color = y2))+
   geom_smooth(method = "lm", se = FALSE)+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
-  xlab("Drought severity")+
+  xlab("Drought severity (percent reduction of MAP)")+
   ylab("log(Treatment ANPP / Avg ANPP)")+
-  scale_color_manual(values = c("firebrick2", "dodgerblue" ))+
+  scale_color_manual("Previous year condition", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
-
 
 
 ##MAP interactions with current year and precious year precipitation
@@ -213,9 +212,17 @@ tempdf%>%
 ggplot(aes(interaction()))
 
 ####drought severity figure by year
+# change facet labels
+new_labs <- as_labeller(
+  c(`1` = "Year 1",
+    `2` = "Year 2",
+    `3` = "Year 3"))
+
+
+
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   ggplot( aes(drtsev.1, anpp_response))+
-  facet_wrap(~n_treat_years)+
+  facet_wrap(~n_treat_years, labeller = new_labs)+
   geom_point(alpha = 0.8,pch = 21,size=3)+
   geom_smooth(method = "lm")+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -322,11 +329,11 @@ data.anpp.summary%>%
   subset( n_treat_years == 3)%>%
   dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
   ggplot(  aes(site_code, anpp_response))+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se, fill = cut(drtsev.1, 6)))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error, fill = cut(drtsev.1, 6)))+
   scale_fill_brewer(palette = "Reds", direction = -1
                     , drop = FALSE)+
   geom_hline(yintercept = 0,linetype="dashed")+
-  ylim(c(-6,1.5))+ #this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
+  ylim(c(-6,4))+ #this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
   ylab("log(Treatment ANPP / Avg ANPP)")+
   xlab("")+
   coord_flip()+
@@ -396,9 +403,10 @@ data.anpp.year <- data.anpp.summary1%>%
 ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
   #facet_wrap(~history)+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se),position=position_dodge(width=.25))+
-  geom_violin(data = subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
+  #geom_violin(data = subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+ #the full data have a much larger y axis range than when plotting just the eman and standard error
   #  ylim(-1, 0)+
   geom_hline(yintercept = 0,linetype = "dashed")+
+  ylim(-1.3,.1)+
   xlab("Treatment year")+
   ylab("log(Treatment ANPP / Avg ANPP)")+
   theme_base()
@@ -417,12 +425,16 @@ temp.df <- data.anpp.summary1%>%
 temp.df$n_treat_years <- as.factor(temp.df$n_treat_years)
 mod <- lme(anpp_response~n_treat_days, random = ~1|site_code, data = temp.df)
 summary(mod)
-mod <- lme(anpp_response~as.numeric(n_treat_years), random = ~1|site_code, data = temp.df)
+mod <- lme(anpp_response~as.factor(n_treat_years), random = ~1|site_code, data = temp.df)
 summary(mod)
-ggplot(temp.df, aes(n_treat_years, anpp_response))+
+mod <- lm(anpp_response~as.factor(n_treat_years), data = temp.df)
+summary(mod)
+ggplot(temp.df, aes(as.numeric(n_treat_years), anpp_response, color = site_code))+
   geom_point()+
-  geom_smooth(method = "lm")+
+  #geom_line()+
+  geom_smooth(method = "loess", se = FALSE)+
   theme_base()
+
 length(unique(temp.df$site_code))
 
 
