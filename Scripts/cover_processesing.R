@@ -256,7 +256,7 @@ cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", 
 
 
 
-write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-05-10.csv")
+#write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-05-10.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))
