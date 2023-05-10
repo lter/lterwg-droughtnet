@@ -1,7 +1,7 @@
 library(tidyverse)
 
-dat <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-05-01.csv")%>%
-  select(Family, Taxon, ps_path)%>%
+dat <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-05-10.csv")%>%
+  dplyr::select(Family, Taxon, ps_path)%>%
   unique()
 
 

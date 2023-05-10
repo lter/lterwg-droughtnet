@@ -118,7 +118,7 @@ data.all[data.all$site_code == "ukulingadrt.za" & data.all$year == "2021" & data
 anpp_ppt.end <- data.all%>%
           left_join( IDE_treatment_years, by = c("site_code", "year"))%>%
   subset(trt == "Control"| trt == "Drought" )%>%
-  merge(site_map)
+  left_join(site_map, by = "site_code")
          #| trt == "Control_Infrastructure")
 
 

@@ -8,7 +8,7 @@ IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_tr
 cover_survey <- read.csv("C:/Users/ohler/Dropbox/IDE_data_May 2018/IDE Site Info/cover_survey_results.csv")
 
 #read in cover data
-full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-05-01.csv")%>%
+full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-05-10.csv")%>%
               subset(live == 1)
 full_cover$trt <- plyr::revalue(full_cover$trt, c("Control_Infrastructure"="Control"))
 
@@ -211,7 +211,7 @@ full_ppt <- merge(ppt.1, ppt.2, by = c("site_code", "year", "trt"), all.x = TRUE
  unique()
 
 
-cover_ppt <- merge(comb, full_ppt, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
+cover_ppt <- left_join(comb, full_ppt, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
  subset(live == 1)
 
 
@@ -252,12 +252,12 @@ cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", "year"))%>%
                     subset(trt == "Control"| trt == "Drought")%>%
                   left_join(cover_survey, by = "site_code")%>%
-                  merge(site_map)%>%
+                  left_join(site_map, by = "site_code")%>%
                   subset(habitat.type=="Grassland"|habitat.type=="Shrubland")
 
 
 
-write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-05-05.csv")
+write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-05-10.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))

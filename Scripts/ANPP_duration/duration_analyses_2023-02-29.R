@@ -162,13 +162,28 @@ data.anpp.summary%>%
   subset(n_treat_years == 3 & y2 != "NA")%>%
 ggplot(aes(drtsev.1, anpp_response, color = y2))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
+  #geom_point(data=subset(data.anpp.summary1, history != "extreme.extreme.extreme"), color = "black", alpha = 0.8,pch = 21,size=3)+
+  #geom_point(data=subset(data.anpp.summary1, history == "extreme.extreme.extreme"), color = "purple", alpha = 0.8,pch = 16,size=3)+
   geom_smooth(method = "lm", se = FALSE)+
-  geom_hline(yintercept = 0)+
-  geom_vline(xintercept = 0)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("log(Treatment ANPP / Avg ANPP)")+
   scale_color_manual("Previous year condition", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 7.5,
+  height = 5,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 ##MAP interactions with current year and precious year precipitation
@@ -223,15 +238,28 @@ new_labs <- as_labeller(
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   ggplot( aes(drtsev.1, anpp_response))+
   facet_wrap(~n_treat_years, labeller = new_labs)+
-  geom_point(alpha = 0.8,pch = 21,size=3)+
-  geom_smooth(method = "lm")+
+  #geom_point(alpha = 0.8,pch = 21,size=3)+
+  geom_point(data=subset(data.anpp.summary1, history != "extreme.extreme.extreme"), color = "black", alpha = 0.8,pch = 21,size=3)+
+  geom_point(data=subset(data.anpp.summary1, history == "extreme.extreme.extreme"), color = "purple", alpha = 0.8,pch = 16,size=3)+
+    geom_smooth(method = "lm", color = "black")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  xlab("Drought severity")+
+  xlab("Drought severity (percent reduction of MAP)")+
   ylab("log(Treatment ANPP / Avg ANPP)")+
-  theme_bw()
+  theme_base()
 
-
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 8,
+  height = 4,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==1))
@@ -271,7 +299,8 @@ summary(mod2)#R-squared 0.25
 slopey3 <- coef(mod)[[2]]
 se3 <- summary(mod)$coefficients[2,2]
 ggplot(subset(data.anpp.summary,n_treat_years ==3), aes(drtsev.1, anpp_response))+
-  geom_point()+
+  #geom_point()+
+
   geom_smooth(method = "lm", formula = y~poly(x,3))+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
@@ -295,12 +324,30 @@ data.frame(n_treat_years = c(1, 2, 3), slope = c(slopey1, slopey2, slopey3))%>%
   xlab("Treatment year")+
   theme_base()
 
+
+
+
 data.frame(n_treat_years = c("1", "2", "3"), slope = c(slopey1, slopey2, slopey3), se = c(se1, se2, se3))%>%
   ggplot(aes(n_treat_years, slope))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_pointrange(aes(ymin = slope-se, ymax = slope+se))+
   xlab("Treatment year")+
   theme_base()
+
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_inset.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 3,
+  height = 3,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
   
 mod <- lmer(anpp_response~drtsev.1*as.factor(n_treat_years)+ (1|site_code), data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3))
 summary(mod)
@@ -359,6 +406,19 @@ ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
   coord_flip()+
   theme_base()
 
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 4,
+  height = 4,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
 
 
 mod <- lme(anpp_response~as.factor(n_treat_years), random = ~1|site_code, data = data.anpp.summary,)
@@ -402,7 +462,7 @@ data.anpp.year <- data.anpp.summary1%>%
 
 ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
   #facet_wrap(~history)+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se),position=position_dodge(width=.25))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se),position=position_dodge(width=.25), color = "purple")+
   #geom_violin(data = subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+ #the full data have a much larger y axis range than when plotting just the eman and standard error
   #  ylim(-1, 0)+
   geom_hline(yintercept = 0,linetype = "dashed")+
@@ -410,6 +470,20 @@ ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.fact
   xlab("Treatment year")+
   ylab("log(Treatment ANPP / Avg ANPP)")+
   theme_base()
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig4.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 4,
+  height = 4,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
 
 temp.df <- data.anpp.summary1%>%
   subset( history == "extreme.extreme.extreme")
