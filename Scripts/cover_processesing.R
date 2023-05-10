@@ -18,7 +18,7 @@ site_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Distur
 
 full_cover_v2 <- full_cover %>%
   # pivot longer to check duplicate values
- pivot_longer(cols = c(local_provenance, local_lifeform, local_lifespan, functional_group, N_fixer, ps_path), 
+ pivot_longer(cols = c(local_provenance, local_lifeform, local_lifespan, functional_group, N.fixer, ps_path), 
         names_to = "traits", values_to = "trait_values") %>%
   # consolidating trait values into fewer categories
   dplyr::mutate(trait_values = case_when(
@@ -52,8 +52,7 @@ full_cover_v2 <- full_cover %>%
     TRUE ~ trait_values)) %>%
   # dropping duplicates
   unique() %>%
-  group_by(site_name, site_code, block, plot, subplot, year, first_treatment_year, first_treatment_date, cover_date, n_treat_days,
-          n_treat_years, trt, Family, Taxon, live, max_cover, traits) %>%
+  group_by( site_code, block, plot, subplot, year,  first_treatment_date, cover_date, n_treat_days, trt, Family, Taxon, live, max_cover, traits) %>%
   # counting how many different trait_values there are 
   dplyr::mutate(obs_count = n()) %>%
   ungroup() %>%
@@ -79,17 +78,17 @@ full_cover_v2 <- full_cover %>%
   # put it back to wide format
   pivot_wider(names_from = "traits", values_from = "trait_values") %>%
   # reorder columns
-  dplyr::select(site_name, site_code, block, plot, subplot,              
-        year, first_treatment_year, first_treatment_date, cover_date, n_treat_days,         
-         n_treat_years, trt, Family, Taxon, live,           
+  dplyr::select(site_code, block, plot, subplot,              
+        year, first_treatment_date, cover_date, n_treat_days,         
+          trt, Family, Taxon, live,           
          local_provenance, local_lifeform, local_lifespan, functional_group,     
-         N_fixer, ps_path, max_cover)
+         N.fixer, ps_path, max_cover)
 
 # check to see it looks ok
 glimpse(full_cover_v2)
 
 full_cover_v2 <- full_cover_v2%>%
-  ddply(.(site_code, year, trt, site_name, block, plot, subplot, first_treatment_year, first_treatment_date, Family, Taxon, live, local_provenance, local_lifeform, local_lifespan, functional_group, N_fixer, ps_path), function(x)data.frame(
+  ddply(.(site_code, year, trt,  block, plot, subplot, first_treatment_date, Family, Taxon, live, local_provenance, local_lifeform, local_lifespan, functional_group, N.fixer, ps_path), function(x)data.frame(
     #this is where to enter the max cover date, but it would require a lubridate function first to convert character to date            cover_date = 
     n_treat_days = max(x$n_treat_days),
     max_cover = max(x$max_cover)
@@ -142,14 +141,14 @@ length(subset(comb, functional_group == "NULL")$functional_group) #cut down on ~
 
 
 ######N FIXER
-unique(comb$N_fixer)
-length(subset(comb, N_fixer == "NULL")$N_fixer) #22618 NULLS
+unique(comb$N.fixer)
+length(subset(comb, N.fixer == "NULL")$N.fixer) #22618 NULLS
 
-comb$N_fixer <- ifelse(comb$N_fixer != "NULL", comb$N_fixer,
+comb$N.fixer <- ifelse(comb$N.fixer != "NULL", comb$N.fixer,
                 ifelse(comb$Family == "Fabaceae", "1",
                                "0"))
 
-length(subset(comb, N_fixer == "NULL")$N_fixer) #0 NULLS
+length(subset(comb, N.fixer == "NULL")$N.fixer) #0 NULLS
 
 
 comb <- dplyr::select(comb, -c("functional_group_nutnet", "ps_path_nutnet"))
@@ -203,11 +202,11 @@ ppt.4 <- ddply(ppt.4, c("site_code", "year", "trt"),
         ))
 
 #merge all the precip-lag years
-full_ppt <- merge(ppt.1, ppt.2, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
+full_ppt <- left_join(ppt.1, ppt.2, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
  unique()%>%
- merge(ppt.3, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
+ left_join(ppt.3, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
  unique()%>%
- merge(ppt.4, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
+ left_join(ppt.4, by = c("site_code", "year", "trt"), all.x = TRUE)%>%
  unique()
 
 
