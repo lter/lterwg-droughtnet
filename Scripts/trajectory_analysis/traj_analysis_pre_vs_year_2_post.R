@@ -29,7 +29,7 @@ trt_legend_list <- list()
 stats_list <- list()
 
 # Read in our data
-comp_raw <- read.csv(file.path("~/Dropbox/IDE/data_processed/cover_ppt_2023-05-05.csv"))
+comp_raw <- read.csv(file.path("~", "Dropbox", "IDE", "data_processed", "cover_ppt_2023-05-05.csv"))
 
 # Filter our data to 1 pre-treatment year
 comp_pre_treatment <- comp_raw %>%
@@ -45,7 +45,7 @@ comp_pre_treatment <- comp_raw %>%
   # Ungroup
   dplyr::ungroup()
 
-# Filter our data to year 1 post-treatment
+# Filter our data to year 2 post-treatment
 comp_year_2 <- comp_raw %>%
   dplyr::mutate(trt = dplyr::case_when(
     trt == "Control_Infrastructure" ~ "Control",
@@ -164,27 +164,29 @@ for (a_site in setdiff(x = names(fit_list), y = "ukulingadrt.za")){
   stats_list[[a_site]] <- site_stats
 }
 
-# Using stat_extract() on ukulingadrt.za gives an error so I will extract its magnitude distance statistics manually
-traj_summary_md <- tibble::as_tibble(as.list(summary(fit_list[["ukulingadrt.za"]], attribute = "MD")$x$PD$obs)) %>%
-  # Now bring in remaining summary values
-  cbind(summary(fit_list[["ukulingadrt.za"]], attribute = "MD")$summary.table) %>%
-  # Make a column identifying which metric this is
-  dplyr::mutate(metric = "distance") %>%
-  # Rename some of these columns
-  dplyr::rename(diff = d,
-                UCL_95perc = `UCL (95%)`,
-                Z_Score = Z,
-                P_Value = `Pr > d`) %>%
-  dplyr::mutate(significance = dplyr::case_when(
-    P_Value >= 0.05 ~ paste0(metric, "-NS"),
-    is.na(P_Value) ~ paste0(metric, "-NULL"),
-    TRUE ~ paste0(metric, "-sig")),
-    .before = dplyr::everything())
-
-rownames(traj_summary_md) <- NULL
-
-# Put the ukulingadrt.za magnitude distance statistics back into our list
-stats_list[["ukulingadrt.za"]] <- traj_summary_md
+for (a_bad_site in c("ukulingadrt.za")){
+  # Using stat_extract() on ukulingadrt.za gives an error so I will extract its magnitude distance statistics manually
+  traj_summary_md <- tibble::as_tibble(as.list(summary(fit_list[[a_bad_site]], attribute = "MD")$x$PD$obs)) %>%
+    # Now bring in remaining summary values
+    cbind(summary(fit_list[[a_bad_site]], attribute = "MD")$summary.table) %>%
+    # Make a column identifying which metric this is
+    dplyr::mutate(metric = "distance") %>%
+    # Rename some of these columns
+    dplyr::rename(diff = d,
+                  UCL_95perc = `UCL (95%)`,
+                  Z_Score = Z,
+                  P_Value = `Pr > d`) %>%
+    dplyr::mutate(significance = dplyr::case_when(
+      P_Value >= 0.05 ~ paste0(metric, "-NS"),
+      is.na(P_Value) ~ paste0(metric, "-NULL"),
+      TRUE ~ paste0(metric, "-sig")),
+      .before = dplyr::everything())
+  
+  rownames(traj_summary_md) <- NULL
+  
+  # Put the ukulingadrt.za magnitude distance statistics back into our list
+  stats_list[[a_bad_site]] <- traj_summary_md
+}
 
 # Flatten the statistics for each site into one master dataframe
 traj_df <- stats_list %>%
