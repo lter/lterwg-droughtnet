@@ -157,6 +157,24 @@ history.df <- data.anpp.summary%>%
   pivot_wider(names_from = n_treat_years, values_from = e.n)%>%
   dplyr::rename(y1 = "1", y2 = "2", y3 = '3')
 
+
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3 & y2 != "NA")%>%
+  ggplot(aes(drtsev.1, anpp_response, color =y3))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  #geom_point(data=subset(data.anpp.summary1, history != "extreme.extreme.extreme"), color = "black", alpha = 0.8,pch = 21,size=3)+
+  #geom_point(data=subset(data.anpp.summary1, history == "extreme.extreme.extreme"), color = "purple", alpha = 0.8,pch = 16,size=3)+
+  geom_smooth(method = "lm", se = FALSE)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  ylab("log(Treatment ANPP / Avg ANPP)")+
+  scale_color_manual("Current year condition", values = c("firebrick2", "dodgerblue" ))+
+  theme_base()
+
+
+
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 3 & y2 != "NA")%>%
