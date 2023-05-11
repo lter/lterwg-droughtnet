@@ -92,6 +92,7 @@ length(unique(data.anpp2$site_code)) #68
 
 ##Create anpp_response and drought severity metrics
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
+data.anpp2$percent.reduction <- 100 * ((data.anpp2$mass/data.anpp2$mean.mass)-1)
 data.anpp2$drtsev.1 <- -((data.anpp2$ppt.1-data.anpp2$map)/data.anpp2$map)
 data.anpp2$drtsev.2 <- -((data.anpp2$ppt.2-data.anpp2$map)/data.anpp2$map)
 data.anpp2$drtsev.3 <- -((data.anpp2$ppt.3-data.anpp2$map)/data.anpp2$map)
@@ -109,6 +110,10 @@ data.anpp.summary <- data.anpp2%>%
           anpp_response = mean(x$anpp_response),
           anpp_response.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$habitat.type)-1),
           anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)),
+          
+          percent.reduction = mean(x$percent.reduction),
+          percent.reduction.error = qt(0.975, df=length(x$habitat.type)-1)*sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$habitat.type)-1),
+          percent.reduction.se = sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code)),
           n_treat_days = mean(x$n_treat_days)
         ))%>%
   #subset(n_treat_years == 0 | n_treat_years == 1 | n_treat_years == 2 | n_treat_years == 3) #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
@@ -173,6 +178,23 @@ data.anpp.summary%>%
   scale_color_manual("Current year condition", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
+
+
+
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3 & y2 != "NA")%>%
+  ggplot(aes(drtsev.1, percent.reduction, color = y2))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  #geom_point(data=subset(data.anpp.summary1, history != "extreme.extreme.extreme"), color = "black", alpha = 0.8,pch = 21,size=3)+
+  #geom_point(data=subset(data.anpp.summary1, history == "extreme.extreme.extreme"), color = "purple", alpha = 0.8,pch = 16,size=3)+
+  geom_smooth(method = "lm", se = FALSE)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  ylab("Percent reduction of ANPP")+
+  scale_color_manual("Previous year condition", values = c("firebrick2", "dodgerblue" ))+
+  theme_base()
 
 
 data.anpp.summary%>%
