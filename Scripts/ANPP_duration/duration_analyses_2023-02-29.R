@@ -192,7 +192,7 @@ data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
-  ylab("Percent reduction of ANPP")+
+  ylab("Percent of ANPP in treatment plots")+
   scale_color_manual("Previous year condition", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
