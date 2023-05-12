@@ -174,8 +174,9 @@ data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
-  ylab("log(Treatment ANPP / Avg ANPP)")+
-  scale_color_manual("Current year condition", values = c("firebrick2", "dodgerblue" ))+
+  ylab("ANPP response")+
+  ggtitle("Year 3")+
+  scale_color_manual("Year 3 extremity", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
 
@@ -202,14 +203,13 @@ data.anpp.summary%>%
   subset(n_treat_years == 3 & y2 != "NA")%>%
 ggplot(aes(drtsev.1, anpp_response, color = y2))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
-  #geom_point(data=subset(data.anpp.summary1, history != "extreme.extreme.extreme"), color = "black", alpha = 0.8,pch = 21,size=3)+
-  #geom_point(data=subset(data.anpp.summary1, history == "extreme.extreme.extreme"), color = "purple", alpha = 0.8,pch = 16,size=3)+
   geom_smooth(method = "lm", se = FALSE)+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
-  ylab("log(Treatment ANPP / Avg ANPP)")+
-  scale_color_manual("Previous year condition", values = c("firebrick2", "dodgerblue" ))+
+  ylab("ANPP response")+
+  ggtitle("Year 3")+
+  scale_color_manual("Year 2 extremity", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
 ggsave(
@@ -224,6 +224,76 @@ ggsave(
   dpi = 600,
   limitsize = TRUE
 )
+
+
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  ggplot(aes(map, anpp_response, color = as.factor(n_treat_years)))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(method = "lm", se = FALSE)+
+  xlab("MAP")+
+  ylab("ANPP response")+
+  theme_base()
+
+mod <- lme(anpp_response~map*as.factor(n_treat_years), random = ~1|site_code, data = data.anpp.summary)
+summary(mod)
+pairs(emtrends(mod, ~as.factor(n_treat_years), var="map"))
+
+
+data.anpp.summary%>%
+  left_join(sandsite, by = "site_code")%>%
+  ggplot(aes(sand_mean, anpp_response, color = as.factor(n_treat_years)))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(method = "lm", se = FALSE)+
+  xlab("Average sand content")+
+  ylab("ANPP response")+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(sandsite, by = "site_code")%>%
+  dplyr::select(anpp_response, sand_mean, n_treat_years, site_code)%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~sand_mean*as.factor(n_treat_years), random = ~1|site_code, data = tempdf)
+summary(mod)
+pairs(emtrends(mod, ~as.factor(n_treat_years), var="sand_mean"))
+
+
+data.anpp.summary%>%
+  left_join(ai, by = "site_code")%>%
+  ggplot(aes(AI, anpp_response, color = as.factor(n_treat_years)))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  xlim(0,2)+
+  geom_smooth(method = "lm", se = FALSE)+
+  xlab("Aridity index")+
+  ylab("ANPP response")+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(ai, by = "site_code")%>%
+  dplyr::select(anpp_response, AI, n_treat_years, site_code)%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~AI*as.factor(n_treat_years), random = ~1|site_code, data = tempdf)
+summary(mod)
+pairs(emtrends(mod, ~as.factor(n_treat_years), var="AI"))
+
+
+
+data.anpp.summary%>%
+  left_join(cv1, by = "site_code")%>%
+  ggplot(aes(cv_ppt_inter, anpp_response, color = as.factor(n_treat_years)))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(method = "lm", se = FALSE)+
+  xlab("Interannual precip CV")+
+  ylab("ANPP response")+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(cv1, by = "site_code")%>%
+  dplyr::select(anpp_response, cv_ppt_inter, n_treat_years, site_code)%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~cv_ppt_inter*as.factor(n_treat_years), random = ~1|site_code, data = tempdf)
+summary(mod)
+pairs(emtrends(mod, ~as.factor(n_treat_years), var="cv_ppt_inter"))
 
 
 ##MAP interactions with current year and precious year precipitation
@@ -285,7 +355,7 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
-  ylab("log(Treatment ANPP / Avg ANPP)")+
+  ylab("ANPP response")+
   theme_base()
 
 ggsave(
@@ -361,7 +431,7 @@ data.frame(n_treat_years = c(1, 2, 3), slope = c(slopey1, slopey2, slopey3))%>%
   geom_point( size = 5)+
   geom_line()+
  # ylim(-3,0)+
-  xlab("Treatment year")+
+  xlab("Years of drought")+
   theme_base()
 
 
@@ -371,7 +441,7 @@ data.frame(n_treat_years = c("1", "2", "3"), slope = c(slopey1, slopey2, slopey3
   ggplot(aes(n_treat_years, slope))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_pointrange(aes(ymin = slope-se, ymax = slope+se))+
-  xlab("Treatment year")+
+  xlab("Years of drought")+
   theme_base()
 
 
@@ -433,18 +503,67 @@ data.anpp.year <- data.anpp.summary%>%
         function(x)data.frame(
           anpp_response = mean(x$anpp_response),
           anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
-          anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code))
+          anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)),
+          percent.reduction = mean(x$percent.reduction),
+          percent.reduction.error = qt(0.975, df=length(x$site_code)-1)*sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          percent.reduction.se = sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code))
         ))
 
+ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), percent.reduction))+
+  geom_pointrange(aes(ymin = percent.reduction-percent.reduction.se, ymax = percent.reduction+percent.reduction.se))+
+#  ylim(-1.1, 0)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  xlab("Treatment year")+
+  ylab("Percent reduction")+
+  coord_flip()+
+  theme_base()
 
-ggplot(data.anpp.year, aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
+ggplot(data.anpp.year, aes(as.factor(n_treat_years), anpp_response))+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se))+
   ylim(-1.1, 0)+
   geom_hline(yintercept = 0,linetype="dashed")+
-  xlab("Treatment year")+
-  ylab("log(Treatment ANPP / Avg ANPP)")+
-  coord_flip()+
+  xlab("Years of drought")+
+  ylab("ANPP response")+
+  #coord_flip()+
   theme_base()
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 4,
+  height = 4,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
+
+data.anpp.year <- data.anpp.summary%>%
+  ddply(.(n_treat_years, e.n),
+        function(x)data.frame(
+          anpp_response = mean(x$anpp_response),
+          anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)),
+          percent.reduction = mean(x$percent.reduction),
+          percent.reduction.error = qt(0.975, df=length(x$site_code)-1)*sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          percent.reduction.se = sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code))
+        ))
+
+data.anpp.year%>%
+  subset(e.n != "NA")%>%
+ggplot(aes(as.factor(n_treat_years), anpp_response, color = e.n))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se))+
+  ylim(-1.2, 0.3)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  xlab("Years of drought")+
+  ylab("ANPP response")+
+  scale_color_manual("Extremity of drought", values = c("firebrick2", "dodgerblue" ))+
+  #coord_flip()+
+  theme_base()+
+  theme(axis.ticks.length=unit(-0.25, "cm"))
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
@@ -495,10 +614,38 @@ data.anpp.year <- data.anpp.summary1%>%
           anpp_response = mean(x$anpp_response),
           anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
           n = length(x$site_code),
-          anpp_response.se = sd(x$anpp_response)/sqrt(length(x$site_code))
+          anpp_response.se = sd(x$anpp_response)/sqrt(length(x$site_code)),
+          percent.reduction = mean(x$percent.reduction),
+          percent.reduction.error = qt(0.975, df=length(x$site_code)-1)*sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+          n = length(x$site_code),
+          percent.reduction.se = sd(x$percent.reduction)/sqrt(length(x$site_code))
         ))%>%
   subset(history != "NA")
 
+
+ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), percent.reduction))+
+  #facet_wrap(~history)+
+  geom_pointrange(aes(ymin = percent.reduction-percent.reduction.se, ymax = percent.reduction+percent.reduction.se),position=position_dodge(width=.25), color = "purple")+
+  #geom_violin(data = subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+ #the full data have a much larger y axis range than when plotting just the eman and standard error
+  #  ylim(-1, 0)+
+  geom_hline(yintercept = 0,linetype = "dashed")+
+#  ylim(-1.3,.1)+
+  xlab("Treatment year")+
+  ylab("Percent Reduction")+
+  theme_base()
+
+ggplot(subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
+  #facet_wrap(~history)+
+  geom_point(pch = 21, alpha = 0.9, size = 2)+
+  
+  #geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se),position=position_dodge(width=.25), color = "purple")+
+  #geom_violin(data = subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+ #the full data have a much larger y axis range than when plotting just the eman and standard error
+  #  ylim(-1, 0)+
+  geom_hline(yintercept = 0,linetype = "dashed")+
+#  ylim(-1.3,.1)+
+  xlab("Treatment year")+
+  ylab("log(Treatment ANPP / Avg ANPP)")+
+  theme_base()
 
 ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
   #facet_wrap(~history)+
@@ -507,8 +654,8 @@ ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.fact
   #  ylim(-1, 0)+
   geom_hline(yintercept = 0,linetype = "dashed")+
   ylim(-1.3,.1)+
-  xlab("Treatment year")+
-  ylab("log(Treatment ANPP / Avg ANPP)")+
+  xlab("Years of drought")+
+  ylab("ANPP response")+
   theme_base()
 
 ggsave(
