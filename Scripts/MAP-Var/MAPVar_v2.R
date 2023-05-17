@@ -23,7 +23,7 @@ reduced_npp <- merge(reduced_npp, temp, by = "site_code", all.x=TRUE)
 #only use plots that are not manipulated
 control_biomass_DN <- reduced_npp %>% 
   subset( n_treat_days < 30 | trt == "Control")%>%
-  subset(n.year > 3)%>%
+  subset(n.year > 1)%>%
   ddply( c("site_code", "year", "plot", "subplot"),
          function(x)data.frame(
            biomass = sum(x$mass)
@@ -74,7 +74,7 @@ control_biomass_NN <- full.biomass %>%
            biomass = mean(x$biomass),
            n.year = length(x$year)
          )) %>%
-  subset(n.year > 3)
+  subset(n.year > 1)
 
 control_biomass_NN$network <- "NutNet"
 
@@ -199,11 +199,11 @@ visreg(mod.resid)
 ############
 ###Multiple regressions I guess
 
-lmFull <- lm(biomass~(MAP+I(MAP^2)) * yearly_ppt_d * r_monthly_t_p
-             , data=dn_nn)
+lmFull <- lm(biomass~(MAP+I(MAP^2)) * MAT * yearly_ppt_d * r_monthly_t_p
+             , data=subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 
 
-lmNull <- lm(biomass~1,  data = dn_nn)
+lmNull <- lm(biomass~1,  data = subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 
 
 #Forward model selection
@@ -213,7 +213,7 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 winning.mod <- lm(biomass ~ MAP + I(MAP^2) + r_monthly_t_p + yearly_ppt_d + 
-                    MAP:r_monthly_t_p, data = dn_nn)
+                    MAP:r_monthly_t_p, data = subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 summary(winning.mod)
 
 
