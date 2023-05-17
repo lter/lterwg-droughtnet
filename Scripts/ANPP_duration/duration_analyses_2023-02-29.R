@@ -179,6 +179,11 @@ data.anpp.summary%>%
   scale_color_manual("Year 3 extremity", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
+tempdf <- data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3 & y2 != "NA")
+mod <- lm(anpp_response~drtsev.1*y3, data = tempdf)
+summary(mod)
 
 
 
@@ -485,16 +490,31 @@ ggplot(ordered.df,  aes(site_code, anpp_response))+
 data.anpp.summary%>%
   subset( n_treat_years == 3)%>%
   dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
-  ggplot(  aes(site_code, anpp_response))+
+  ggplot(  aes(site_code, anpp_response, color = e.n))+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error, fill = cut(drtsev.1, 6)))+
   scale_fill_brewer(palette = "Reds", direction = -1
                     , drop = FALSE)+
   geom_hline(yintercept = 0,linetype="dashed")+
   ylim(c(-6,4))+ #this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
-  ylab("log(Treatment ANPP / Avg ANPP)")+
+  ylab("ANPP response")+
   xlab("")+
+  scale_color_manual("Extremity of drought", values = c("firebrick2", "dodgerblue" ))+
   coord_flip()+
-  theme_bw()
+  theme_base()
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_sitches.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 6,
+  height = 10,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
 
 
 ##################################
@@ -571,8 +591,8 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 4,
-  height = 4,
+  width = 5,
+  height = 3,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
@@ -644,7 +664,7 @@ ggplot(subset(data.anpp.summary1, history == "extreme.extreme.extreme"), aes(as.
   geom_hline(yintercept = 0,linetype = "dashed")+
 #  ylim(-1.3,.1)+
   xlab("Treatment year")+
-  ylab("log(Treatment ANPP / Avg ANPP)")+
+  ylab("ANPP response")+
   theme_base()
 
 ggplot(subset(data.anpp.year, history == "extreme.extreme.extreme"), aes(as.factor(n_treat_years), anpp_response))+
@@ -745,7 +765,7 @@ ggplot(aes(fct_rev(as.factor(n_treat_years)), anpp_response))+
   ylim(-.75, 0)+
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Treatment year")+
-  ylab("log(Treatment ANPP / Control ANPP)")+
+  ylab("ANPP response")+
   coord_flip()+
   theme_base()
 
