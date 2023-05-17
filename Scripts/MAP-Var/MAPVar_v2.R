@@ -23,7 +23,7 @@ reduced_npp <- merge(reduced_npp, temp, by = "site_code", all.x=TRUE)
 #only use plots that are not manipulated
 control_biomass_DN <- reduced_npp %>% 
   subset( n_treat_days < 30 | trt == "Control")%>%
-  subset(n.year > 1)%>%
+  subset(n.year > 3)%>%
   ddply( c("site_code", "year", "plot", "subplot"),
          function(x)data.frame(
            biomass = sum(x$mass)
@@ -74,7 +74,7 @@ control_biomass_NN <- full.biomass %>%
            biomass = mean(x$biomass),
            n.year = length(x$year)
          )) %>%
-  subset(n.year > 1)
+  subset(n.year > 3)
 
 control_biomass_NN$network <- "NutNet"
 
@@ -107,6 +107,7 @@ summary(d)
 summary(map.d)
 summary(map.d.2)
 
+visreg(map)
 visreg2d(map.d.2, xvar = "MAP", "yearly_ppt_d", plot.type = "gg")+
     geom_point(data=dn_nn, aes(MAP, yearly_ppt_d))
 
@@ -199,7 +200,8 @@ visreg(mod.resid)
 ############
 ###Multiple regressions I guess
 
-lmFull <- lm(biomass~(MAP+I(MAP^2)) * MAT * yearly_ppt_d * r_monthly_t_p
+lmFull <- lm(biomass~(MAP+I(MAP^2))
+             * MAT * yearly_ppt_d * r_monthly_t_p
              , data=subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 
 
@@ -212,16 +214,11 @@ stepAIC(lmNull, scope = list(upper = lmFull,
         trace = F)
 
 
-winning.mod <- lm(biomass ~ MAP + I(MAP^2) + r_monthly_t_p + yearly_ppt_d + 
-                    MAP:r_monthly_t_p, data = subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
+winning.mod <- lm(biomass ~ MAP + r_monthly_t_p + MAT + MAP:r_monthly_t_p, data = subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 summary(winning.mod)
 
 
-library(remotes)
-remotes::install_github("mastoffel/partR2") 
-library(partR2)
-
-partR2(winning.mod, data = tempdf, partvars = c("MAP", "I(MAP^2)", "r_monthly_t_p", "yearly_ppt_d", "MAP:r_monthly_t_p"), R2_type = "marginal", nboot = 10)
-
 library(rsq)
-rsq.partial(winning.mod,objR=NULL,adj=FALSE,type=c("MAP", "I(MAP^2)", "r_monthly_t_p", "yearly_ppt_d", "MAP:r_monthly_t_p"))
+  rsq.partial(winning.mod,objR=NULL,adj=FALSE,type=c("MAP", "r_monthly_t_p", "MAT", "MAP:r_monthly_t_p"))
+
+            
