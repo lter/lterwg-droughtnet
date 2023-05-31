@@ -93,19 +93,36 @@ dn_nn%>%
 
 
 
+
+#exponential model?
+#visually estimate some starting parameter values
+#167
+
+#from this graph set approximate starting values
+a_start<-167 #param a is the y value when x=0
+b_start<-log(0.1)/(50*167) #b is the decay rate. k=log(A)/(A(intial)*t)
+
+#model
+m1<-nls(biomass~a*exp(-b*MAP),start=list(a=a_start,b=b_start), data = dn_nn)
+m1 #a = 184.4, b = -0.0006292
+
+
+
 #MAP models
 map <- lm(biomass~MAP, data=dn_nn)
 map.2 <- lm(biomass~MAP+I(MAP^2), data=dn_nn)
 d <- lm(biomass~yearly_ppt_d, data=dn_nn)
 map.d <- lm(biomass~MAP * yearly_ppt_d, data=dn_nn)
 map.d.2 <- lm(biomass~(MAP+I(MAP^2)) + yearly_ppt_d, data=dn_nn)
+map.exp <- lm(biomass~ I(184.4 * exp(-0.0006292*MAP)), data = dn_nn)
 
-AIC(map,map.2,d,map.d, map.d.2)
+AIC(map,map.2,d,map.d, map.d.2, map.exp)
 summary(map)
 summary(map.2)
 summary(d)
 summary(map.d)
 summary(map.d.2)
+summary(map.exp)
 
 visreg(map)
 visreg2d(map.d.2, xvar = "MAP", "yearly_ppt_d", plot.type = "gg")+
@@ -200,8 +217,7 @@ visreg(mod.resid)
 ############
 ###Multiple regressions I guess
 
-lmFull <- lm(biomass~(MAP+I(MAP^2))
-             * MAT * yearly_ppt_d * r_monthly_t_p
+lmFull <- lm(biomass~MAP+MAT + yearly_ppt_d + r_monthly_t_p
              , data=subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 
 
@@ -214,11 +230,11 @@ stepAIC(lmNull, scope = list(upper = lmFull,
         trace = F)
 
 
-winning.mod <- lm(biomass ~ MAP + r_monthly_t_p + MAT + MAP:r_monthly_t_p, data = subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
+winning.mod <- lm(biomass ~ MAP + r_monthly_t_p + MAT, data = subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 summary(winning.mod)
 
 
 library(rsq)
-  rsq.partial(winning.mod,objR=NULL,adj=FALSE,type=c("MAP", "r_monthly_t_p", "MAT", "MAP:r_monthly_t_p"))
+  rsq.partial(winning.mod,objR=NULL,adj=FALSE,type=c("MAP", "r_monthly_t_p", "MAT"))
 
             
