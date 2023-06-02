@@ -136,11 +136,11 @@ cv1<-cv%>%
 
 ##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4  #+ sand_mean + AI + cv_ppt_inter
-             , data=subset(data.anpp.summary, n_treat_years == 3 & drtsev.1 != "NA"))
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 #* drtsev.3 #* drtsev.4  #+ sand_mean + AI + cv_ppt_inter
+             , data=subset(data.anpp.summary, n_treat_years == 2 & drtsev.1 != "NA"))
 
 
-lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3& drtsev.1 != "NA"))
+lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 2& drtsev.1 != "NA"))
 
 
 #Forward model selection
@@ -150,9 +150,8 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 
-tempdf <-subset(data.anpp.summary, n_treat_years == 3)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
-                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3
+tempdf <-subset(data.anpp.summary, n_treat_years == 2)
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.1:drtsev.2
                   , data = tempdf)
 summary(winning.mod)
 
@@ -166,7 +165,7 @@ history.df <- data.anpp.summary%>%
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 3 & y2 != "NA")%>%
-  ggplot(aes(drtsev.1, anpp_response, color =y3))+
+  ggplot(aes(x=drtsev.1, y=anpp_response, color = y3))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
   #geom_point(data=subset(data.anpp.summary1, history != "extreme.extreme.extreme"), color = "black", alpha = 0.8,pch = 21,size=3)+
   #geom_point(data=subset(data.anpp.summary1, history == "extreme.extreme.extreme"), color = "purple", alpha = 0.8,pch = 16,size=3)+
@@ -178,6 +177,19 @@ data.anpp.summary%>%
   ggtitle("Year 3")+
   scale_color_manual("Year 3 extremity", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2_alt.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 9,
+  height = 7,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 tempdf <- data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
@@ -223,8 +235,8 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 7.5,
-  height = 5,
+  width = 9,
+  height = 7,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
