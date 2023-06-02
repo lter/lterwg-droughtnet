@@ -23,7 +23,7 @@ reduced_npp <- merge(reduced_npp, temp, by = "site_code", all.x=TRUE)
 #only use plots that are not manipulated
 control_biomass_DN <- reduced_npp %>% 
   subset( n_treat_days < 30 | trt == "Control")%>%
-  subset(n.year > 3)%>%
+  subset(n.year > 5)%>%
   ddply( c("site_code", "year", "plot", "subplot"),
          function(x)data.frame(
            biomass = sum(x$mass)
@@ -74,7 +74,7 @@ control_biomass_NN <- full.biomass %>%
            biomass = mean(x$biomass),
            n.year = length(x$year)
          )) %>%
-  subset(n.year > 3)
+  subset(n.year > 5)
 
 control_biomass_NN$network <- "NutNet"
 
@@ -104,7 +104,7 @@ b_start<-log(0.1)/(50*167) #b is the decay rate. k=log(A)/(A(intial)*t)
 
 #model
 m1<-nls(biomass~a*exp(-b*MAP),start=list(a=a_start,b=b_start), data = dn_nn)
-m1 #a = 184.4, b = -0.0006292
+m1 #a = 2.352e+02 4, b = -4.749e-0
 
 
 
@@ -114,9 +114,10 @@ map.2 <- lm(biomass~MAP+I(MAP^2), data=dn_nn)
 d <- lm(biomass~yearly_ppt_d, data=dn_nn)
 map.d <- lm(biomass~MAP * yearly_ppt_d, data=dn_nn)
 map.d.2 <- lm(biomass~(MAP+I(MAP^2)) + yearly_ppt_d, data=dn_nn)
-map.exp <- lm(biomass~ I(184.4 * exp(-0.0006292*MAP)), data = dn_nn)
+map.exp <- lm(biomass~ I(235.2 * exp(-0.0004749*MAP)), data = dn_nn)
 
 AIC(map,map.2,d,map.d, map.d.2, map.exp)
+anova(map, map.2)
 summary(map)
 summary(map.2)
 summary(d)
@@ -133,8 +134,8 @@ dn_nn$map.resid <- map.resid
 mod.resid <- lm(map.resid~yearly_ppt_d,data=dn_nn)
 mod.resid.2 <- lm(map.resid~yearly_ppt_d+I(yearly_ppt_d^2),data=dn_nn)
 AIC(mod.resid,mod.resid.2)
-summary(mod.resid)
-visreg(mod.resid)
+summary(mod.resid.2)
+visreg(mod.resid.2)
 
 
 
@@ -206,8 +207,8 @@ visreg2d(map.s.2, xvar = "MAP", "daily_ppt_d", plot.type = "gg")+
 
 map.resid <- residuals(map.2)
 dn_nn$map.resid <- map.resid
-mod.resid <- lm(map.resid~daily_ppt_d,data=dn_nn)
-mod.resid.2 <- lm(map.resid~daily_ppt_d+I(daily_ppt_d^2),data=dn_nn)
+mod.resid <- lm(map.resid~yearly_ppt_d,data=dn_nn)
+mod.resid.2 <- lm(map.resid~yearly_ppt_d+I(yearly_ppt_d^2),data=dn_nn)
 AIC(mod.resid,mod.resid.2)
 summary(mod.resid)
 visreg(mod.resid)
@@ -217,7 +218,7 @@ visreg(mod.resid)
 ############
 ###Multiple regressions I guess
 
-lmFull <- lm(biomass~MAP+MAT + yearly_ppt_d + r_monthly_t_p
+lmFull <- lm(biomass~MAP + MAT + yearly_ppt_d + r_monthly_t_p
              , data=subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 
 
@@ -230,11 +231,38 @@ stepAIC(lmNull, scope = list(upper = lmFull,
         trace = F)
 
 
-winning.mod <- lm(biomass ~ MAP + r_monthly_t_p + MAT, data = subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
+tempdf <- subset(dn_nn, is.na(r_monthly_t_p) == FALSE )
+winning.mod <- lm(biomass ~ MAP + r_monthly_t_p + MAT , data = tempdf)
 summary(winning.mod)
 
 
 library(rsq)
-  rsq.partial(winning.mod,objR=NULL,adj=FALSE,type=c("MAP", "r_monthly_t_p", "MAT"))
+r2df <- data.frame( var = rsq.partial(winning.mod,objR=NULL,adj=FALSE)$variable, r2 = rsq.partial(winning.mod,objR=NULL,adj=FALSE)$partial.rsq)
 
-            
+  
+ggplot(r2df, aes(var, r2))+
+    geom_bar(stat = "identity")+
+    ylim(0,.25)+
+    ylab("Partial r-squared")+
+    theme_classic() 
+
+ggplot(dn_nn, aes(MAP, biomass))+
+  geom_point(pch = 21, alpha = 0.5)+
+  geom_smooth(method = "lm")+
+  theme_classic()
+
+ggplot(dn_nn, aes(MAT, biomass))+
+  geom_point(pch = 21, alpha = 0.5)+
+  geom_smooth(method = "lm")+
+  theme_classic()
+
+ggplot(dn_nn, aes(r_monthly_t_p, biomass))+
+  geom_point(pch = 21, alpha = 0.5)+
+  geom_smooth(method = "lm")+
+  theme_classic()
+
+mod <- lm(biomass~MAP*r_monthly_t_p, data=dn_nn)
+summary(mod)
+visreg2d(mod, x = "MAP", y = "r_monthly_t_p", plot.type = "gg")+
+  geom_point(data = dn_nn, aes(MAP, r_monthly_t_p))
+
