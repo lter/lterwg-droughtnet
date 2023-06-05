@@ -218,7 +218,7 @@ visreg(mod.resid)
 ############
 ###Multiple regressions I guess
 
-lmFull <- lm(biomass~MAP + MAT + yearly_ppt_d + r_monthly_t_p
+lmFull <- lm(biomass~MAP * MAT * yearly_ppt_d * r_monthly_t_p
              , data=subset(dn_nn, is.na(r_monthly_t_p) == FALSE ))
 
 
@@ -232,7 +232,7 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 tempdf <- subset(dn_nn, is.na(r_monthly_t_p) == FALSE )
-winning.mod <- lm(biomass ~ MAP + r_monthly_t_p + MAT , data = tempdf)
+winning.mod <- lm(biomass ~  MAP + r_monthly_t_p + MAT + MAP:r_monthly_t_p, data = tempdf)
 summary(winning.mod)
 
 
