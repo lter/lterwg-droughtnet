@@ -126,16 +126,16 @@ summary(map.d.2)
 summary(map.exp)
 
 visreg(map)
-visreg2d(map.d.2, xvar = "MAP", "yearly_ppt_d", plot.type = "gg")+
+visreg2d(map.d, xvar = "MAP", "yearly_ppt_d", plot.type = "gg")+
     geom_point(data=dn_nn, aes(MAP, yearly_ppt_d))
 
 map.resid <- residuals(map.2)
 dn_nn$map.resid <- map.resid
 mod.resid <- lm(map.resid~yearly_ppt_d,data=dn_nn)
-mod.resid.2 <- lm(map.resid~yearly_ppt_d+I(yearly_ppt_d^2),data=dn_nn)
+mod.resid.2 <- lm(map.resid~yearly_ppt_d+I(yearly_ppt1_d^2),data=dn_nn)
 AIC(mod.resid,mod.resid.2)
-summary(mod.resid.2)
-visreg(mod.resid.2)
+summary(mod.resid)
+visreg(mod.resid)
 
 
 
@@ -263,6 +263,6 @@ ggplot(dn_nn, aes(r_monthly_t_p, biomass))+
 
 mod <- lm(biomass~MAP*r_monthly_t_p, data=dn_nn)
 summary(mod)
-visreg2d(mod, x = "MAP", y = "r_monthly_t_p", plot.type = "gg")+
+visreg2d(winning.mod, x = "MAP", y = "r_monthly_t_p", plot.type = "gg")+
   geom_point(data = dn_nn, aes(MAP, r_monthly_t_p))
 
