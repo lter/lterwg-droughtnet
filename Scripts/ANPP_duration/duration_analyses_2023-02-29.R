@@ -134,6 +134,9 @@ cv1<-cv%>%
   dplyr::filter(data_source=="mswep")%>%
   dplyr::select(site_code,cv_ppt_inter)
 
+graminoid_richness <-read.csv("C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\graminoids_and_richness.csv")
+
+
 ##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
 lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 #* drtsev.3 #* drtsev.4  #+ sand_mean + AI + cv_ppt_inter
@@ -245,21 +248,22 @@ ggsave(
 
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
-  ggplot(aes(map, anpp_response, color = as.factor(n_treat_years)))+
+  subset(n_treat_years == "3")%>%
+  ggplot(aes(map, anpp_response))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
   geom_smooth(method = "lm", se = FALSE)+
   xlab("MAP")+
   ylab("ANPP response")+
   theme_base()
 
-mod <- lme(anpp_response~map*as.factor(n_treat_years), random = ~1|site_code, data = data.anpp.summary)
+mod <- lm(anpp_response~map, data = subset(data.anpp.summary, n_treat_years == "3"))
 summary(mod)
-pairs(emtrends(mod, ~as.factor(n_treat_years), var="map"))
 
 
 data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
-  ggplot(aes(sand_mean, anpp_response, color = as.factor(n_treat_years)))+
+  subset(n_treat_years == "3")%>%
+  ggplot(aes(sand_mean, anpp_response))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
   geom_smooth(method = "lm", se = FALSE)+
   xlab("Average sand content")+
@@ -269,15 +273,15 @@ data.anpp.summary%>%
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
   dplyr::select(anpp_response, sand_mean, n_treat_years, site_code)%>%
+  subset(n_treat_years == "3")%>%
   filter(complete.cases(.))
-mod <- lme(anpp_response~sand_mean*as.factor(n_treat_years), random = ~1|site_code, data = tempdf)
+mod <- lm(anpp_response~sand_mean, data = tempdf)
 summary(mod)
-pairs(emtrends(mod, ~as.factor(n_treat_years), var="sand_mean"))
-
 
 data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
-  ggplot(aes(AI, anpp_response, color = as.factor(n_treat_years)))+
+  subset(n_treat_years == "3")%>%
+  ggplot(aes(AI, anpp_response))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
   xlim(0,2)+
   geom_smooth(method = "lm", se = FALSE)+
@@ -288,16 +292,17 @@ data.anpp.summary%>%
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
   dplyr::select(anpp_response, AI, n_treat_years, site_code)%>%
+  subset(n_treat_years == "3")%>%
   filter(complete.cases(.))
-mod <- lme(anpp_response~AI*as.factor(n_treat_years), random = ~1|site_code, data = tempdf)
+mod <- lm(anpp_response~AI, data = tempdf)
 summary(mod)
-pairs(emtrends(mod, ~as.factor(n_treat_years), var="AI"))
 
 
 
 data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
-  ggplot(aes(cv_ppt_inter, anpp_response, color = as.factor(n_treat_years)))+
+  subset(n_treat_years == "3")%>%
+  ggplot(aes(cv_ppt_inter, anpp_response))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
   geom_smooth(method = "lm", se = FALSE)+
   xlab("Interannual precip CV")+
@@ -307,10 +312,106 @@ data.anpp.summary%>%
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
   dplyr::select(anpp_response, cv_ppt_inter, n_treat_years, site_code)%>%
+  subset(n_treat_years == "3")%>%
   filter(complete.cases(.))
-mod <- lme(anpp_response~cv_ppt_inter*as.factor(n_treat_years), random = ~1|site_code, data = tempdf)
+mod <- lme(anpp_response~cv_ppt_inter, random = ~1|site_code, data = tempdf)
 summary(mod)
-pairs(emtrends(mod, ~as.factor(n_treat_years), var="cv_ppt_inter"))
+
+
+tempdf <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  dplyr::select(anpp_response, percent_graminoid, n_treat_years, site_code)%>%
+  subset(n_treat_years == "3")%>%
+  filter(complete.cases(.))
+mod <- lm(anpp_response~percent_graminoid, data = tempdf)
+summary(mod)
+
+data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  subset(n_treat_years == "3")%>%
+  ggplot(aes(percent_graminoid, anpp_response))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(method = "lm", se = FALSE)+
+  xlab("Percent graminoid")+
+  ylab("ANPP response")+
+  theme_base()
+
+
+
+tempdf <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  dplyr::select(anpp_response, richness, n_treat_years, site_code)%>%
+  subset(n_treat_years == "3")%>%
+  filter(complete.cases(.))
+mod <- lm(anpp_response~richness, data = tempdf)
+summary(mod)
+
+data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  subset(n_treat_years == "3")%>%
+  ggplot(aes(richness, anpp_response))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(method = "lm", se = FALSE)+
+  xlab("Richness")+
+  ylab("ANPP response")+
+  theme_base()
+
+#partial r-squared shit
+
+
+full_y3 <-  data.anpp.summary%>%
+            left_join(sandsite, by = "site_code")%>%
+            left_join(ai, by = "site_code")%>%
+            left_join(cv1, by = "site_code")%>%
+            left_join(graminoid_richness, by = "site_code")%>%
+            subset(n_treat_years == "3")%>%
+            dplyr::select(site_code, drtsev.1, drtsev.2, map, anpp_response, sand_mean, AI, cv_ppt_inter, percent_graminoid, richness)
+  #sandsite, AI, cv1, graminoid_richness
+
+#correlations?
+full_y3%>%
+  dplyr::select( drtsev.1,drtsev.2,map,AI,sand_mean,cv_ppt_inter)%>%
+  pairs() #only AI is egregiously correlated with map
+
+
+full.mod <- lm(anpp_response ~  drtsev.1+drtsev.2+drtsev.1:drtsev.2 +
+                 map+sand_mean + cv_ppt_inter + percent_graminoid +richness, data = full_y3)
+summary(full.mod)
+
+abiotic.mod <- lm(anpp_response ~  drtsev.1+drtsev.2+drtsev.1:drtsev.2 + 
+                    map+sand_mean + cv_ppt_inter, data = full_y3)
+summary(abiotic.mod)
+
+
+
+library(rsq)
+r2df <- data.frame( var = rsq.partial(full.mod,objR=NULL,adj=FALSE)$variable, r2 = rsq.partial(full.mod,objR=NULL,adj=FALSE)$partial.rsq)
+summary(full.mod)$coefficients
+
+r2df$sig <- c("significant","significant","non-significant","non-significant","non-significant","non-significant","non-significant", "significant")
+
+ggplot(r2df, aes(var, r2, fill = sig))+
+  geom_bar(stat = "identity", color = "black")+
+  scale_fill_manual(values = c("white","black"))+
+  #ylim(0,.2)+
+  ylab("Partial r-squared")+
+  ggtitle("full model")+
+  theme_classic() 
+
+
+#only abiotics
+r2df <- data.frame( var = rsq.partial(abiotic.mod,objR=NULL,adj=FALSE)$variable, r2 = rsq.partial(abiotic.mod,objR=NULL,adj=FALSE)$partial.rsq)
+summary(abiotic.mod)$coefficients
+
+r2df$sig <- c("significant","significant","non-significant","non-significant","non-significant","significant")
+
+ggplot(r2df, aes(var, r2, fill = sig))+
+  geom_bar(stat = "identity", color = "black")+
+  scale_fill_manual(values = c("white","black"))+
+  #ylim(0,.2)+
+  ylab("Partial r-squared")+
+  ggtitle("abiotic model")+
+  theme_classic() 
 
 
 ##MAP interactions with current year and precious year precipitation
