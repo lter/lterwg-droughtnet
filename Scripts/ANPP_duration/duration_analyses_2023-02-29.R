@@ -448,12 +448,26 @@ r2df%>%
   mutate(var = fct_reorder(var, desc(r2))) %>%
 ggplot( aes(var, r2, fill = sig))+
   geom_bar(stat = "identity", color = "black")+
-  scale_fill_manual(values = c("white","black"))+
-  #ylim(0,.2)+
+  scale_fill_manual(values = c("white","dodgerblue"))+
+  ylim(0,1)+
   ylab("Partial r-squared")+
   ggtitle("abiotic model")+
-  theme_classic() 
+  theme_base()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/partial_r2_v1.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 8,
+  height = 5,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 ##MAP interactions with current year and precious year precipitation
 
@@ -507,9 +521,7 @@ new_labs <- as_labeller(
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   ggplot( aes(drtsev.1, anpp_response))+
   facet_wrap(~n_treat_years, labeller = new_labs)+
-  #geom_point(alpha = 0.8,pch = 21,size=3)+
-  geom_point(data=subset(data.anpp.summary1, history != "extreme.extreme.extreme"), color = "black", alpha = 0.8,pch = 21,size=3)+
-  geom_point(data=subset(data.anpp.summary1, history == "extreme.extreme.extreme"), color = "purple", alpha = 0.8,pch = 16,size=3)+
+  geom_point(alpha = 0.8,pch = 21,size=3)+
     geom_smooth(method = "lm", color = "black")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
