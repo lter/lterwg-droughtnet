@@ -136,6 +136,8 @@ cv1<-cv%>%
 
 graminoid_richness <-read.csv("C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\graminoids_and_richness.csv")
 
+seasonality <- read.csv("C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\climate\\climate_mean_annual_by_site_v2.csv")%>%
+  dplyr::select(site_code, seasonality_index, r_monthly_t_p)
 
 ##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
@@ -246,8 +248,8 @@ ggsave(
 )
 
 
-data.anpp.summary%>%
-  left_join(history.df, by = "site_code")%>%
+a <- data.anpp.summary%>%
+  #left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == "3")%>%
   ggplot(aes(map, anpp_response))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
@@ -260,7 +262,7 @@ mod <- lm(anpp_response~map, data = subset(data.anpp.summary, n_treat_years == "
 summary(mod)
 
 
-data.anpp.summary%>%
+b <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
   subset(n_treat_years == "3")%>%
   ggplot(aes(sand_mean, anpp_response))+
@@ -278,7 +280,7 @@ tempdf <- data.anpp.summary%>%
 mod <- lm(anpp_response~sand_mean, data = tempdf)
 summary(mod)
 
-data.anpp.summary%>%
+c <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
   subset(n_treat_years == "3")%>%
   ggplot(aes(AI, anpp_response))+
@@ -299,7 +301,7 @@ summary(mod)
 
 
 
-data.anpp.summary%>%
+d <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
   subset(n_treat_years == "3")%>%
   ggplot(aes(cv_ppt_inter, anpp_response))+
@@ -318,7 +320,7 @@ mod <- lme(anpp_response~cv_ppt_inter, random = ~1|site_code, data = tempdf)
 summary(mod)
 
 
-tempdf <- data.anpp.summary%>%
+ tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   dplyr::select(anpp_response, percent_graminoid, n_treat_years, site_code)%>%
   subset(n_treat_years == "3")%>%
@@ -326,12 +328,12 @@ tempdf <- data.anpp.summary%>%
 mod <- lm(anpp_response~percent_graminoid, data = tempdf)
 summary(mod)
 
-data.anpp.summary%>%
+e <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   subset(n_treat_years == "3")%>%
   ggplot(aes(percent_graminoid, anpp_response))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
-  geom_smooth(method = "lm", se = FALSE)+
+  #geom_smooth(method = "lm", se = FALSE)+
   xlab("Percent graminoid")+
   ylab("ANPP response")+
   theme_base()
@@ -346,15 +348,50 @@ tempdf <- data.anpp.summary%>%
 mod <- lm(anpp_response~richness, data = tempdf)
 summary(mod)
 
-data.anpp.summary%>%
+f <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   subset(n_treat_years == "3")%>%
   ggplot(aes(richness, anpp_response))+
   geom_point(alpha = 0.8, size = 3, pch = 21)+
-  geom_smooth(method = "lm", se = FALSE)+
+  #geom_smooth(method = "lm", se = FALSE)+
   xlab("Richness")+
   ylab("ANPP response")+
   theme_base()
+
+
+tempdf <- data.anpp.summary%>%
+  left_join(seasonality, by = "site_code")%>%
+  dplyr::select(anpp_response, seasonality_index, n_treat_years, site_code)%>%
+  subset(n_treat_years == "3")%>%
+  filter(complete.cases(.))
+mod <- lm(anpp_response~seasonality_index, data = tempdf)
+summary(mod)
+
+g <- data.anpp.summary%>%
+  left_join(seasonality, by = "site_code")%>%
+  subset(n_treat_years == "3")%>%
+  ggplot(aes(seasonality_index, anpp_response))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(method = "lm", se = FALSE)+
+  xlab("Seasonality")+
+  ylab("ANPP response")+
+  theme_base()
+
+library(cowplot)
+plot_grid(a,  d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_v1.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 10,
+  height = 6,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 #partial r-squared shit
 
@@ -364,22 +401,23 @@ full_y3 <-  data.anpp.summary%>%
             left_join(ai, by = "site_code")%>%
             left_join(cv1, by = "site_code")%>%
             left_join(graminoid_richness, by = "site_code")%>%
+            left_join(seasonality, by = "site_code")%>%
             subset(n_treat_years == "3")%>%
-            dplyr::select(site_code, drtsev.1, drtsev.2, map, anpp_response, sand_mean, AI, cv_ppt_inter, percent_graminoid, richness)
+            dplyr::select(site_code, drtsev.1, drtsev.2, map, anpp_response, sand_mean, AI, cv_ppt_inter, percent_graminoid, richness, seasonality_index)
   #sandsite, AI, cv1, graminoid_richness
 
 #correlations?
 full_y3%>%
-  dplyr::select( drtsev.1,drtsev.2,map,AI,sand_mean,cv_ppt_inter)%>%
+  dplyr::select( drtsev.1,drtsev.2,map,AI,sand_mean,cv_ppt_inter,seasonality_index)%>%
   pairs() #only AI is egregiously correlated with map
 
 
 full.mod <- lm(anpp_response ~  drtsev.1+drtsev.2+drtsev.1:drtsev.2 +
-                 map+sand_mean + cv_ppt_inter + percent_graminoid +richness, data = full_y3)
+                 map+sand_mean + cv_ppt_inter + percent_graminoid +richness + seasonality_index, data = full_y3)
 summary(full.mod)
 
 abiotic.mod <- lm(anpp_response ~  drtsev.1+drtsev.2+drtsev.1:drtsev.2 + 
-                    map+sand_mean + cv_ppt_inter, data = full_y3)
+                    map+sand_mean + cv_ppt_inter + seasonality_index, data = full_y3)
 summary(abiotic.mod)
 
 
@@ -388,7 +426,7 @@ library(rsq)
 r2df <- data.frame( var = rsq.partial(full.mod,objR=NULL,adj=FALSE)$variable, r2 = rsq.partial(full.mod,objR=NULL,adj=FALSE)$partial.rsq)
 summary(full.mod)$coefficients
 
-r2df$sig <- c("significant","significant","non-significant","non-significant","non-significant","non-significant","non-significant", "significant")
+r2df$sig <- c("significant","significant","non-significant","non-significant","non-significant","non-significant","non-significant","non-significant", "significant")
 
 ggplot(r2df, aes(var, r2, fill = sig))+
   geom_bar(stat = "identity", color = "black")+
@@ -402,10 +440,13 @@ ggplot(r2df, aes(var, r2, fill = sig))+
 #only abiotics
 r2df <- data.frame( var = rsq.partial(abiotic.mod,objR=NULL,adj=FALSE)$variable, r2 = rsq.partial(abiotic.mod,objR=NULL,adj=FALSE)$partial.rsq)
 summary(abiotic.mod)$coefficients
+#adjusted r squared = 0.5867
 
-r2df$sig <- c("significant","significant","non-significant","non-significant","non-significant","significant")
+r2df$sig <- c("significant","significant","non-significant","non-significant","non-significant","non-significant","significant")
 
-ggplot(r2df, aes(var, r2, fill = sig))+
+r2df%>%
+  mutate(var = fct_reorder(var, desc(r2))) %>%
+ggplot( aes(var, r2, fill = sig))+
   geom_bar(stat = "identity", color = "black")+
   scale_fill_manual(values = c("white","black"))+
   #ylim(0,.2)+
