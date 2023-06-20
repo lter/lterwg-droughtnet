@@ -80,7 +80,7 @@ full_ppt <- merge(ppt.1, ppt.2, by = c("site_code", "year", "trt"), all.x = TRUE
 
 
 anpp_ppt <- anpp_clean%>%
-        left_join(treatment_info, c("site_code", "year", "block", "plot", "subplot"))%>%
+        #left_join(treatment_info, c("site_code", "year", "block", "plot", "subplot"))%>%
         left_join(full_ppt, c("site_code",  "year", "trt"))
 
 #summarize treatment days and remove plots identified by site PIs as problematic
