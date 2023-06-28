@@ -141,11 +141,11 @@ seasonality <- read.csv("C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\climate
 
 ##MODEL SELECTION WITH YEAR 3 ONLY
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 #* drtsev.3 #* drtsev.4  #+ sand_mean + AI + cv_ppt_inter
-             , data=subset(data.anpp.summary, n_treat_years == 2 & drtsev.1 != "NA"))
+lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 #* drtsev.4  #+ sand_mean + AI + cv_ppt_inter
+             , data=subset(data.anpp.summary, n_treat_years == 3))
 
 
-lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 2& drtsev.1 != "NA"))
+lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3))
 
 
 #Forward model selection
@@ -155,9 +155,9 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 
-tempdf <-subset(data.anpp.summary, n_treat_years == 2)
-winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.1:drtsev.2
-                  , data = tempdf)
+tempdf <-subset(data.anpp.summary, n_treat_years == 3)
+winning.mod <- lm(anpp_response ~ drtsev.1 + drtsev.2 + drtsev.3 + 
+                    drtsev.1:drtsev.2 + drtsev.2:drtsev.3 , data = tempdf)
 summary(winning.mod)
 
 
@@ -183,18 +183,18 @@ data.anpp.summary%>%
   scale_color_manual("Year 3 extremity", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
-ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2_alt.pdf",
-  plot = last_plot(),
-  device = "pdf",
-  path = NULL,
-  scale = 1,
-  width = 9,
-  height = 7,
-  units = c("in"),
-  dpi = 600,
-  limitsize = TRUE
-)
+#ggsave(
+#  "C:/Users/ohler/Dropbox/IDE/figures#/anpp_duration/fig2_alt.pdf",
+#  plot = last_plot(),
+#  device = "pdf",
+#  path = NULL,
+#  scale = 1,
+#  width = 9,
+#  height = 7,
+#  units = c("in"),
+#  dpi = 600,
+#  limitsize = TRUE
+#)
 
 tempdf <- data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
@@ -234,14 +234,43 @@ ggplot(aes(drtsev.1, anpp_response, color = y2))+
   scale_color_manual("Year 2 extremity", values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
+#ggsave(
+#  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
+#  plot = last_plot(),
+#  device = "pdf",
+#  path = NULL,
+#  scale = 1,
+#  width = 9,
+#  height = 7,
+#  units = c("in"),
+#  dpi = 600,
+#  limitsize = TRUE
+#)
+
+
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3 & y2 != "NA")%>%
+  ggplot(aes(drtsev.1, anpp_response))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(aes(color=y3),method = "lm", se = FALSE)+
+  geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  ylab("ANPP response")+
+  ggtitle("")+
+  scale_color_manual( values = c("firebrick2", "dodgerblue" ))+
+  theme_base()
+
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 9,
-  height = 7,
+  width = 5,
+  height = 4,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
@@ -449,7 +478,7 @@ r2df%>%
 ggplot( aes(var, r2, fill = sig))+
   geom_bar(stat = "identity", color = "black")+
   scale_fill_manual(values = c("white","dodgerblue"))+
-  ylim(0,1)+
+  ylim(0,0.5)+
   ylab("Partial r-squared")+
   ggtitle("abiotic model")+
   theme_base()+
@@ -457,7 +486,7 @@ ggplot( aes(var, r2, fill = sig))+
 
 
 ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/partial_r2_v1.pdf",
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig4.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
@@ -499,15 +528,15 @@ tempdf$map.cat <- ifelse(tempdf$map > 500, "High_MAP", "Low_MAP")
 tempdf$drtsev.2.cat <- ifelse(tempdf$drtsev.2 > 0.5, "High_severity", "Less_severity")
 tempdf <- unite(tempdf, "map.prev_e.n", c("map.cat","prev_e.n"), remove = FALSE)
 
-tempdf%>%
+#tempdf%>%
   #subset(anpp_response > -4)%>%
-ggplot(aes(map.prev_e.n, anpp_response))+
-  facet_wrap(~prev_e.n)+
-  geom_boxplot()+
-geom_point()
+#ggplot(aes(map.prev_e.n, anpp_response))+
+#  facet_wrap(~prev_e.n)+
+#  geom_boxplot()+
+#geom_point()
 
-tempdf%>%
-ggplot(aes(interaction()))
+#tempdf%>%
+#ggplot(aes(interaction()))
 
 ####drought severity figure by year
 # change facet labels
@@ -945,3 +974,4 @@ summary(mod)
 
 temp <- subset(data.anpp1, n_treat_days >1209 & n_treat_days < 1574)#1574
 length(unique(temp$site_code))
+
