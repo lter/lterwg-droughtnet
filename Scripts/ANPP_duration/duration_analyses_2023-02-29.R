@@ -251,8 +251,9 @@ ggplot(aes(drtsev.1, anpp_response, color = y2))+
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 3 & y2 != "NA")%>%
+  unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
   ggplot(aes(drtsev.1, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_point(aes(color = two_year_e.n),alpha = 0.8, size = 3, pch = 21)+
   geom_smooth(aes(color=y3),method = "lm", se = FALSE)+
   geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -260,8 +261,9 @@ data.anpp.summary%>%
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
   ggtitle("")+
-  scale_color_manual( values = c("firebrick2", "dodgerblue" ))+
-  theme_base()
+  scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
+  theme_base()+
+  theme(legend.position = "none")
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
