@@ -165,6 +165,48 @@ data.anpp.summary%>%
   scale_color_manual( values = c("firebrick2", "dodgerblue" ))+
   theme_base()
 
+
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3 & y2 != "NA")%>%
+  unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
+  #ggplot(aes(two_year_e.n, anpp_response))+
+  #geom_boxplot(aes(color = two_year_e.n))+
+  #scale_color_manual( values = c("firebrick2",  "purple", "forestgreen", "dodgerblue" ))+
+  #theme_base()
+    ddply(.(two_year_e.n), function(x)data.frame(
+    mean_anpp_response = mean(x$anpp_response),
+    se_anpp_response = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code))
+  ))%>%
+  ggplot(aes(two_year_e.n, mean_anpp_response, color = two_year_e.n))+
+    #geom_point()
+  #geom_linerange(mapping=aes(x=two_year_e.n, ymin=mean_anpp_response-se_anpp_response, ymax=mean_anpp_response-se_anpp_response), width=0.2, size=1, color="blue")# +
+    geom_pointrange(aes( ymin = mean_anpp_response-se_anpp_response, ymax = mean_anpp_response+se_anpp_response), size = 1)+
+  scale_color_manual( values = c("firebrick2",  "purple", "forestgreen", "dodgerblue" ))+
+  ylim(-1.4,-0.1)+
+  theme_base()
+  
+
+
+
+
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3 & y2 != "NA")%>%
+  unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
+  ggplot(aes(drtsev.1, anpp_response))+
+  geom_point(aes(color = two_year_e.n),alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(aes(color=y3),method = "lm", se = FALSE)+
+  geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  ylab("ANPP response")+
+  ggtitle("")+
+  scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "forestgreen", "dodgerblue" ))+
+  theme_base()#+
+  #theme(legend.position = "none")
+
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
   plot = last_plot(),
