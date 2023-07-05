@@ -203,7 +203,7 @@ data.anpp.summary%>%
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
   ggtitle("")+
-  scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "forestgreen", "dodgerblue" ))+
+  scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
   theme_base()#+
   #theme(legend.position = "none")
 
