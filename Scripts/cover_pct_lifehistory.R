@@ -7,7 +7,7 @@ library(tidyverse)
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 setwd("E:Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-05-01.csv") %>% 
+dat<-read.csv("cover_ppt_2023-05-10.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"),
          lifeform2=ifelse(local_lifeform=="GRAMINOID", "GRASS", local_lifeform))
 
@@ -50,4 +50,4 @@ pctLifehistory<-dat2 %>%
   summarize(PctAnnual=mean(PAnn)) %>% 
   full_join(pctLifeForm)
 
-write.csv(pctLifehistory, "community_comp\\Prc_LifeHistory_May2023.csv", row.names=F)
+write.csv(pctLifehistory, "community_comp\\Prc_LifeHistory_July2023.csv", row.names=F)
