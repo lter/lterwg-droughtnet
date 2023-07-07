@@ -8,6 +8,7 @@ library(codyn)
 library(lme4)
 library(lmerTest)
 library(vegan)
+library(sjPlot)
 #library(plyr)
 
 theme_set(theme_bw(20))
@@ -219,6 +220,20 @@ dat2<-dat %>%
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
   filter(n_treat_years!=0.5&n_treat_years!=-1)
 
+#summarazing the data
+drt1yr<-dat2 %>% 
+  filter(n_treat_years==1) %>% 
+  select(site_code) %>% 
+  unique()
+drt2yr<-dat2 %>% 
+  filter(n_treat_years==2) %>% 
+  select(site_code) %>% 
+  unique()
+drt3yr<-dat2 %>% 
+  filter(n_treat_years==3) %>% 
+  select(site_code) %>% 
+  unique()
+
 ###looping through site for changes with pretreatmetn as a reference year
 
 #having problems with cdpt_drt.us and eea.br they only have year 0 data. 
@@ -292,7 +307,7 @@ years<-deltamult %>%
   select(site_code, year, n_treat_years) %>% 
   unique()
 
-#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. postie values means drought had higher values than control
+#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. postitive values means drought had higher values than control
 RRMult<-deltamult %>% 
   pivot_longer(names_to="measure", values_to = "value", composition_change:dispersion_change) %>%
   pivot_wider(names_from = "trt", values_from = "value") %>% 
@@ -383,56 +398,59 @@ ggplot(data = subset(meanCI, measure!="dispersion_change"), aes(x=measure, y=mea
 
 # doing stats on change ---------------------------------------------------
 
-##1) Are there differences from zero?
+#1) Are there differences from zero?
 
-rich<-RRall %>% 
+rich<-RRall %>%
   filter(measure=="richness_change")
 t.test(rich$RR, mu=0, alternative = "two.sided")
 #this is NOT sig.
-even<-RRall %>% 
+even<-RRall %>%
   filter(measure=="evenness_change")
 t.test(even$RR, mu=0, alternative = "two.sided")
 #this is sig.
-dom<-RRall %>% 
+dom<-RRall %>%
   filter(measure=="Dominance")
 t.test(dom$RR, mu=0, alternative = "two.sided")
 #this is sig.
-rank<-RRall %>% 
+rank<-RRall %>%
   filter(measure=="rank_change")
 t.test(rank$RR, mu=0, alternative = "two.sided")
 #this is NOT sig.
-gain<-RRall %>% 
+gain<-RRall %>%
   filter(measure=="gains")
 t.test(gain$RR, mu=0, alternative = "two.sided")
 #this is sig.
-loss<-RRall %>% 
+loss<-RRall %>%
   filter(measure=="losses")
 t.test(loss$RR, mu=0, alternative = "two.sided")
 #this is sig.
-comp<-RRall %>% 
+comp<-RRall %>%
   filter(measure=="composition_change")
 t.test(comp$RR, mu=0, alternative = "two.sided")
 #this is sig.
+
 #I think i should drop dispersion
-disp<-RRall %>% 
-  filter(measure=="dispersion_change")
-t.test(disp$RR, mu=0, alternative = "two.sided")
-#this is NOT sig.
+# disp<-RRall %>% 
+#   filter(measure=="dispersion_change")
+# t.test(disp$RR, mu=0, alternative = "two.sided")
+# #this is NOT sig.
 
 ###looking at changes over time.
 ##there are no differences among the years at all
 
 mrich<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=rich)
 summary(mrich)
+anova(mrich)
 #no effect of year
 meven<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=even)
-summary(meven)
+anova(meven)
 #no effect of year
 mdom<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=dom)
-summary(mdom)
+anova(mdom)
 #no effect year
 
 mrank<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=rank)
+anova(mrank)
 summary(mrank)
 
 ggplot(data=rank, aes(x=n_treat_years, y=RR))+
@@ -443,13 +461,13 @@ ggplot(data=rank, aes(x=n_treat_years, y=RR))+
 #sig effect of year - but so minor
 
 mgain<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=gain)
-summary(mgain)
+anova(mgain)
 #no effect of year
 mloss<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=loss)
-summary(mloss)
+anova(mloss)
 #no effect of year
 mcomp<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=comp)
-summary(mcomp)
+anova(mcomp)
 # #no effect of year
 # mdisp<-lmer(RR~as.factor(n_treat_years)+(1|site_code), data=disp)
 # summary(mdisp)
@@ -457,6 +475,8 @@ summary(mcomp)
 
 
 
+
+###
 RR2<-RRall %>% 
   left_join(site_types) %>% 
   left_join(continent) %>% 
@@ -468,24 +488,33 @@ RR2<-RRall %>%
 str(RR2)
 
 ###looking at local and regional drivers
-mrich<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
-summary(mrich)
+mrich2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
+summary(mrich2)
+anova(mrich2)
 #nothing
 
-meven<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="evenness_change"))
-summary(meven)
+meven2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="evenness_change"))
+summary(meven2)
+anova(meven2)
 #no effect of anything
 
-mrank<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="rank_change"))
-summary(mrank)
+mdom2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="Dominance"))
+summary(mdom2)
+anova(mdom2)
+#no effect of anything
+
+mrank2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="rank_change"))
+anova(mrank2)
 #nothing
 
-mgain<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="gains"))
-summary(mgain)
+mgain2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="gains"))
+summary(mgain2)
+anova(mgain2)
 #nothing
 
-mloss<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="losses"))
-summary(mloss)
+mloss2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="losses"))
+summary(mloss2)
+anova(mloss2)
 #sig effect map
 
 ggplot(data=subset(RR2, measure="losses"), aes(x=MAP*1000, y=RR))+
@@ -494,8 +523,8 @@ ggplot(data=subset(RR2, measure="losses"), aes(x=MAP*1000, y=RR))+
   ylab("Losses Drought\nControl Differences")+
   xlab("MAP")
 
-mcomp<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="composition_change"))
-summary(mcomp)
+mcomp2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="composition_change"))
+anova(mcomp2)
 #noting
 # 
 # mdisp<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="dispersion_change"))
