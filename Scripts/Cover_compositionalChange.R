@@ -15,7 +15,7 @@ theme_set(theme_bw(20))
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 setwd("E:\\Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-05-05.csv") %>% 
+dat<-read.csv("cover_ppt_2023-05-10.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
 #dropping sites with less than 5 species in the controls
@@ -90,7 +90,7 @@ drt<-dat %>%
   mutate(drtseverity=(ppt.1-map)/map) %>% 
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
 
-site_types<-read.csv("community_comp\\Prc_LifeHistory_May2023.csv")
+site_types<-read.csv("community_comp\\Prc_LifeHistory_July2023.csv")
 
 continent<-read.csv("Site_Elev-Disturb.csv") %>% 
   select(site_code, continent)
@@ -221,7 +221,7 @@ dat2<-dat %>%
 
 ###looping through site for changes with pretreatmetn as a reference year
 
-#having problems with cdpt_drt.us and eea.br and lygraint.no, they only have year 0 data. dropping this. not sure why
+#having problems with cdpt_drt.us and eea.br they only have year 0 data. 
 dat3<-dat2 %>% 
   filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
 
@@ -292,7 +292,7 @@ years<-deltamult %>%
   select(site_code, year, n_treat_years) %>% 
   unique()
 
-#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. postive values means drought had higher values than contorl
+#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. postie values means drought had higher values than control
 RRMult<-deltamult %>% 
   pivot_longer(names_to="measure", values_to = "value", composition_change:dispersion_change) %>%
   pivot_wider(names_from = "trt", values_from = "value") %>% 
@@ -324,38 +324,62 @@ RRall<-RRRac%>%
 #   summarize(cntSD=sd(value))
 
 
-#boxplot
-ggplot(data = subset(RRall, measure!="dispersion_change"), aes(x=measure, y=RR))+
-  geom_boxplot(aes(group=measure))+
-  scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
-  geom_hline(yintercept = 0)+
-  annotate("text", x=1, y=.5, label="*", size=8, color="red")+
-  annotate("text", x=5, y=.6, label="*", size=8, color="red")+
-  annotate("text", x=6, y=.5, label="*", size=8,color="red")+
-  annotate("text", x=7, y=.5, label="*", size=8,color="red")+
-  xlab("Measure of Community Change")+
-  ylab("Drought-Control Difference")
+# #boxplot
+# ggplot(data = subset(RRall, measure!="dispersion_change"), aes(x=measure, y=RR))+
+#   geom_boxplot(aes(group=measure))+
+#   scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
+#   geom_hline(yintercept = 0)+
+#   annotate("text", x=1, y=.5, label="*", size=8, color="red")+
+#   annotate("text", x=5, y=.6, label="*", size=8, color="red")+
+#   annotate("text", x=6, y=.5, label="*", size=8,color="red")+
+#   annotate("text", x=7, y=.5, label="*", size=8,color="red")+
+#   xlab("Measure of Community Change")+
+#   ylab("Drought-Control Difference")
 
-meanglassD<-RRall %>% 
+meanCIdiff<-RRall %>% 
   na.omit() %>% 
   group_by(measure) %>% 
   summarize(mean=mean(RR), n=length(RR), sd=sd(RR)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96)
   
-
-ggplot(data = subset(meanglassD, measure!="dispersion_change"), aes(x=measure, y=mean))+
+##Top panel. Mean with CI on the differences between treatment and control changes.
+ggplot(data = subset(meanCIdiff, measure!="dispersion_change"), aes(x=measure, y=mean))+
   geom_point()+
   scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI))+
   geom_hline(yintercept = 0)+
-  annotate("text", x=1, y=.07, label="*", size=8, color="red")+
-  annotate("text", x=5, y=.07, label="*", size=8, color="red")+
+  annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
+  annotate("text", x=5, y=0.001, label="*", size=8, color="red")+
   annotate("text", x=6, y=.07, label="*", size=8,color="red")+
-  annotate("text", x=7, y=.07, label="*", size=8,color="red")+
+  annotate("text", x=7, y=.06, label="*", size=8,color="red")+
   xlab("Measure of Community Change")+
   ylab("Control-Treatment Differences")
 
+meanCIcomp<-deltamult %>%
+  na.omit() %>% 
+  group_by(trt) %>% 
+  summarize(mean=mean(composition_change), n=length(composition_change), sd=sd(composition_change)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96, measure="Composition_change")
 
+MeanCI<-deltaracs %>%
+  na.omit() %>% 
+  pivot_longer(richness_change:losses, names_to = "measure", values_to = "value") %>% 
+  group_by(measure, trt) %>% 
+  summarize(mean=mean(value), n=length(value), sd=sd(value)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
+  bind_rows(meanCIcomp)
+
+ggplot(data = subset(meanCI, measure!="dispersion_change"), aes(x=measure, y=mean))+
+  geom_point()+
+  scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
+  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI))+
+  geom_hline(yintercept = 0)+
+  annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
+  annotate("text", x=5, y=0.001, label="*", size=8, color="red")+
+  annotate("text", x=6, y=.07, label="*", size=8,color="red")+
+  annotate("text", x=7, y=.06, label="*", size=8,color="red")+
+  xlab("Measure of Community Change")+
+  ylab("Control-Treatment Differences")
 
 # doing stats on change ---------------------------------------------------
 
