@@ -266,3 +266,69 @@ summary(mod)
 visreg2d(winning.mod, x = "MAP", y = "r_monthly_t_p", plot.type = "gg")+
   geom_point(data = dn_nn, aes(MAP, r_monthly_t_p))
 
+
+
+
+
+
+
+##############
+#Does variability matter in arid sites?
+
+
+arid_sites <- subset(dn_nn, MAP<400)
+mid_sites <- subset(dn_nn, MAP>400 & MAP<700)
+mesic_sites <- subset(dn_nn, MAP>700 &MAP<1000)
+super_mesic_sites <- subset(dn_nn, MAP>1000)
+
+map <- lm(biomass~MAP, data=arid_sites)
+map.2 <- lm(biomass~MAP+I(MAP^2), data=arid_sites)
+d <- lm(biomass~yearly_ppt_d, data=arid_sites)
+map.d <- lm(biomass~MAP * yearly_ppt_d, data=arid_sites)
+season <- lm(biomass~r_monthly_t_p, data=arid_sites)
+AIC(map,map.2,d,map.d, season)
+summary(map)
+summary(map.2)
+summary(d)
+summary(map.d)
+summary(season)
+
+
+
+map <- lm(biomass~MAP, data=super_mesic_sites)
+map.2 <- lm(biomass~MAP+I(MAP^2), data=super_mesic_sites)
+d <- lm(biomass~yearly_ppt_d, data=super_mesic_sites)
+map.d <- lm(biomass~MAP * yearly_ppt_d, data=super_mesic_sites)
+AIC(map,map.2,d,map.d)
+summary(map)
+summary(map.2)
+summary(d)
+summary(map.d)
+
+
+
+
+ggplot(arid_sites, aes(yearly_ppt_d, biomass))+
+  geom_smooth(method="lm",formula= (y ~ x),se=T,col="black",size=2,fill = "dodgerblue", alpha=.2)+
+  geom_point(aes(colour=network),shape=19, size=3)+
+  #xlim(c(0,2500))+
+  ylab("ANPP (g/m2)")+
+  xlab("variability")+
+  ggtitle("XXX mm")+
+  theme_cowplot()
+
+
+ggplot(arid_sites, aes(r_monthly_t_p, biomass))+
+  geom_smooth(method="lm",formula= (y ~ x),se=T,col="black",size=2,fill = "dodgerblue", alpha=.2)+
+  geom_point(aes(colour=network),shape=19, size=3)+
+  #xlim(c(0,2500))+
+  ylab("ANPP (g/m2)")+
+  xlab("Seasonality")+
+  ggtitle("XXX mm")+
+  theme_cowplot()
+
+
+
+
+
+

@@ -403,7 +403,10 @@ full_y3%>%
   dplyr::select( drtsev.1,drtsev.2,map,AI,sand_mean,cv_ppt_inter,seasonality_index)%>%
   pairs() #only AI is egregiously correlated with map (will remove AI from model)
 
-
+library("PerformanceAnalytics")
+full_y3%>%
+  dplyr::select( drtsev.1,drtsev.2,map,AI,sand_mean,cv_ppt_inter,seasonality_index)%>%
+  chart.Correlation( histogram=TRUE, pch=19)
 
 abiotic.mod <- lm(anpp_response ~  drtsev.1+drtsev.2+drtsev.1:drtsev.2 + map+sand_mean + cv_ppt_inter + seasonality_index, data = full_y3) # the model
 summary(abiotic.mod)
