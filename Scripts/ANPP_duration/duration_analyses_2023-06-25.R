@@ -196,16 +196,17 @@ data.anpp.summary%>%
   unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
   ggplot(aes(drtsev.1, anpp_response))+
   geom_point(aes(color = two_year_e.n),alpha = 0.8, size = 3, pch = 21)+
-  geom_smooth(aes(color=y3),method = "lm", se = FALSE)+
-  geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
+  #geom_smooth(aes(color=y3),method = "lm", se = FALSE)+
+  #geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
   ggtitle("")+
   scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
-  theme_base()#+
-  #theme(legend.position = "none")
+  theme_base()+
+  theme(legend.position = "none")
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
@@ -213,7 +214,7 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 5,
+  width = 4,
   height = 4,
   units = c("in"),
   dpi = 600,
@@ -562,7 +563,8 @@ ggsave(
 ##################################
 
 data.anpp.year <- data.anpp.summary%>%
-  ddply(.(n_treat_years, e.n),
+  ddply(.(n_treat_years, e.n
+          ),
         function(x)data.frame(
           anpp_response = mean(x$anpp_response),
           anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
@@ -574,7 +576,8 @@ data.anpp.year <- data.anpp.summary%>%
 
 data.anpp.year%>%
   subset(e.n != "NA")%>%
-  ggplot(aes(as.factor(n_treat_years), anpp_response, color = e.n))+
+  ggplot(aes(as.factor(n_treat_years), anpp_response, color = e.n
+             ))+
   geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se))+
   ylim(-1.2, 0.3)+
   geom_hline(yintercept = 0,linetype="dashed")+
@@ -585,12 +588,15 @@ data.anpp.year%>%
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
+
+
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
   scale = 1,
+  #width = 3,
   width = 5,
   height = 3,
   units = c("in"),
@@ -598,6 +604,7 @@ ggsave(
   limitsize = TRUE
 )
 
-
+mod <- lmer(anpp_response~as.factor(n_treat_years) + (1|site_code), data.anpp.summary)
+summary(mod)
 
 
