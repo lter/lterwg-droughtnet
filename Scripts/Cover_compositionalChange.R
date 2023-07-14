@@ -8,13 +8,18 @@ library(codyn)
 library(lme4)
 library(lmerTest)
 library(vegan)
+library(data.table)
 library(sjPlot)
+
 #library(plyr)
 
 theme_set(theme_bw(20))
 
-setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
-setwd("E:\\Dropbox\\IDE (1)\\data_processed")
+# Set WD
+user <- "MTH"
+if (user == "MTH"){
+  setwd("~/Library/CloudStorage/OneDrive-UCB-O365/UCB/Desktop/lterwg-droughtnet")
+} else{setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")}
 
 dat<-read.csv("cover_ppt_2023-05-10.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
@@ -91,7 +96,7 @@ drt<-dat %>%
   mutate(drtseverity=(ppt.1-map)/map) %>% 
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
 
-site_types<-read.csv("community_comp\\Prc_LifeHistory_July2023.csv")
+site_types<-read.csv("Prc_LifeHistory_May2023.csv")
 
 continent<-read.csv("Site_Elev-Disturb.csv") %>% 
   select(site_code, continent)
@@ -403,6 +408,18 @@ ggplot(data = subset(meanCI, measure!="dispersion_change"), aes(x=measure, y=mea
 rich<-RRall %>%
   filter(measure=="richness_change")
 t.test(rich$RR, mu=0, alternative = "two.sided")
+
+#this is sig.
+even<-RRall %>% 
+  filter(measure=="evenness_change")
+t.test(even$RR, mu=0, alternative = "two.sided")
+#this is NOT sig.
+dom<-RRall %>% 
+  filter(measure=="Dominance")
+t.test(dom$RR, mu=0, alternative = "two.sided")
+#this is NOT sig.
+rank<-RRall %>% 
+=======
 #this is NOT sig.
 even<-RRall %>%
   filter(measure=="evenness_change")
@@ -413,6 +430,7 @@ dom<-RRall %>%
 t.test(dom$RR, mu=0, alternative = "two.sided")
 #this is sig.
 rank<-RRall %>%
+
   filter(measure=="rank_change")
 t.test(rank$RR, mu=0, alternative = "two.sided")
 #this is NOT sig.
@@ -488,10 +506,16 @@ RR2<-RRall %>%
 str(RR2)
 
 ###looking at local and regional drivers
+
+mrich<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
+summary(mrich)
+#nothing - MAP marginally significant
+=======
 mrich2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
 summary(mrich2)
 anova(mrich2)
 #nothing
+
 
 meven2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="evenness_change"))
 summary(meven2)
@@ -537,10 +561,10 @@ anova(mcomp2)
 #   ylab("Dispersion Response")
 
 ###pairs
-allwide<-GlassD %>% 
-  select(-cntSD) %>% 
-   pivot_wider(names_from="measure", values_from = "RR") %>% 
-  select(-dominance, -dispersion_change, -rank_change)
+allwide<-RRall %>% 
+  #select(-cntSD) %>% 
+   pivot_wider(names_from="measure", values_from = "RR") #%>% 
+  #select(-dominance, -dispersion_change, -rank_change)
 
 
 
@@ -559,3 +583,307 @@ panel.cor <- function(x, y, cex.cor = 0.8, method = "pearson", ...) {
 }
 
 pairs(allwide[,7:11], lower.panel = panel.cor, cex.cor=2)
+
+#### Figures -------
+
+### Figure 1: Map of sites + covariate distribution ----
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggspatial)
+library(paletteer)
+library(gridExtra)
+
+# Load world map 
+world <- ne_countries(scale = "medium", returnclass = "sf")
+class(world)
+
+# Calculate richness in year 0
+rich_0 <- dat %>%
+  filter(n_treat_years == 0) %>%
+  group_by(site_code) %>%
+  distinct(Taxon) %>%
+  summarise(rich = n())
+RR2_rich <- merge(RR2, rich_0, by = "site_code")
+RR2_rich <- RR2_rich %>%
+  group_by(site_code) %>%
+  distinct(trt, .keep_all = TRUE)
+
+# Map sites in each continent
+map <- ggplot() + 
+  geom_sf(data = world, fill = "antiquewhite") + 
+  #geom_sf(data = oz_states, colour = "black", fill = NA) + 
+  geom_point(data = RR2, mapping = aes(x = longitud, y = latitud, fill = continent),
+             pch = 21, 
+             color = "black", 
+             size = 3.5) + 
+  scale_fill_paletteer_d(`"dutchmasters::milkmaid"`) +
+  geom_jitter(position = "jitter") +
+  coord_sf() +
+  theme_bw(base_size = 16) +
+  labs(x = "Latitude", y = "Longitude", fill = "IDE Sites (n = 79)") + 
+  annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(0.25, "in"), pad_y = unit(0.5, "in"),
+                         style = north_arrow_fancy_orienteering) + 
+  theme(panel.grid.major = element_line(color = gray(.5), linetype = "dashed", size = 0.5), 
+        panel.background = element_rect(fill = "aliceblue")) + 
+  coord_sf(ylim = c(-80, 80), expand = FALSE)
+map
+
+# Make histograms of covariates
+hist1 <- ggplot() +
+  geom_histogram(data = RR2_rich, binwidth = 100, mapping = aes(x = map), fill = "darkblue", color = "antiquewhite") +
+  theme_bw(base_size = 16) +
+  ylim(0, 20) +
+  labs(x = "Mean Annual Precipitation (mm)", y = "Site Count")
+hist1
+
+hist2 <- ggplot() +
+  geom_histogram(data = RR2_rich, binwidth = 5, mapping = aes(x = rich), fill = "darkgreen", color = "antiquewhite") +
+  theme_bw(base_size = 16) +
+  ylim(0, 20) +
+  labs(x = "Species Richness", y = "")
+hist2
+
+hist3 <- ggplot() +
+  geom_histogram(data = RR2_rich, binwidth = 10, mapping = aes(x = PctGrass), fill = "brown", color = "antiquewhite") +
+  theme_bw(base_size = 16) +
+  ylim(0, 20) +
+  labs(x = "Percent Cover Grass", y = "")
+hist3
+
+# Combine into one figure
+Fig1<- grid.arrange(map, hist1, hist2, hist3, nrow = 3, 
+             layout_matrix = rbind(c(1,1,1), c(1,1,1), c(2,3,4)))
+
+Fig1
+
+### Figure 2: Difference in change for drought - control plots ----
+# 2A: Difference in change (Drought - Control)
+# 2B: Change displayed for Drought and Control separately
+
+# 2A: Differences in change 
+Fig2A <- ggplot(data = subset(meanglassD, measure!=c("dispersion_change")), 
+       aes(x=measure, y=mean))+
+  geom_point(size = 2)+
+  scale_x_discrete(limits=c("richness_change", "evenness_change", 'gains', 'losses', 'rank_change', 'composition_change'), 
+                   labels=c("Richness", "Evenness", "Gains", 'Losses', "Ranks", "Composition"))+
+  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI), width = 0, size = 0.5)+
+  geom_hline(yintercept = 0)+
+  annotate("text", x=1, y=.065, label="*", size=8, color="red")+
+  annotate("text", x=3, y=.065, label="*", size=8, color="red")+
+  annotate("text", x=4, y=.065, label="*", size=8,color="red")+
+  annotate("text", x=5, y=.065, label="*", size=8,color="red")+
+  annotate("text", x=6, y=.065, label="*", size=8,color="red")+
+  xlab("Measure of Community Change")+
+  ylab("Drought - Control Differences") + theme_bw(base_size = 15) +
+  theme(axis.title.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+Fig2A
+
+# 2B: Broken out into drought and control change
+
+# Combine RACs and composition change 
+delta_long <- merge(deltaracs, deltamult, by = c("n_treat_years", "trt", "site_code", "year"))
+# Pivot and get summary stats
+deltaracs_long <-delta_long %>% 
+  pivot_longer(names_to="measure", values_to = "value", richness_change:composition_change) %>% 
+  group_by(trt, measure) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
+            n = length(value)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96)
+# Re-order and re-label
+new_labs <- as_labeller(
+  c(`richness_change` = "Richness",
+    `evenness_change` = "Evenness",
+    `rank_change` = "Ranks",
+    `gains` = "Gains",
+    `losses` = "Losses",
+    `composition_change` = "Composition")
+)
+
+deltaracs_long$measure <- factor(deltaracs_long$measure, # Reordering group factor levels
+                                 levels = c("richness_change",
+                                            "evenness_change",
+                                            "gains",
+                                            "losses",
+                                            "rank_change",
+                                            "composition_change"))
+
+Fig2B <- ggplot(data = subset(deltaracs_long, !is.na(measure)), aes(x=trt, y=mean))+
+  scale_color_manual(values=c("mediumseagreen","wheat4")) + 
+  facet_wrap(~measure, labeller = new_labs, scales = "free_y",
+             nrow = 1) +
+  geom_point(aes(color = trt), size = 3)+
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, size = 1) +
+  labs(y = "Change from pre-treatment (mean +/- SE)",
+       color = "Treatment") +
+  theme_bw(base_size = 15) +
+  theme(axis.title.x = element_blank(), 
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
+
+Fig2B 
+
+### Supplemental Figure 1: Magnitude of effects over time ----
+# Pivot and get summary stats
+deltaracs_long_by_year <-delta_long %>% 
+  filter(n_treat_years < 4) %>%
+  pivot_longer(names_to="measure", values_to = "value", richness_change:composition_change) %>% 
+  group_by(n_treat_years, trt, measure) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
+            n = length(value)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96)
+# Re-order
+deltaracs_long_by_year$measure <- factor(deltaracs_long_by_year$measure, # Reordering group factor levels
+                                 levels = c("richness_change",
+                                            "evenness_change",
+                                            "gains",
+                                            "losses",
+                                            "rank_change",
+                                            "composition_change"))
+
+SuppFig1 <- ggplot(data = subset(deltaracs_long_by_year, !is.na(measure)), aes(x=as.factor(n_treat_years), y=mean, 
+                                                                               color = trt))+
+  scale_color_manual(values=c("mediumseagreen","wheat4")) + 
+  facet_wrap(~measure, labeller = new_labs, scales = "free_y",
+             nrow = 3) +
+  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, size = 1, position = position_dodge(width = 0.3)) +
+  labs(y = "Change from pre-treatment (mean +/- SE)", x = "Years of treatment",
+       color = "Treatment") +
+  theme_bw(base_size = 15)
+
+SuppFig1
+
+### Supplemental Figure 2: stitches plots of all sites ----
+
+RRRich<- as.data.table(RRall)[measure == "richness_change", ]
+RRLoss <- as.data.table(RRall)[measure == "losses", ] 
+RRgains <- as.data.table(RRall)[measure == "gains", ] 
+habitat <- unique(dat[, c(2,31)])
+
+# Separately for losses, gains and richness change
+
+# Losses
+stitches_loss <- RRLoss %>%
+  group_by(site_code) %>%
+  summarise(mean = mean(RR, na.rm = TRUE), sd = sd(RR, na.rm = TRUE),
+            n = length(RR)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96) %>%
+  ungroup() %>%
+  arrange(mean)
+stitches_loss$Sig<-with(stitches_loss, mean + CI <= 0 | mean - CI >= 0)
+stitches_loss <- merge(stitches_loss, drt, by = "site_code")
+stitches_loss <- merge(stitches_loss, habitat, by = "site_code")
+site_order <- reorder(stitches_loss$site_code, -(stitches_loss$mean))
+site_list_order <- levels(site_order)
+
+Fig.stitch.loss <-ggplot(stitches_loss, aes(x = mean,y=reorder(site_code, -mean))) +
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=mean-CI,y=reorder(site_code, -mean),
+                   xend=mean+CI,yend=reorder(site_code, -mean), color = habitat.type,
+                   linetype = reorder(Sig, mean)),linewidth = 1, size=0.25)+
+  geom_point(aes(color = habitat.type), size = 2) +
+  scale_color_manual(name="IDE Sites (n=77)",
+                     values=c("mediumseagreen","rosybrown4"))+
+  labs(x = "Species Losses (Drought - Control)", y="",
+       linetype = "Significant")+
+  theme_bw(base_size = 12)
+
+Fig.stitch.loss
+
+# Gains
+stitches_gains <- RRgains %>%
+  group_by(site_code) %>%
+  summarise(mean = mean(RR, na.rm = TRUE), sd = sd(RR, na.rm = TRUE),
+            n = length(RR)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96) %>%
+  ungroup() %>%
+  arrange(mean)
+stitches_gains$Sig<-with(stitches_gains, mean + CI <= 0 | mean - CI >= 0)
+stitches_gains <- merge(stitches_gains, drt, by = "site_code")
+stitches_gains <- merge(stitches_gains, habitat, by = "site_code")
+
+Fig.stitch.gains <-ggplot(stitches_gains, aes(x = mean,y=reorder(site_code, -mean))) +
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=mean-CI,y=reorder(site_code, -mean),
+                   xend=mean+CI,yend=reorder(site_code, -mean), color = habitat.type,
+                   linetype = reorder(Sig, mean)),linewidth = 1, size=0.25)+
+  geom_point(aes(color = habitat.type), size = 2) +
+  scale_color_manual(name="IDE Sites (n=77)",
+                     values=c("mediumseagreen","rosybrown4"))+
+  labs(x = "Species gainses (Drought - Control)", y="",
+       linetype = "Significant")+
+  theme_bw(base_size = 12)
+
+Fig.stitch.gains
+
+# Richness
+stitches_Rich <- RRRich %>%
+  group_by(site_code) %>%
+  summarise(mean = mean(RR, na.rm = TRUE), sd = sd(RR, na.rm = TRUE),
+            n = length(RR)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96) %>%
+  ungroup() %>%
+  arrange(mean)
+stitches_Rich$Sig<-with(stitches_Rich, mean + CI <= 0 | mean - CI >= 0)
+stitches_Rich <- merge(stitches_Rich, drt, by = "site_code")
+stitches_Rich <- merge(stitches_Rich, habitat, by = "site_code")
+
+Fig.stitch.Rich <-ggplot(stitches_Rich, aes(x = mean,y=reorder(site_code, -mean))) +
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=mean-CI,y=reorder(site_code, -mean),
+                   xend=mean+CI,yend=reorder(site_code, -mean), color = habitat.type,
+                   linetype = reorder(Sig, mean)),linewidth = 1, size=0.25)+
+  geom_point(aes(color = habitat.type), size = 2) +
+  scale_color_manual(name="IDE Sites (n=77)",
+                     values=c("mediumseagreen","rosybrown4"))+
+  labs(x = "Species Riches (Drought - Control)", y="",
+       linetype = "Significant")+
+  theme_bw(base_size = 12)
+
+Fig.stitch.Rich
+
+# One figure with shared y-axis!
+
+allwide<-RR2 %>% 
+  pivot_wider(names_from="measure", values_from = "RR") %>% 
+  select(-dispersion_change)
+
+stitches_Rich$metric <- "Richness Change"
+stitches_gains$metric <- "Species Gains"
+stitches_loss$metric <- "Species Losses"
+stitches_all <- rbind(stitches_Rich, stitches_gains)
+stitches_all <- rbind(stitches_all, stitches_loss)
+stitches_sites <- merge(stitches_all, stitches_Rich, by = "site_code")
+stitches_sites <- stitches_sites[, c(1:16)]
+stitches_sites <- stitches_sites %>%
+  group_by(site_code) %>%
+  summarise(mean_sev = mean(drtseverity.x), across()) %>%
+  ungroup() %>%
+  group_by(metric.x) %>%
+  distinct(site_code, .keep_all = TRUE)
+
+stitches_sites$Sig.x[is.na(stitches_sites$Sig.x)] <- "FALSE"
+
+SuppFig2 <-ggplot(stitches_sites, aes(x = mean.x, y=reorder(site_code, -mean.y))) +
+  facet_grid(~metric.x) +
+  geom_vline(xintercept=0,size=0.5,lty=2)+
+  geom_segment(aes(x=mean.x-CI.x,y=reorder(site_code, -mean.y),
+                   xend=mean.x+CI.x,yend=reorder(site_code, -mean.y), color = habitat.type.x,
+                   linetype = reorder(Sig.x, mean.x)),linewidth = 1, size=0.25)+
+  geom_point(aes(color = habitat.type.x), size = 2) +
+  scale_color_manual(name="IDE Sites (n=77)",
+                     values=c("mediumseagreen","rosybrown4"))+
+  labs(x = "Difference (Drought - Control)", y="",
+       linetype = "Significant")+
+  theme_bw(base_size = 12) 
+
+SuppFig2
+
+
+
+
