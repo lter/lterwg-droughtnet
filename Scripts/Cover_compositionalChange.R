@@ -21,6 +21,8 @@ if (user == "MTH"){
   setwd("~/Library/CloudStorage/OneDrive-UCB-O365/UCB/Desktop/lterwg-droughtnet")
 } else{setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")}
 
+setwd("E:\\Dropbox\\IDE (1)\\data_processed")
+
 dat<-read.csv("cover_ppt_2023-05-10.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
@@ -96,7 +98,7 @@ drt<-dat %>%
   mutate(drtseverity=(ppt.1-map)/map) %>% 
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
 
-site_types<-read.csv("Prc_LifeHistory_May2023.csv")
+site_types<-read.csv("community_comp\\Prc_LifeHistory_July2023.csv")
 
 continent<-read.csv("Site_Elev-Disturb.csv") %>% 
   select(site_code, continent)
@@ -430,7 +432,6 @@ dom<-RRall %>%
 t.test(dom$RR, mu=0, alternative = "two.sided")
 #this is sig.
 rank<-RRall %>%
-
   filter(measure=="rank_change")
 t.test(rank$RR, mu=0, alternative = "two.sided")
 #this is NOT sig.
@@ -507,10 +508,6 @@ str(RR2)
 
 ###looking at local and regional drivers
 
-mrich<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
-summary(mrich)
-#nothing - MAP marginally significant
-=======
 mrich2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
 summary(mrich2)
 anova(mrich2)
@@ -662,7 +659,7 @@ Fig1
 # 2B: Change displayed for Drought and Control separately
 
 # 2A: Differences in change 
-Fig2A <- ggplot(data = subset(meanglassD, measure!=c("dispersion_change")), 
+Fig2A <- ggplot(data = subset(meanCIdiff, measure!=c("dispersion_change")), 
        aes(x=measure, y=mean))+
   geom_point(size = 2)+
   scale_x_discrete(limits=c("richness_change", "evenness_change", 'gains', 'losses', 'rank_change', 'composition_change'), 
