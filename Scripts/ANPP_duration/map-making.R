@@ -1,12 +1,25 @@
 install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
                    "ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata","paletteer"))
                  
-library("ggplot2")
-theme_set(theme_bw())
+library(ggplot2)
+library("ggthemes")
+ggplot2::theme_set(theme_base())
 library("sf")
 library("paletteer")
 library("rnaturalearth")
 library("rnaturalearthdata")
+library(tidyverse)
+library(plyr)
+library(lmerTest)
+library(nlme)
+library(visreg)
+library(MuMIn)
+library(ggthemes)
+library(ggeffects)
+library(MASS)
+library(emmeans)
+library(cowplot)
+library(rsq)
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 class(world)
@@ -34,10 +47,10 @@ uniq.plot<- data.anpp %>%
   dplyr::distinct(site_code,year,plot,trt)%>%
   dplyr::as_tibble()
 
-Plot.trt.ct <- uniq.plot%>% dplyr::group_by(site_code,trt,year) %>% dplyr::summarise(Plot.count=n())
+Plot.trt.ct <- uniq.plot%>% dplyr::group_by(site_code,trt,year) %>% dplyr::summarise(Plot.count=dplyr::n())
 
 #Switching to wide format to see which sites do not have both treatments in a year
-Plottrt_wide<-spread(Plot.trt.ct,trt,Plot.count)
+Plottrt_wide<-tidyr::spread(Plot.trt.ct,trt,Plot.count)
 Plottrt_wide[is.na(Plottrt_wide)] <- 0
 
 
@@ -46,7 +59,7 @@ Plottrt_wide1<-Plottrt_wide%>%
   dplyr::as_tibble()
 
 #Switch back to long format for merge
-Plot.trt.ct2<-gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
+Plot.trt.ct2<-tidyr::gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 
 #Merge unique trt count back with data frame to filter
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
@@ -73,7 +86,7 @@ num.treat.years <- ddply(num.treat.years,.(site_code),
 data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(trt == "Drought")%>%
   subset(n_years>=4)%>%
-  left_join(num.treat.years, by = "site_code")%>%
+  dplyr::left_join(num.treat.years, by = "site_code")%>%
   subset(num.years == 4 | num.years == 3
   ) #change here if using 4 years
 
@@ -88,7 +101,7 @@ data.anpp.summary <- data.anpp2%>%
           n_treat_days = mean(x$n_treat_days)
         ))%>%
   subset(n_treat_years >= 1 & n_treat_years<= 3)%>% #CHANGE HERE IF YOU"RE GOING UP TO 4 TREATMENT YEARS
-  left_join(Site_Elev.Disturb, by = "site_code")%>%
+  dplyr::left_join(Site_Elev.Disturb, by = "site_code")%>%
   dplyr::select(site_code, latitud, longitud, map)%>%
   unique()
   
@@ -97,11 +110,12 @@ length(unique(data.anpp.summary$site_code))
 
 
 ####MAKE THE MAP
-ggplot(data = world) +
-  geom_sf()+
-  xlab("Longitude") + ylab("Latitude") +
-  geom_point(data = data.anpp.summary, aes(x = longitud, y = latitud, fill = map), size = 4, pch = 21, alpha = 0.7)+
-  paletteer::scale_fill_paletteer_c("viridis::plasma", direction = -1)
+ggplot2::ggplot(data = world) +
+  ggspatial::geom_sf()+
+  ggplot2::xlab("Longitude") + ggplot2::ylab("Latitude") +
+  ggplot2::geom_point(data = data.anpp.summary, ggplot2::aes(x = longitud, y = latitud#, fill = map
+                                                             ), size = 4, pch = 16, alpha = 0.9, color = "dodgerblue")#+
+  #paletteer::scale_fill_paletteer_c("viridis::plasma", direction = -1)
 
 
 

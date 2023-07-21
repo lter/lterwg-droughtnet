@@ -49,10 +49,10 @@ uniq.plot<- data.anpp %>%
   dplyr::distinct(site_code,year,plot,trt)%>%
   dplyr::as_tibble()
 
-Plot.trt.ct <- uniq.plot%>% dplyr::group_by(site_code,trt,year) %>% dplyr::summarise(Plot.count=n())
+Plot.trt.ct <- uniq.plot%>% dplyr::group_by(site_code,trt,year) %>% dplyr::summarise(Plot.count=dplyr::n())
 
 #Switching to wide format to see which sites do not have both treatments in a year
-Plottrt_wide<-spread(Plot.trt.ct,trt,Plot.count)
+Plottrt_wide<-tidyr::spread(Plot.trt.ct,trt,Plot.count)
 Plottrt_wide[is.na(Plottrt_wide)] <- 0
 
 #Remove sites and years that don't have both control and drought plots
@@ -62,7 +62,7 @@ Plottrt_wide1<-Plottrt_wide%>%
   dplyr::as_tibble()
 
 #Switch back to long format for merge
-Plot.trt.ct2<-gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
+Plot.trt.ct2<-tidyr::gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 
 #Merge unique trt count back with data frame to filter
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
