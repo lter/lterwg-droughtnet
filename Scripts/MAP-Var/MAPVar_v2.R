@@ -23,7 +23,7 @@ reduced_npp <- merge(reduced_npp, temp, by = "site_code", all.x=TRUE)
 #only use plots that are not manipulated
 control_biomass_DN <- reduced_npp %>% 
   subset( n_treat_days < 30 | trt == "Control")%>%
-  subset(n.year >= 1)%>%
+  subset(n.year >= 4)%>%
   ddply( c("site_code", "year", "plot", "subplot"),
          function(x)data.frame(
            biomass = sum(x$mass)
@@ -74,7 +74,7 @@ control_biomass_NN <- full.biomass %>%
            biomass = mean(x$biomass),
            n.year = length(x$year)
          )) %>%
-  subset(n.year >= 1)
+  subset(n.year >= 4)
 
 control_biomass_NN$network <- "NutNet"
 
