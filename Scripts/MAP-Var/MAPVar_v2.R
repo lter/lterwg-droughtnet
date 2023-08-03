@@ -232,7 +232,8 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 
 tempdf <- subset(dn_nn, is.na(r_monthly_t_p) == FALSE )
-winning.mod <- lm(biomass ~  MAP + r_monthly_t_p + MAT + MAP:r_monthly_t_p, data = tempdf)
+winning.mod <- lm(biomass ~  MAP + r_monthly_t_p + MAT #+ MAP:r_monthly_t_p
+                  , data = tempdf)
 summary(winning.mod)
 
 
@@ -263,7 +264,7 @@ ggplot(dn_nn, aes(r_monthly_t_p, biomass))+
 
 mod <- lm(biomass~MAP*r_monthly_t_p, data=dn_nn)
 summary(mod)
-visreg2d(winning.mod, x = "MAP", y = "r_monthly_t_p", plot.type = "gg")+
+visreg2d(winning.mod, x = "MAP", y = "r_monthly_t_p", plot.ype = "persp")#, plot.type = "gg")+
   geom_point(data = dn_nn, aes(MAP, r_monthly_t_p))
 
 
