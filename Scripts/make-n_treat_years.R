@@ -23,7 +23,7 @@ comb <- rbind(data.anpp, data.cover)%>%
   
 
 
-first_treat_year <- subset(comb, n_treat_days >= 200 & n_treat_days < 800  )%>%
+first_treat_year <- subset(comb, n_treat_days >= 200 & n_treat_days < 665  )%>%
                     ddply(.(site_code),function(x)data.frame(
                       first_year = min(x$year)
                     ))
