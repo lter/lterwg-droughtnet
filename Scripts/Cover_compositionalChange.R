@@ -13,7 +13,7 @@ library(sjPlot)
 
 #library(plyr)
 
-theme_set(theme_bw(20))
+theme_set(theme_bw(16))
 
 # Set WD
 user <- "MTH"
@@ -21,7 +21,7 @@ if (user == "MTH"){
   setwd("~/Library/CloudStorage/OneDrive-UCB-O365/UCB/Desktop/lterwg-droughtnet")
 } else{setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")}
 
-setwd("E:\\Dropbox\\IDE (1)\\data_processed")
+setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
 dat<-read.csv("cover_ppt_2023-05-10.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
@@ -314,7 +314,7 @@ years<-deltamult %>%
   select(site_code, year, n_treat_years) %>% 
   unique()
 
-#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. postitive values means drought had higher values than control
+#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. positive values means drought had higher values than control
 RRMult<-deltamult %>% 
   pivot_longer(names_to="measure", values_to = "value", composition_change:dispersion_change) %>%
   pivot_wider(names_from = "trt", values_from = "value") %>% 
@@ -359,100 +359,135 @@ RRall<-RRRac%>%
 #   ylab("Drought-Control Difference")
 
 meanCIdiff<-RRall %>% 
-  na.omit() %>% 
   group_by(measure) %>% 
-  summarize(mean=mean(RR), n=length(RR), sd=sd(RR)) %>% 
+  summarize(mean=mean(RR, na.rm=T), n=length(RR), sd=sd(RR, na.rm=T)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96)
   
 ##Top panel. Mean with CI on the differences between treatment and control changes.
-ggplot(data = subset(meanCIdiff, measure!="dispersion_change"), aes(x=measure, y=mean))+
-  geom_point()+
-  scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
-  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI))+
+CTdiff_measures<-ggplot(data = subset(meanCIdiff, measure!="dispersion_change"|measure!="Dominance"), aes(x=measure, y=mean))+
+  geom_point(size=3)+
+  scale_x_discrete(limits=c("richness_change", "evenness_change", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Ranks", "Gains", 'Losses', "Composition"))+
+  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI), width=0.5)+
   geom_hline(yintercept = 0)+
   annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
-  annotate("text", x=5, y=0.001, label="*", size=8, color="red")+
-  annotate("text", x=6, y=.07, label="*", size=8,color="red")+
-  annotate("text", x=7, y=.06, label="*", size=8,color="red")+
+  annotate("text", x=4, y=0.001, label="*", size=8, color="red")+
+  annotate("text", x=5, y=.07, label="*", size=8,color="red")+
+  annotate("text", x=6, y=.06, label="*", size=8,color="red")+
   xlab("Measure of Community Change")+
   ylab("Control-Treatment Differences")
 
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", plot=CTdiff_measures, units = "in", width=6, height=3.5)
+
 meanCIcomp<-deltamult %>%
-  na.omit() %>% 
   group_by(trt) %>% 
-  summarize(mean=mean(composition_change), n=length(composition_change), sd=sd(composition_change)) %>% 
+  summarize(mean=mean(composition_change, na.rm=T), n=length(composition_change), sd=sd(composition_change, na.rm=T)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96, measure="Composition_change")
 
 MeanCI<-deltaracs %>%
-  na.omit() %>% 
   pivot_longer(richness_change:losses, names_to = "measure", values_to = "value") %>% 
-  group_by(measure, trt) %>% 
-  summarize(mean=mean(value), n=length(value), sd=sd(value)) %>% 
+  group_by(trt, measure) %>% 
+  summarize(mean=mean(value, na.rm=T), n=length(value), sd=sd(value, na.rm=T)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
-  bind_rows(meanCIcomp)
+  bind_rows(meanCIcomp) %>% 
+  filter(measure!="dispersion_change"&measure!="Dominance"&measure!=
+           "Composition_change") %>% 
+  mutate(measure2=factor(measure, levels=c("gains", "losses", 'richness_change', 'evenness_change', 'rank_change'))) %>% 
+  left_join(pvalsTRT)
 
-ggplot(data = subset(meanCI, measure!="dispersion_change"), aes(x=measure, y=mean))+
-  geom_point()+
-  scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
-  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI))+
-  geom_hline(yintercept = 0)+
-  annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
-  annotate("text", x=5, y=0.001, label="*", size=8, color="red")+
-  annotate("text", x=6, y=.07, label="*", size=8,color="red")+
-  annotate("text", x=7, y=.06, label="*", size=8,color="red")+
-  xlab("Measure of Community Change")+
-  ylab("Control-Treatment Differences")
+
+labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Rank Chg.')
+#figure of CT differences
+CTCompare<-
+ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
+  geom_point(size=4)+
+  scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
+  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x =element_blank(), legend.position = c(0.8,0.3))+
+  facet_wrap(~measure2, scales='free', labeller = labeller(measure2=labs), ncol=3)+
+  ylab("Change from Pre-Treatment")+
+  xlab("")+
+  geom_text(aes(x=Inf, y=Inf), hjust=1.05, vjust=1.2, color="black")
+CTCompare
+
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTchange.jpg", plot=CTCompare, units = "in", width=6.5, height=5)
+
+# rich<-
+# ggplot(data = subset(MeanCI, measure=="richness_change"), aes(x=trt, y=mean, color=trt))+
+#   geom_point(size=4)+
+#   scale_color_manual(values=c("darkgreen", "darkorange"))+
+#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
+#   geom_hline(yintercept = 0)+
+#   scale_y_continuous(limits=c(-1, 1))+
+#   ggtitle("Richness Change")+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
+# 
+# ggplot(data = subset(MeanCI, measure=="gains"), aes(x=trt, y=mean, color=trt))+
+#   geom_point(size=4)+
+#   scale_color_manual(values=c("darkgreen", "darkorange"))+
+#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
+#   scale_y_continuous(limits=c(0, 1))+
+#   ggtitle("Species Gains")+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
+# 
+# ggplot(data = subset(MeanCI, measure=="losses"), aes(x=trt, y=mean, color=trt))+
+#   geom_point(size=4)+
+#   scale_color_manual(values=c("darkgreen", "darkorange"))+
+#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
+#   scale_y_continuous(limits=c(0, 1))+
+#   ggtitle("Species Losses")+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
+# 
+# ggplot(data = subset(MeanCI, measure=="richness_change"), aes(x=trt, y=mean, color=trt))+
+#   geom_point(size=4)+
+#   scale_color_manual(values=c("darkgreen", "darkorange"))+
+#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
+#   geom_hline(yintercept = 0)+
+#   scale_y_continuous(limits=c(-1, 1))+
+#   ggtitle("Richness Change")+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
+
+
 
 # doing stats on change ---------------------------------------------------
 
 #1) Are there differences from zero?
 
-rich<-RRall %>%
-  filter(measure=="richness_change")
-t.test(rich$RR, mu=0, alternative = "two.sided")
+RRallstats<-RRall %>% 
+  group_by(measure) %>% 
+  summarize(pval=t.test(RR, mu=0, alternative="two.sided")$p.value) %>% 
+  mutate(padj=p.adjust(pval, method="BH"))
 
-#this is sig.
-even<-RRall %>% 
-  filter(measure=="evenness_change")
-t.test(even$RR, mu=0, alternative = "two.sided")
-#this is NOT sig.
-dom<-RRall %>% 
-  filter(measure=="Dominance")
-t.test(dom$RR, mu=0, alternative = "two.sided")
-#this is NOT sig.
-rank<-RRall %>% 
-=======
-#this is NOT sig.
-even<-RRall %>%
-  filter(measure=="evenness_change")
-t.test(even$RR, mu=0, alternative = "two.sided")
-#this is sig.
-dom<-RRall %>%
-  filter(measure=="Dominance")
-t.test(dom$RR, mu=0, alternative = "two.sided")
-#this is sig.
-rank<-RRall %>%
-  filter(measure=="rank_change")
-t.test(rank$RR, mu=0, alternative = "two.sided")
-#this is NOT sig.
-gain<-RRall %>%
-  filter(measure=="gains")
-t.test(gain$RR, mu=0, alternative = "two.sided")
-#this is sig.
-loss<-RRall %>%
-  filter(measure=="losses")
-t.test(loss$RR, mu=0, alternative = "two.sided")
-#this is sig.
-comp<-RRall %>%
-  filter(measure=="composition_change")
-t.test(comp$RR, mu=0, alternative = "two.sided")
-#this is sig.
 
-#I think i should drop dispersion
-# disp<-RRall %>% 
-#   filter(measure=="dispersion_change")
-# t.test(disp$RR, mu=0, alternative = "two.sided")
-# #this is NOT sig.
+#1A) are C-T rates of change different from one-another and do they differ over time
+
+deltarac3yrs<-deltaracs %>% 
+  filter(n_treat_years<4)
+
+mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mrich)
+
+meven<-lmer(evenness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(meven)
+
+mrank<-lmer(rank_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mrank)
+
+mgain<-lmer(gains~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mgain)
+
+mloss<-lmer(losses~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mloss)
+
+ggplot(data=deltarac3yrs, aes(x=n_treat_years, y=rank_change, color=trt))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+#adjust P-values for treat effect
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.005, 0.732, 0.248, 0.049, 0.009)) %>%
+  mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
+
+pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.654, 0.374, 0.022, 0.988, 0.444)) %>% 
+  mutate(padj=p.adjust(pvalue, method="BH"))
 
 ###looking at changes over time.
 ##there are no differences among the years at all
@@ -605,19 +640,23 @@ RR2_rich <- RR2_rich %>%
   group_by(site_code) %>%
   distinct(trt, .keep_all = TRUE)
 
+latlong<-read.csv("Site_Elev-Disturb.csv")
+sites<-drt1yr %>% 
+  left_join(latlong)
+
+
 # Map sites in each continent
 map <- ggplot() + 
   geom_sf(data = world, fill = "antiquewhite") + 
   #geom_sf(data = oz_states, colour = "black", fill = NA) + 
-  geom_point(data = RR2, mapping = aes(x = longitud, y = latitud, fill = continent),
+  geom_point(data = sites, mapping = aes(x = longitud, y = latitud, fill = continent),
              pch = 21, 
              color = "black", 
-             size = 3.5) + 
+             size = 2) + 
   scale_fill_paletteer_d(`"dutchmasters::milkmaid"`) +
   geom_jitter(position = "jitter") +
-  coord_sf() +
   theme_bw(base_size = 16) +
-  labs(x = "Latitude", y = "Longitude", fill = "IDE Sites (n = 79)") + 
+  labs(x = "Latitude", y = "Longitude", fill = "IDE Sites (n = 77)") + 
   annotation_north_arrow(location = "bl", which_north = "true", 
                          pad_x = unit(0.25, "in"), pad_y = unit(0.5, "in"),
                          style = north_arrow_fancy_orienteering) + 
@@ -626,33 +665,55 @@ map <- ggplot() +
   coord_sf(ylim = c(-80, 80), expand = FALSE)
 map
 
+#make for ESA
+esamap <- ggplot() + 
+  geom_sf(data = world, fill = "antiquewhite") + 
+  #geom_sf(data = oz_states, colour = "black", fill = NA) + 
+  geom_point(data = sites, mapping = aes(x = longitud, y = latitud, fill=continent),
+             pch = 21, 
+             color = "black",
+             size = 2) + 
+  scale_fill_paletteer_d(`"dutchmasters::milkmaid"`) +
+  geom_jitter(position = "jitter") +
+  theme_bw(base_size = 16) +
+  labs(x = "Latitude", y = "Longitude") + 
+  annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(0.25, "in"), pad_y = unit(0.5, "in"),
+                         style = north_arrow_fancy_orienteering) + 
+  theme(panel.grid.major = element_line(color = gray(.5), linetype = "dashed", size = 0.5), 
+        panel.background = element_rect(fill = "aliceblue"), legend.position = "none") + 
+  coord_sf(ylim = c(-80, 80), expand = FALSE)
+
+
 # Make histograms of covariates
 hist1 <- ggplot() +
   geom_histogram(data = RR2_rich, binwidth = 100, mapping = aes(x = map), fill = "darkblue", color = "antiquewhite") +
-  theme_bw(base_size = 16) +
+  theme_bw(base_size = 12) +
   ylim(0, 20) +
-  labs(x = "Mean Annual Precipitation (mm)", y = "Site Count")
+  labs(x = "MAP (mm)", y = "Site Count")
 hist1
 
 hist2 <- ggplot() +
   geom_histogram(data = RR2_rich, binwidth = 5, mapping = aes(x = rich), fill = "darkgreen", color = "antiquewhite") +
-  theme_bw(base_size = 16) +
+  theme_bw(base_size = 12) +
   ylim(0, 20) +
   labs(x = "Species Richness", y = "")
 hist2
 
 hist3 <- ggplot() +
   geom_histogram(data = RR2_rich, binwidth = 10, mapping = aes(x = PctGrass), fill = "brown", color = "antiquewhite") +
-  theme_bw(base_size = 16) +
+  theme_bw(base_size = 12) +
   ylim(0, 20) +
-  labs(x = "Percent Cover Grass", y = "")
+  labs(x = "% Grass", y = "")
 hist3
 
 # Combine into one figure
-Fig1<- grid.arrange(map, hist1, hist2, hist3, nrow = 3, 
+Fig1<- grid.arrange(esamap, hist1, hist2, hist3, nrow = 3, 
              layout_matrix = rbind(c(1,1,1), c(1,1,1), c(2,3,4)))
 
 Fig1
+
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\MAP.jpeg", plot=Fig1, units="in", width=7, height=4.5)
 
 ### Figure 2: Difference in change for drought - control plots ----
 # 2A: Difference in change (Drought - Control)
@@ -689,6 +750,8 @@ deltaracs_long <-delta_long %>%
   summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
             n = length(value)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96)
+
+
 # Re-order and re-label
 new_labs <- as_labeller(
   c(`richness_change` = "Richness",
@@ -882,5 +945,23 @@ SuppFig2 <-ggplot(stitches_sites, aes(x = mean.x, y=reorder(site_code, -mean.y))
 SuppFig2
 
 
+####getting numbers for poster
+trt<-dat2 %>% 
+  select(rep, trt) %>% 
+  unique()
 
+rich<-community_structure(df = dat2, abundance.var ="max_cover", replicate.var = "rep", time.var = "n_treat_years") %>% 
+  select(-Evar) %>% 
+  filter(n_treat_years==0|n_treat_years==3)
 
+rich2<-pivot_wider(rich, names_from=n_treat_years, names_prefix = "y", values_from = richness) %>% 
+  mutate(sp_change=y3-y0) %>% 
+  na.omit() %>% 
+  left_join(trt) %>% 
+  separate(rep, into=c("site_code", "plot"), sep=";") %>% 
+  group_by(site_code, trt) %>% 
+  summarise(mean=mean(sp_change)) %>% 
+  filter(trt!="Control")
+
+mean(rich2$mean)
+se<-sd(rich2$mean)/sqrt(55)
