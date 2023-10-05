@@ -23,7 +23,7 @@ comb <- rbind(data.anpp, data.cover)%>%
   
 
 
-first_treat_year <- subset(comb, n_treat_days >= 200 & n_treat_days < 665  )%>%
+first_treat_year <- subset(comb, n_treat_days >= 200 & n_treat_days < 565  )%>%
                     ddply(.(site_code),function(x)data.frame(
                       first_year = min(x$year)
                     ))
@@ -73,4 +73,4 @@ subset(combfin, is.na(n_treat_years) == TRUE)
 
 
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-05-01.csv")
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-05.csv")

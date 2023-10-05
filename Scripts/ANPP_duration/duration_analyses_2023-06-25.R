@@ -90,7 +90,7 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(num.years == 4 | num.years == 3
   ) #change here if using 4 years #reduces dataset to focal sites
 
-length(unique(data.anpp2$site_code)) #68
+length(unique(data.anpp2$site_code)) #65
 
 
 ##Create anpp_response and drought severity metrics
