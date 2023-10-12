@@ -2,6 +2,7 @@
 ###cody by Meghan Avolio, Feb 8, 2023
 ###March 21, 2023. Working to include all communities for the difference analysis.
 ###May 4th, 2023, updating analyses with updated data. Are looking at change
+###update Oct 11, 2023, updating datasets
 
 library(tidyverse)
 library(codyn)
@@ -10,6 +11,7 @@ library(lmerTest)
 library(vegan)
 library(data.table)
 library(sjPlot)
+library(gridExtra)
 
 #library(plyr)
 
@@ -23,8 +25,20 @@ if (user == "MTH"){
 
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-05-10.csv") %>% 
+dat<-read.csv("cover_ppt_2023-10-12.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
+
+#dropping datasets without pretreatment
+drop_no_pretrt<-dat %>% 
+  select(site_code, n_treat_years) %>% 
+  unique() %>% 
+  filter(n_treat_years==0) %>% 
+  select(-n_treat_years)
+
+dat2<-dat %>% 
+  right_join(drop_no_pretrt) %>% 
+  mutate(rep=paste(site_code, replicate, sep=";")) %>% 
+  filter(n_treat_years!=0.5&n_treat_years!=-1)
 
 #dropping sites with less than 5 species in the controls
 ##just kidding, we are no longer doing this
@@ -91,14 +105,14 @@ dat<-read.csv("cover_ppt_2023-05-10.csv") %>%
 
 
 #getting drought severity
-drt<-dat %>% 
+drt<-dat2 %>% 
   filter(trt=="Drought") %>% 
-  select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>% 
-  unique() %>% 
+  select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>%   unique() %>% 
   mutate(drtseverity=(ppt.1-map)/map) %>% 
-  select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
+  select(-ppt.1, -ppt.2, -ppt.3, -ppt.4) %>% 
+  filter(n_treat_years<4)
 
-site_types<-read.csv("community_comp\\Prc_LifeHistory_July2023.csv")
+site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Oct2023.csv")
 
 continent<-read.csv("Site_Elev-Disturb.csv") %>% 
   select(site_code, continent)
@@ -215,17 +229,7 @@ continent<-read.csv("Site_Elev-Disturb.csv") %>%
 
 
 # Getting measures of change ----------------------------------------------
-#dropping datasets without pretreatment
-drop_no_pretrt<-dat %>% 
-  select(site_code, n_treat_years) %>% 
-  unique() %>% 
-  filter(n_treat_years==0) %>% 
-  select(-n_treat_years)
 
-dat2<-dat %>% 
-  right_join(drop_no_pretrt) %>% 
-  mutate(rep=paste(site_code, replicate, sep=";")) %>% 
-  filter(n_treat_years!=0.5&n_treat_years!=-1)
 
 #summarazing the data
 drt1yr<-dat2 %>% 
@@ -288,25 +292,25 @@ for (i in 1:length(sc)){
     bind_rows(change_ranks)
 }
 
-###calcluaing bp change
-  
-bp_yr0<-dat3 %>% 
-    group_by(site_code, year, n_treat_years, trt, replicate) %>% 
+##calcluaing bp change
+
+bp_yr0<-dat3 %>%
+    group_by(site_code, year, n_treat_years, trt, replicate) %>%
     summarise(max=max(max_cover), sum=sum(max_cover)) %>%
-    mutate(bp=max/sum) %>% 
-    ungroup() %>% 
-    filter(n_treat_years==0) %>% 
-    select(-max, -sum, -n_treat_years, -year) %>% 
+    mutate(bp=max/sum) %>%
+    ungroup() %>%
+    filter(n_treat_years==0) %>%
+    select(-max, -sum, -n_treat_years, -year) %>%
     rename(bp0=bp)
 
-bp_change<-dat3 %>% 
-    group_by(site_code, year, n_treat_years, trt, replicate) %>% 
+bp_change<-dat3 %>%
+    group_by(site_code, year, n_treat_years, trt, replicate) %>%
     summarise(max=max(max_cover), sum=sum(max_cover)) %>%
-    mutate(bp=max/sum) %>% 
+    mutate(bp=max/sum) %>%
     filter(n_treat_years!=0) %>%
-    left_join(bp_yr0) %>% 
-    mutate(value=bp-bp0) %>% 
-    mutate(measure="Dominance") %>% 
+    left_join(bp_yr0) %>%
+    mutate(value=bp-bp0) %>%
+    mutate(measure="Dominance") %>%
   select(-sum, -max,-bp, -bp0)
 
 ##looking at data a bit
@@ -334,6 +338,8 @@ RRall<-RRRac%>%
   bind_rows(RRMult) %>% 
   left_join(drt) %>% 
   filter(n_treat_years<4)
+
+length(unique(RRall$site_code))
 
 # chgRacMeans<-chgRaclong%>% 
 #   group_by(site_code, year, trt, measure) %>% 
@@ -364,17 +370,18 @@ meanCIdiff<-RRall %>%
   mutate(se=sd/sqrt(n), CI=se*1.96)
   
 ##Top panel. Mean with CI on the differences between treatment and control changes.
-CTdiff_measures<-ggplot(data = subset(meanCIdiff, measure!="dispersion_change"|measure!="Dominance"), aes(x=measure, y=mean))+
+CTdiff_measures<-ggplot(data = subset(meanCIdiff, measure!="dispersion_change"|measure!="Dominance"|measure!='composition_change'), aes(x=measure, y=mean))+
   geom_point(size=3)+
-  scale_x_discrete(limits=c("richness_change", "evenness_change", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Ranks", "Gains", 'Losses', "Composition"))+
+  scale_x_discrete(limits=c("richness_change", "evenness_change", 'rank_change', 'gains', 'losses'), labels=c("Richness", "Evenness", "Ranks", "Gains", 'Losses'))+
   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI), width=0.5)+
   geom_hline(yintercept = 0)+
-  annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
-  annotate("text", x=4, y=0.001, label="*", size=8, color="red")+
-  annotate("text", x=5, y=.07, label="*", size=8,color="red")+
-  annotate("text", x=6, y=.06, label="*", size=8,color="red")+
+  # annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
+  # annotate("text", x=4, y=0.001, label="*", size=8, color="red")+
+  # annotate("text", x=5, y=.07, label="*", size=8,color="red")+
+  # annotate("text", x=6, y=.06, label="*", size=8,color="red")+
   xlab("Measure of Community Change")+
-  ylab("Control-Treatment Differences")
+  ylab("Control-Treatment Differences")+
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank())
 
 ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", plot=CTdiff_measures, units = "in", width=6, height=3.5)
 
@@ -395,7 +402,7 @@ MeanCI<-deltaracs %>%
   left_join(pvalsTRT)
 
 
-labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Rank Chg.')
+labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Reordering')
 #figure of CT differences
 CTCompare<-
 ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
@@ -405,9 +412,10 @@ ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x =element_blank(), legend.position = c(0.8,0.3))+
   facet_wrap(~measure2, scales='free', labeller = labeller(measure2=labs), ncol=3)+
   ylab("Change from Pre-Treatment")+
-  xlab("")+
-  geom_text(aes(x=Inf, y=Inf), hjust=1.05, vjust=1.2, color="black")
+  xlab("")
 CTCompare
+
+#grid.arrange(CTdiff_measures, CTCompare)
 
 ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTchange.jpg", plot=CTCompare, units = "in", width=6.5, height=5)
 
@@ -461,7 +469,9 @@ RRallstats<-RRall %>%
 #1A) are C-T rates of change different from one-another and do they differ over time
 
 deltarac3yrs<-deltaracs %>% 
-  filter(n_treat_years<4)
+  filter(n_treat_years<4& n_treat_years>0)
+
+length(unique(deltarac3yrs$site_code))
 
 mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
 anova(mrich)
@@ -483,7 +493,7 @@ ggplot(data=deltarac3yrs, aes(x=n_treat_years, y=rank_change, color=trt))+
   geom_smooth(method = "lm")
 
 #adjust P-values for treat effect
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.005, 0.732, 0.248, 0.049, 0.009)) %>%
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.0002454, 0.5475, 0.20764, 0.01591, 0.0001927)) %>%
   mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
 
 pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.654, 0.374, 0.022, 0.988, 0.444)) %>% 
@@ -533,11 +543,13 @@ anova(mcomp)
 ###
 RR2<-RRall %>% 
   left_join(site_types) %>% 
-  left_join(continent) %>% 
-  na.omit() %>% 
+  #na.omit() %>% 
   mutate(MAP=(as.numeric(map)/1000),
          PAnn=(as.numeric(PctAnnual)/100),
          PGras=(as.numeric(PctGrass)/100))
+
+length(unique(RR2$site_code))
+#there are only 79 here.
 
 str(RR2)
 
