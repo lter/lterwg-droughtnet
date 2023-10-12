@@ -5,11 +5,11 @@ library(plyr)
 
 
 
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_05-01-2023.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_06-06-2023.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()
 
-data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-05-01.csv")%>%
+data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-10-11.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()%>%
               subset(n_treat_days != "NULL")#marcdrt.ar has some null values for unknown reasons
@@ -60,6 +60,24 @@ comb1$n_treat_years1 <- case_when(
   comb1$n_treat_years_pre == 0 ~ 0,
   comb1$site_code == "buoya.no" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
   comb1$site_code == "haver.no" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "allmendb.ch" & comb1$year == "2017" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "allmendb.ch" & comb1$year == "2018" ~ 3, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "allmendb.ch" & comb1$year == "2019" ~ 4, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "allmendo.ch" & comb1$year == "2017" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "allmendo.ch" & comb1$year == "2018" ~ 3, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "allmendo.ch" & comb1$year == "2019" ~ 4, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "cdpt_drt.us" & comb1$year == "2019" ~ -1, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "eea.br" & comb1$year == "2020" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "lcnorth.cl" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "lcsouth.cl" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  
+  comb1$site_code == "qdtnorth.cl" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "qdtsouth.cl" & comb1$year == "2019" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  
+  comb1$site_code == "torla.es" & comb1$year == "2017" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "torla.es" & comb1$year == "2018" ~ 3, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  comb1$site_code == "torla.es" & comb1$year == "2019" ~ 4, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
+  
   TRUE ~ comb1$n_treat_years
 )
 
@@ -73,4 +91,4 @@ subset(combfin, is.na(n_treat_years) == TRUE)
 
 
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-05.csv")
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-11.csv")

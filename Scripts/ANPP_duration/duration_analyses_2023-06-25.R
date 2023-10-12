@@ -87,11 +87,33 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   left_join(num.treat.years, by = "site_code")%>%
   left_join(extremeyrs, by = c("site_code", "year", "n_treat_years"))%>%
   left_join(extremeyrs.prev, by = c("site_code", "year"))%>%
-  subset(num.years == 4 | num.years == 3
-  ) #change here if using 4 years #reduces dataset to focal sites
+  subset(num.years == 4 | num.years == 3) %>%#change here if using 4 years #reduces dataset to focal sites
+  left_join(prop, by = c("site_code"))
+  
+  
+  #subset(site_code != "capwhite.us" & 
+  #         site_code != "capmcd.us" & 
+  #         site_code != "gmmolar.us" & 
+  #         site_code != "gmgranite.us" & 
+  #         site_code != "scruzl.us" & 
+  #         site_code != "scruzm.us" &
+  #         site_code != "cobar.au" &
+  #         site_code != "brokenh.au" &
+  #         site_code != "chang.cn")
+  
+
+
+
+
 
 length(unique(data.anpp2$site_code)) #65
 
+subset(data.anpp2, PctAnnual != "NA")$site_code%>%
+    unique()%>%
+    length()
+
+subset(data.anpp2, is.na(PctAnnual == TRUE))$site_code%>%
+  unique()
 
 ##Create anpp_response and drought severity metrics
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
@@ -193,23 +215,110 @@ data.anpp.summary%>%
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 3 & y2 != "NA")%>%
-  unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
-  ggplot(aes(drtsev.1, anpp_response))+
-  geom_point(aes(color = two_year_e.n),alpha = 0.8, size = 3, pch = 21)+
+  #unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
+  ggplot(aes(drtsev.1, anpp_response, color = prev_e.n
+             ))+
+
+  #facet_wrap(~e.n)+
+  #facet_grid(prev_e.n~e.n)+
+  geom_point(aes(),alpha = 0.8, size = 3, pch = 21)+
   #geom_smooth(aes(color=y3),method = "lm", se = FALSE)+
   #geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed")+
+  geom_smooth(method = "lm", se = FALSE#, linetype = "dashed"
+              )+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
-  ylab("ANPP response")+
+  ylab("Year 3 ANPP response")+
   ggtitle("")+
-  scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
-  theme_base()+
-  theme(legend.position = "none")
+  #scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
+  scale_fill_gradient(
+    low = "red",
+    high = "grey",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "fill"
+  )+
+  theme_base()#+
+#  theme(legend.position = "none")
+
+
+
+library(ggpmisc)
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 2 & y2 != "NA")%>%
+  #unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
+  ggplot(aes(drtsev.1, anpp_response#,color = prev_e.n
+               ))+
+  #facet_wrap(~e.n)+
+  facet_grid(prev_e.n~e.n)+
+  geom_point(aes(),alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(aes(),method = "lm", se = FALSE)+
+  #geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
+  #  geom_smooth(method = "lm", se = FALSE#, linetype = "dashed"
+  #              )+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  # ylab("Year 3 ANPP response")+
+  ggtitle("")+
+  #scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
+  scale_fill_gradient(
+    low = "red",
+    high = "grey",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "fill"
+  )+
+ 
+  theme_base()#+
+#  theme(legend.position = "none")
+
+
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 3 & y2 != "NA")%>%
+  #unite(two_year_e.n, c("e.n", "prev_e.n"), sep = "::", remove = FALSE)%>%
+  ggplot(aes(drtsev.1, anpp_response#,color = prev_e.n
+  ))+
+  #facet_wrap(~e.n)+
+  facet_grid(prev_e.n~e.n)+
+  geom_point(aes(),alpha = 0.8, size = 3, pch = 21)+
+  geom_smooth(aes(),method = "lm", se = FALSE)+
+  #geom_smooth(aes(color=y2),method = "lm", se = FALSE, linetype = "dashed")+
+  #  geom_smooth(method = "lm", se = FALSE#, linetype = "dashed"
+  #              )+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  # ylab("Year 3 ANPP response")+
+  ggtitle("")+
+  #scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
+  scale_fill_gradient(
+    low = "red",
+    high = "grey",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "fill"
+  )+
+  
+  theme_base()#+
+#  theme(legend.position = "none")
+
+
+
+
+?stat_fit_glance
+
+
+
 
 ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2_prevonly.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
