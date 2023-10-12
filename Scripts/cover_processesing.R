@@ -2,7 +2,7 @@ library(plyr)
 library(tidyverse)
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-05-01.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-11.csv")
 
 #read in cover data survey
 cover_survey <- read.csv("C:/Users/ohler/Dropbox/IDE_data_May 2018/IDE Site Info/cover_survey_results.csv")
@@ -256,7 +256,7 @@ cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", 
 
 
 
-#write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-10-11.csv")
+write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-10-11.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))
