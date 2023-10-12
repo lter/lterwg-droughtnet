@@ -15,14 +15,14 @@ detach(package:plyr,unload=TRUE)
 
 # Load libraries 
 library(tidyverse) # data wrangling
-library(codyn) # diversity indices
+#library(codyn) # diversity indices
 library(lme4) # linear models
 library(lmerTest)
 library(vegan) # diveristy indices
-library(chisq.posthoc.test) # post-hoc test
-library(plotly) # interactive plots
-library(Hmisc) # confidence intervals
-library(ggpubr) # arranging plots
+#library(chisq.posthoc.test) # post-hoc test
+#library(plotly) # interactive plots
+#library(Hmisc) # confidence intervals
+#library(ggpubr) # arranging plots
 library(emmeans) # extracting stats
 library(car)
 
@@ -37,27 +37,27 @@ setwd("G:/My Drive/DroughtnetTest/Data_offline")
 setwd('C://Users/mavolio2//Dropbox//IDE (1)//data_processed')
 
 # cover data
-dat<-read.csv("cover_ppt_2023-05-10.csv") %>% 
+dat<-read.csv("cover_ppt_2023-10-12.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
-# load in multivariate axis data from Meghan H.
-pca <- read.csv("IDE_taxon_site_trait_ordination.csv")
-
-# load in dominance dataset from Meghan H.
-# dom.old <- read.csv("IDE_Year1_DominantSpp.csv")
-# # Load in PCA dataset from Meghan Hayden
-dom <- read.csv("codominant_spp_list_yr0.csv")# includes dominant and co-dominant species. Previously "IDE_Year1_DominantSpp.csv"
-# species are either dominant (D), codominant (CD), or subdominant (SD)
-
-
-# site information
-site_types<-read.csv("Prc_LifeHistory_Yr1Controls.csv")
-
-continent<-read.csv("Site_Elev-Disturb.csv") %>% 
-  dplyr::select(site_code, continent)
-
-# sites we are using for analysis (77)
-sites <- read.csv("sites_77.csv")
+# # load in multivariate axis data from Meghan H.
+# pca <- read.csv("IDE_taxon_site_trait_ordination.csv")
+# 
+# # load in dominance dataset from Meghan H.
+# # dom.old <- read.csv("IDE_Year1_DominantSpp.csv")
+# # # Load in PCA dataset from Meghan Hayden
+# dom <- read.csv("codominant_spp_list_yr0.csv")# includes dominant and co-dominant species. Previously "IDE_Year1_DominantSpp.csv"
+# # species are either dominant (D), codominant (CD), or subdominant (SD)
+# 
+# 
+# # site information
+# site_types<-read.csv("Prc_LifeHistory_Yr1Controls.csv")
+# 
+# continent<-read.csv("Site_Elev-Disturb.csv") %>% 
+#   dplyr::select(site_code, continent)
+# 
+# # sites we are using for analysis (77)
+# sites <- read.csv("sites_77.csv")
 
 
 ################################################################################
@@ -65,49 +65,49 @@ sites <- read.csv("sites_77.csv")
 ################################################################################
 
 ###looping through site to get at differences
-datall<-dat%>% 
-  mutate(rep=paste(site_code, replicate, sep=";")) %>% 
-  filter(n_treat_years!=0.5&n_treat_years!=-1) %>% 
-  filter(n_treat_years==3) %>%
-  # update: filter out "brokenh.au" because there is literally only one species
-  filter(site_code != "brokenh.au")
-
-sc<-unique(datall$site_code) # site codes for looping
-
-diff_metrics<-data.frame() # new data frame
-
-for (i in 1:length(sc)){
-  
-  subset<-datall%>%
-    filter(site_code==sc[i]) # subset for a given site
-  
-  nyrs<-subset %>% 
-    dplyr::select(year, n_treat_years) %>% # from the selected site, get the year(s) information
-    unique()
-  
-  scode<-unique(subset$site_code) # unique site code
-  print(scode)
-  
-  diff_mult<-multivariate_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
-    dplyr::select(-trt, -trt2) # calculates differences in composition between pairs of treatments @ single time point
-  
-  diff_ranks<-RAC_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
-    mutate(site_code=scode) %>% # differences in rank abundances between control and treated plots across years
-    dplyr::select(-replicate2, -trt, -trt2) %>% 
-    group_by(site_code, year, replicate) %>% 
-    summarize_all(mean) %>% 
-    dplyr::select(-replicate) %>% 
-    group_by(site_code, year) %>% 
-    summarize_all(mean)
-  
-  diffmetrics<-diff_ranks %>% # join dataframes together
-    left_join(diff_mult) %>% 
-    left_join(nyrs)
-  
-  
-  diff_metrics<-diff_metrics %>% 
-    bind_rows(diffmetrics)
-}
+# datall<-dat%>% 
+#   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
+#   filter(n_treat_years!=0.5&n_treat_years!=-1) %>% 
+#   filter(n_treat_years==3) %>%
+#   # update: filter out "brokenh.au" because there is literally only one species
+#   filter(site_code != "brokenh.au")
+# 
+# sc<-unique(datall$site_code) # site codes for looping
+# 
+# diff_metrics<-data.frame() # new data frame
+# 
+# for (i in 1:length(sc)){
+#   
+#   subset<-datall%>%
+#     filter(site_code==sc[i]) # subset for a given site
+#   
+#   nyrs<-subset %>% 
+#     dplyr::select(year, n_treat_years) %>% # from the selected site, get the year(s) information
+#     unique()
+#   
+#   scode<-unique(subset$site_code) # unique site code
+#   print(scode)
+#   
+#   diff_mult<-multivariate_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
+#     dplyr::select(-trt, -trt2) # calculates differences in composition between pairs of treatments @ single time point
+#   
+#   diff_ranks<-RAC_difference(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.treatment = "Control") %>% 
+#     mutate(site_code=scode) %>% # differences in rank abundances between control and treated plots across years
+#     dplyr::select(-replicate2, -trt, -trt2) %>% 
+#     group_by(site_code, year, replicate) %>% 
+#     summarize_all(mean) %>% 
+#     dplyr::select(-replicate) %>% 
+#     group_by(site_code, year) %>% 
+#     summarize_all(mean)
+#   
+#   diffmetrics<-diff_ranks %>% # join dataframes together
+#     left_join(diff_mult) %>% 
+#     left_join(nyrs)
+#   
+#   
+#   diff_metrics<-diff_metrics %>% 
+#     bind_rows(diffmetrics)
+# }
 
 
 ################################################################################
@@ -115,27 +115,27 @@ for (i in 1:length(sc)){
 ################################################################################
 
 #getting drought severity
-drt<-dat %>% 
-  filter(trt=="Drought") %>% 
-  dplyr::select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>% 
-  unique() %>% 
-  mutate(drtseverity=(ppt.1-map)/map) %>% 
-  dplyr::select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
+# drt<-dat %>% 
+#   filter(trt=="Drought") %>% 
+#   dplyr::select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>% 
+#   unique() %>% 
+#   mutate(drtseverity=(ppt.1-map)/map) %>% 
+#   dplyr::select(-ppt.1, -ppt.2, -ppt.3, -ppt.4)
+# 
 
-
-#looking at data
-difflong<-diff_metrics %>% 
-  dplyr::select(-abs_dispersion_diff, -trt_greater_disp) %>% 
-  pivot_longer(names_to = 'measure', values_to = 'value', richness_diff:composition_diff) %>% 
-  left_join(drt) %>% 
-  left_join(site_types)
-
-unique(diff_metrics$site_code)
-
-ggplot(data=difflong, aes(x=drtseverity, y=value))+
-  geom_point()+
-  geom_smooth(method='lm')+
-  facet_grid(measure~n_treat_years, scales="free")
+# #looking at data
+# difflong<-diff_metrics %>% 
+#   dplyr::select(-abs_dispersion_diff, -trt_greater_disp) %>% 
+#   pivot_longer(names_to = 'measure', values_to = 'value', richness_diff:composition_diff) %>% 
+#   left_join(drt) %>% 
+#   left_join(site_types)
+# 
+# unique(diff_metrics$site_code)
+# 
+# ggplot(data=difflong, aes(x=drtseverity, y=value))+
+#   geom_point()+
+#   geom_smooth(method='lm')+
+#   facet_grid(measure~n_treat_years, scales="free")
 
 
 ################################################################################
@@ -150,8 +150,13 @@ drop_no_pretrt<-dat %>%
 dat2<-dat %>% 
   right_join(drop_no_pretrt) %>% 
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
-  filter(n_treat_years!=0.5&n_treat_years!=-1&n_treat_years<4) %>% 
+  filter(n_treat_years!=0.5&n_treat_years!=-1&n_treat_years<4&n_treat_years>-1) %>% 
   filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
+
+missing<-dat2 %>% 
+  filter(is.na(ps_path)) %>% 
+  select(Taxon) %>% 
+  unique()
 
 length(unique(dat2$site_code))
 
@@ -173,7 +178,9 @@ datblip<-dat2%>% # prep dataframe for looping
          ps_path != "NULL"&ps_path!='C3-C4 INTERMEDIATE') %>%
   mutate(N.fixer = ifelse(N.fixer == 0, "Non-N-fixer",
                           ifelse(N.fixer == 1, "N-fixer",NA)))
-length(unique(datblip$site_code)) # 101 sites total
+length(unique(datblip$site_code)) # I lost two sites here. Maybe by dropping zeros?
+
+
 
 # # find dominant species in site (across all years)
 # head(dom) # dominance classification dataset from Meghan H.
@@ -209,6 +216,12 @@ length(unique(datblip$site_code)) # 101 sites total
 ################################################################################
 # PART 6: count species gains and losses
 ################################################################################
+#pretreat cover
+pretrt_cover<-dat2 %>% 
+  filter(n_treat_years==0) %>% 
+  group_by(site_code, trt, block, plot, subplot, Taxon) %>% 
+  summarise(pretrt=mean(max_cover))
+
 
 datblip2<-datblip %>% 
   select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, n_treat_years, max_cover) %>% 
@@ -218,7 +231,8 @@ datblip2<-datblip %>%
                  ifelse(y0==0&y1>0&y2>0&y3>0|y0==0&y1==0&y2>0&y3>0, "gain","blip")))) %>% 
   mutate(loss=ifelse(outcome=='loss', 1, 0),
          gain=ifelse(outcome=="gain", 1, 0),
-         persist=ifelse(outcome=='persist', 1, 0))
+         persist=ifelse(outcome=='persist', 1, 0)) %>% 
+  left_join(pretrt_cover)
 
 
 numloss<-sum(datblip2$loss)
@@ -232,10 +246,15 @@ numpersist<-sum(datblip2$persist)
 # summary(gain_lifeform)
 # anova(gain_lifeform)
 
-loss_lifeform <- glmer(loss ~ trt*local_lifeform + (1|site_code), family = binomial(), data = datblip2)
+##doing this now with pretreatment abundance as part of this.
+loss_lifeform <- glmer(loss ~ local_lifeform*trt*pretrt + (1|site_code), family = binomial(), data = datblip2)
 summary(loss_lifeform)
 Anova(loss_lifeform)
 #there is no interaction in prob of loss between local lifeform and drought
+
+ggplot(data=datblip2, aes(x=pretrt, y=loss, color=local_lifeform, linetype=trt))+
+  geom_point()+
+  geom_smooth(method = 'glm', method.args=list(family='binomial'))
 
 emmeans(loss_lifeform, pairwise ~ local_lifeform|trt, type = 'response', adjust="Tukey")
 
@@ -243,9 +262,13 @@ lf<- data.frame(summary(emmeans(loss_lifeform, pairwise ~ trt*local_lifeform, ty
   mutate(trait = "Lifeform") %>% 
   rename(TraitCat=local_lifeform)
 
-loss_lifespan <- glmer(loss ~ trt*local_lifespan + (1|site_code), family = binomial(), data = datblip2)
+loss_lifespan <- glmer(loss ~ trt*local_lifespan*pretrt + (1|site_code), family = binomial(), data = datblip2)
 summary(loss_lifespan)
 Anova(loss_lifespan)
+
+ggplot(data=datblip2, aes(x=pretrt, y=loss, color=local_lifespan, linetype=trt))+
+  geom_point()+
+  geom_smooth(method = 'glm', method.args=list(family='binomial'))
 
 #there is an interaction between lifespan and loss by drought
 
@@ -256,9 +279,14 @@ ls<- data.frame(summary(emmeans(loss_lifespan, pairwise ~ trt*local_lifespan, ty
   rename(TraitCat=local_lifespan) %>% 
   mutate(TraitCat=ifelse(TraitCat=="ANNUAL", "Annual", 'Perennial'))
 
-loss_Nfix <- glmer(loss ~ trt*N.fixer + (1|site_code), family = binomial(), data = datblip2)
+loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = datblip2)
 summary(loss_Nfix)
 Anova(loss_Nfix)
+
+ggplot(data=datblip2, aes(x=pretrt, y=loss, color=N.fixer, linetype=trt))+
+  geom_point()+
+  geom_smooth(method = 'glm', method.args=list(family='binomial'))
+
 
 #there is not interaction between Nfixer and drought
 
@@ -268,9 +296,13 @@ nfix<- data.frame(summary(emmeans(loss_Nfix, pairwise ~ trt*N.fixer, type = 'res
   mutate(trait = "N_Fixer")%>% 
   rename(TraitCat=N.fixer)
 
-loss_ps <- glmer(loss ~ trt*ps_path + (1|site_code), family = binomial(), data = datblip2)
+loss_ps <- glmer(loss ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = datblip2)
 summary(loss_ps)
 Anova(loss_ps)
+
+ggplot(data=datblip2, aes(x=pretrt, y=loss, color=ps_path, linetype=trt))+
+  geom_point()+
+  geom_smooth(method = 'glm', method.args=list(family='binomial'))
 
 #there is no interaction between PS and drought
 
@@ -288,19 +320,30 @@ toplot<-lf %>%
   bind_rows(ls, nfix, ps) %>%
   left_join(pvals)
 
+labs=c(Lifeform="Growth Form", Lifespan='Lifespan', N_Fixer="N Fixation", Photo_Path='Photosynthetic Pathway')
+
 loss<-
 ggplot(data=toplot, aes(x=TraitCat, y=prob, color=trt, label=padj))+
-  geom_point(size=3)+
+  geom_point(size=3, position = position_dodge(width = 0.4))+
   scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
-  geom_errorbar(aes(ymin=prob-SE, ymax=prob+SE), width=0.2)+
+  geom_errorbar(aes(ymin=prob-SE, ymax=prob+SE), width=0.2, position = position_dodge(width = 0.4))+
   geom_text(aes(x=Inf, y=Inf), hjust=1.05, vjust=1.2, color="black")+
-  facet_wrap(~trait, scales = 'free')+
+  facet_wrap(~trait, scales = 'free', labeller = labeller(trait=labs))+
   ylab("Probability of Loss")+
   xlab("Trait")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "top")
-
+loss
 ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\probloss.jpg", plot=loss, units = "in", width=6.5, height=5)
 
+#####looking at persist and gains
+model <- glmer(gain ~ local_lifespan*trt*pretrt + (1|site_code), family = binomial(), data = datblip2)
+summary(model)
+Anova(model)
+
+
+ggplot(data=datblip2, aes(x=pretrt, y=loss, color=local_lifespan, linetype=trt))+
+  geom_point()+
+  geom_smooth(method = 'glm', method.args=list(family='binomial'))
 
 
 ########MAGGIE'S CODE
