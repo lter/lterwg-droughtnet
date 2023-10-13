@@ -43,7 +43,7 @@ dplyr::glimpse(coords)
 # Make it "really" spatial
 coords_sf <- coords %>%
   # Make it an `sf` object (i.e., "really" spatial)
-  sf::st_as_sf(x = ., coords = c("latitud", "longitud")) %>%
+  sf::st_as_sf(x = ., coords = c("longitud", "latitud")) %>%
   # Set Coordinate Reference System (CRS) manually
   sf::st_set_crs(x = ., value = 4326)
 
@@ -61,18 +61,59 @@ ar5_regions <- sf::st_read(dsn = file.path("Data", "IPCC AR5 Regions", "referenc
 # Check structure
 dplyr::glimpse(ar5_regions)
 
-# Strip out old region information at coordinates
-old_extract <- sf::st_intersection(x = ar5_regions, at = coords_sf) %>%
-  # Drop geometry so we get just the 'data' part
-  sf::st_drop_geometry()
-
-# Check structure of that
-dplyr::glimpse(old_extract)
-
 # Updated IPCC regions
 
 ## Link to download here: https://zenodo.org/records/3998463
 
 
+# Make an output list
+out_list <- list()
+
+# Loop across points
+for(k in 1:nrow(coords_sf)){
+  
+  # Message start
+  message("Extracting for point ", k, " of ", nrow(coords_sf))
+  
+  # Identify intersection point(s)
+  ixn <- sf::st_intersects(x = coords_sf[k,]$geometry, y = ar5_regions)
+  
+  # If multiple intersections...
+  if(length(ixn[[1]]) > 1) {
+    
+    # Make an empty vector
+    temp_lab <- NULL
+    
+    # Loop across intersections
+    for(multi_ixn in 1:length(ixn[[1]])){
+      
+      # Get label at that intersection
+      multi_lab <- ar5_regions$LAB[as.integer(ixn[[1]][multi_ixn])]
+      
+      # Add to vector
+      temp_lab <- c(temp_lab, multi_lab)
+      
+      # Collapse into a one-element vector
+      ar5_lab <- paste(temp_lab, collapse = "; ") }
+    
+    # If only one, get just that one
+  } else { ar5_lab <- ar5_regions$LAB[as.integer(ixn)] }
+  
+  # Assemble into a dataframe and add to output list
+  out_list[[k]] <- data.frame("longitud" = coords_sf[k,]$geometry[[1]][2],
+                              "latitud" = coords_sf[k,]$geometry[[1]][1],
+                              "AR5_Label" = ar5_lab)
+}
+
+# Unlist the output list
+out_df <- purrr::list_rbind(x = out_list)
+
+# Check that out
+dplyr::glimpse(out_df)
+
+
+
+
+coords_sf[1,]$geometry[[1]][2]
 
 # End ----
