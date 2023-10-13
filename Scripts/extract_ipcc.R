@@ -103,19 +103,34 @@ for(k in 1:nrow(coords_sf)){
   } else { ipcc_lab <- ipcc_regions$Acronym[as.integer(ixn)] }
   
   # Assemble into a dataframe and add to output list
-  out_list[[k]] <- data.frame("longitud" = coords_sf[k,]$geometry[[1]][2],
-                              "latitud" = coords_sf[k,]$geometry[[1]][1],
+  out_list[[k]] <- data.frame("latitud" = coords_sf[k,]$geometry[[1]][2],
+                              "longitud" = coords_sf[k,]$geometry[[1]][1],
                               "ipcc_regions" = ipcc_lab)
 }
 
 # Unlist the output list
-out_df <- purrr::list_rbind(x = out_list)
+ipcc_df <- purrr::list_rbind(x = out_list)
 
 # Check that out
-dplyr::glimpse(out_df)
+dplyr::glimpse(ipcc_df)
 
+## -------------------------------------- ##
+          # Attach & Export ----
+## -------------------------------------- ##
 
+# Check structure of starting data
+dplyr::glimpse(drought_df)
 
+# Now we want to actually attach this with our starting data
+drought_actual <- drought_df %>%
+  # Attach the extracted IPCC acronyms by coordinates
+  dplyr::left_join(y = ipcc_df, by = c("longitud", "latitud"))
 
+# Check structure of resulting object
+dplyr::glimpse(drought_actual)
+
+# Export this locally!
+write.csv(x = drought_actual, row.names = F, na = '',
+          file = file.path("Data", "Site_Elev-Disturb_with-IPCC.csv"))
 
 # End ----
