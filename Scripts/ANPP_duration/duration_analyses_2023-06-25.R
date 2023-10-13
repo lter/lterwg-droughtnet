@@ -942,15 +942,16 @@ pairs(emtrends(mod, ~as.factor(n_treat_years), var="drtsev.1"))
 data.anpp.summary%>%
   subset( n_treat_years == 3)%>%
   dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
-  ggplot(  aes(site_code, anpp_response, color = e.n))+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error, fill = cut(drtsev.1, 6)))+
-  scale_fill_brewer(palette = "Reds", direction = -1
-                    , drop = FALSE)+
+  ggplot(  aes(site_code, anpp_response, color = type))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se, fill = cut(drtsev.1, 6)))+
+  scale_color_manual("Prevailing veg type", values = c("firebrick2", "dodgerblue", "tan" ))+
+  #scale_fill_brewer(palette = "Reds", direction = -1
+  #                  , drop = FALSE)+
   geom_hline(yintercept = 0,linetype="dashed")+
   ylim(-7, 5)+#this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
   ylab("ANPP response")+
   xlab("")+
-  scale_color_manual("Extremity of drought", values = c("firebrick2", "dodgerblue" ))+
+  #scale_color_manual("Extremity of drought", values = c("firebrick2", "dodgerblue" ))+
   coord_flip()+
   theme_base()
 
@@ -993,7 +994,7 @@ data.anpp.year%>%
   
   ggplot(aes(as.factor(n_treat_years), anpp_response, color = type #e.n
              ))+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error), position = position_dodge(width = 0.5))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se), position = position_dodge(width = 0.5))+
   #ylim(-1.2, 0.3)+
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Years of drought")+
@@ -1008,6 +1009,47 @@ summary(mod)
 library(emmeans)
 emmeans(mod, list(pairwise ~ type), adjust = "tukey")
 emmeans(mod, list(pairwise ~ n_treat_years*type), adjust = "tukey")
+
+
+
+
+data.anpp.year <- data.anpp.summary%>%
+   subset(Ann_Per == "Perennial")%>%
+  ddply(.(n_treat_years, e.n
+  ),
+  function(x)data.frame(
+    anpp_response = mean(x$anpp_response),
+    anpp_response.error = qt(0.975, df=length(x$site_code)-1)*sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+    anpp_response.se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code)),
+    percent.reduction = mean(x$percent.reduction),
+    percent.reduction.error = qt(0.975, df=length(x$site_code)-1)*sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code)-1),
+    percent.reduction.se = sd(x$percent.reduction, na.rm = TRUE)/sqrt(length(x$site_code))
+  ))
+
+
+
+data.anpp.year%>%
+  # subset(e.n != "NA")%>%
+  #   subset(Ann_Per != "NA")%>%
+  
+  ggplot(aes(as.factor(n_treat_years), anpp_response, color = e.n
+  ))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se), position = position_dodge(width = 0.5))+
+  #ylim(-1.2, 0.3)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  xlab("Years of drought")+
+  ylab("ANPP response")+
+  scale_color_manual("Extreme or nominal", values = c("firebrick2", "dodgerblue" ))+
+  #coord_flip()+
+  theme_base()+
+  theme(axis.ticks.length=unit(-0.25, "cm"))
+
+
+mod <- lmer(anpp_response~e.n*as.factor(n_treat_years)+(1|site_code), data = subset(data.anpp.summary,Ann_Per == "Perennial"))
+summary(mod)
+library(emmeans)
+emmeans(mod, list(pairwise ~ e.n), adjust = "tukey")
+emmeans(mod, list(pairwise ~ n_treat_years*e.n), adjust = "tukey")
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
