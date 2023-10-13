@@ -8,7 +8,7 @@ IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_tr
 cover_survey <- read.csv("C:/Users/ohler/Dropbox/IDE_data_May 2018/IDE Site Info/cover_survey_results.csv")
 
 #read in cover data
-full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-10-11.csv")%>%
+full_cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-10-13.csv")%>%
               subset(live == 1)
 full_cover$trt <- plyr::revalue(full_cover$trt, c("Control_Infrastructure"="Control"))
 
@@ -256,7 +256,7 @@ cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", 
 
 
 
-write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-10-12.csv")
+write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-10-13.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))
