@@ -54,17 +54,20 @@ dplyr::glimpse(coords_sf)
         # Extract IPCC Regions ----
 ## -------------------------------------- ##
 
-# Old (AR5) regions
-ar5_regions <- sf::st_read(dsn = file.path("Data", "IPCC AR5 Regions", "referenceRegions.shp"))
-## Link to download here: https://www.ipcc-data.org/documents/ar5/regions/referenceRegions.zip 
+# IMPORTANT NOTE ABOUT BELOW DATA:
+## The "IPCC-WGI-reference-regions-v4_shapefile" folder is downloaded as a ZIP file
+## You'll need to 'unzip' it yourself for the next line of code to run
 
-# Check structure
-dplyr::glimpse(ar5_regions)
-
-# Updated IPCC regions
-
+# Read in IPCC regions
+ipcc_regions <- sf::st_read(dsn = file.path("Data", 
+                                            "SantanderMetGroup-ATLAS-d75f71f",
+                                            "reference-regions", 
+                                            "IPCC-WGI-reference-regions-v4_shapefile",
+                                            "IPCC-WGI-reference-regions-v4.shp"))
 ## Link to download here: https://zenodo.org/records/3998463
 
+# Glimpse it
+dplyr::glimpse(ipcc_regions)
 
 # Make an output list
 out_list <- list()
@@ -76,7 +79,7 @@ for(k in 1:nrow(coords_sf)){
   message("Extracting for point ", k, " of ", nrow(coords_sf))
   
   # Identify intersection point(s)
-  ixn <- sf::st_intersects(x = coords_sf[k,]$geometry, y = ar5_regions)
+  ixn <- sf::st_intersects(x = coords_sf[k,]$geometry, y = ipcc_regions)
   
   # If multiple intersections...
   if(length(ixn[[1]]) > 1) {
@@ -88,21 +91,21 @@ for(k in 1:nrow(coords_sf)){
     for(multi_ixn in 1:length(ixn[[1]])){
       
       # Get label at that intersection
-      multi_lab <- ar5_regions$LAB[as.integer(ixn[[1]][multi_ixn])]
+      multi_lab <- ipcc_regions$Acronym[as.integer(ixn[[1]][multi_ixn])]
       
       # Add to vector
       temp_lab <- c(temp_lab, multi_lab)
       
       # Collapse into a one-element vector
-      ar5_lab <- paste(temp_lab, collapse = "; ") }
+      ipcc_lab <- paste(temp_lab, collapse = "; ") }
     
     # If only one, get just that one
-  } else { ar5_lab <- ar5_regions$LAB[as.integer(ixn)] }
+  } else { ipcc_lab <- ipcc_regions$Acronym[as.integer(ixn)] }
   
   # Assemble into a dataframe and add to output list
   out_list[[k]] <- data.frame("longitud" = coords_sf[k,]$geometry[[1]][2],
                               "latitud" = coords_sf[k,]$geometry[[1]][1],
-                              "AR5_Label" = ar5_lab)
+                              "ipcc_regions" = ipcc_lab)
 }
 
 # Unlist the output list
@@ -114,6 +117,5 @@ dplyr::glimpse(out_df)
 
 
 
-coords_sf[1,]$geometry[[1]][2]
 
 # End ----
