@@ -62,7 +62,9 @@ ar5_regions <- sf::st_read(dsn = file.path("Data", "IPCC AR5 Regions", "referenc
 dplyr::glimpse(ar5_regions)
 
 # Strip out old region information at coordinates
-old_extract <- sf::st_intersects(x = ar5_regions, y = coords_sf)
+old_extract <- sf::st_intersection(x = ar5_regions, at = coords_sf) %>%
+  # Drop geometry so we get just the 'data' part
+  sf::st_drop_geometry()
 
 # Check structure of that
 dplyr::glimpse(old_extract)
