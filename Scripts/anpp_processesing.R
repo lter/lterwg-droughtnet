@@ -8,15 +8,32 @@ library(plyr)
 
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-05.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-16.csv")
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-05-01.csv")
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-10-16.csv")
 
 
 
 treatment_info <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_05-01-2023.csv")
 treatment_info <- treatment_info[,c("site_code", "year", "n_treat_days", "block", "plot", "subplot", "trt")]
 treatment_info <- unique(treatment_info)
+infrastructure_controls <- subset(treatment_info, trt == "Control_infrastructure")
+
+
+treatment_info <- treatment_info%>%
+  tidyr::unite(temp, c("site_code", "trt" ), remove = FALSE)%>%
+              subset( temp != "ayora.es_Control_infrastructure")%>%#remove infrastructure controls from sites that have other controls
+                subset( temp != "baddrt.de_Control_infrastructure")%>%
+                subset( temp != "cedarsav.us_Control_infrastructure")%>%
+                subset( temp != "cedartrait.us_Control_infrastructure")%>%
+                subset( temp != "freiburg.de_Control_infrastructure")%>%
+                subset( temp != "guaribas.br_Control_infrastructure")%>%
+                subset( temp != "purdue.us_Control_infrastructure")%>%
+                subset( temp != "sevforest.us_Control_infrastructure")%>%
+                subset( temp != "wytham.uk_Control_infrastructure")%>%
+                dplyr::select(-temp)
+                
+
 
 treatment_info$trt <- plyr::revalue(treatment_info$trt, c("Control_infrastructure"="Control"))
 
@@ -118,13 +135,14 @@ data.all[data.all$site_code == "ukulingadrt.za" & data.all$year == "2021" & data
 anpp_ppt.end <- data.all%>%
           left_join( IDE_treatment_years, by = c("site_code", "year"))%>%
   subset(trt == "Control"| trt == "Drought" )%>%
-  left_join(site_map, by = "site_code")
+  left_join(site_map, by = "site_code")#%>%
+  #left_join(infrastructure_controls, by = c("site_code", "year", "n_treat_days", "block", "plot", "subplot"))
          #| trt == "Control_Infrastructure")
 
 
 
 
 
-write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-06-22.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-10-23.csv")
 
 
