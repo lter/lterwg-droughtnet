@@ -108,7 +108,7 @@ data.anpp2$Ann_Per <- ifelse(data.anpp2$PctAnnual > 60, "Annual",
 data.anpp2$Ann_Per <- ifelse(is.na(data.anpp2$Ann_Per) == TRUE, "Perennial", data.anpp2$Ann_Per) #morient.ar, b=nyngan.au, riomayo.ar, stubai.at, and syferkuil.za don't have cover data, but based on biomass and site info data that they submitted we can say that they are all perennial grassland.
 
   
-  length(unique(data.anpp2$site_code)) #69
+  length(unique(data.anpp2$site_code)) #68
 
 subset(data.anpp2, PctAnnual != "NA")$site_code%>%
     unique()%>%
@@ -130,7 +130,7 @@ data.anpp2$drtsev.4 <- -((data.anpp2$ppt.4-data.anpp2$map)/data.anpp2$map)
 
 ##Summarize responses by site and year
 data.anpp.summary <- data.anpp2%>%
-  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map, habitat.type, e.n, prev_e.n, prev_e.n2, PctAnnual, Ann_Per),
+  ddply(.(site_code, year, drtsev.1,drtsev.2,drtsev.3,drtsev.4, n_treat_years, map, habitat.type, e.n, prev_e.n, prev_e.n2, PctAnnual, Ann_Per, ipcc_regions),
         function(x)data.frame(
           mean_mass = mean(x$mass),
           ppt.1 = mean(x$ppt.1),
@@ -155,20 +155,24 @@ data.anpp.summary$type <-   plyr::revalue(data.anpp.summary$type, c(Grassland = 
 
 ##Here we generate the stats and figure for Fig 2
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 , data=subset(data.anpp.summary, n_treat_years == 3 & Ann_Per == "Perennial"#& prev_e.n2 != "NA"
-                                                                       ))
+tempdf <-subset(data.anpp.summary, n_treat_years == 3& Ann_Per == "Perennial")
+
+lmFull <- lme(anpp_response~drtsev.1 * drtsev.2 * drtsev.3, random = ~1|ipcc_regions, data=tempdf)
+#lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|ipcc_regions), data=subset(data.anpp.summary, n_treat_years == 3 & Ann_Per == "Perennial"#& prev_e.n2 != "NA"
+#))
 
 
-lmNull <- lm(anpp_response~1,  data = subset(data.anpp.summary, n_treat_years == 3& Ann_Per == "Perennial"#& prev_e.n2 != "NA"
-                                             ))
+lmNull <- lme(anpp_response~1, random = ~1|ipcc_regions,  data = tempdf)
+                                            #lmNull <- lmer(anpp_response~1+(1|ipcc_regions),  data = subset(data.anpp.summary, n_treat_years == 3& Ann_Per == "Perennial"#& prev_e.n2 != "NA"
+#))
 
-
+AIC(lmFull, lmNull)
 #Forward model selection
 stepAIC(lmNull, scope = list(upper = lmFull,
                              lower = ~1),
         trace = F)
 
-tempdf <-subset(data.anpp.summary, n_treat_years == 3& Ann_Per == "Perennial")
+
 winning.mod <- lm(anpp_response ~ drtsev.1, data = tempdf)
 summary(winning.mod)
 
@@ -191,9 +195,28 @@ history.df <- data.anpp.summary%>% #need details about extreme vs nominanl just 
   ggplot(aes(two_year_e.n, mean_anpp_response, color = two_year_e.n))+
 
     geom_pointrange(aes( ymin = mean_anpp_response-se_anpp_response, ymax = mean_anpp_response+se_anpp_response), size = 1)+
+   geom_hline(yintercept = 0, linetype = "dashed")+
   scale_color_manual( values = c("firebrick2",  "purple", "forestgreen", "dodgerblue" ))+
-  #ylim(-1.4,-0.1)+
+  ylim(-1.2,0.1)+
   theme_base()
+ 
+
+ 
+data.anpp.summary%>%
+   #left_join(history.df, by = "site_code")%>%
+   subset(n_treat_years == 3 & #y2 != "NA" & 
+            Ann_Per == "Perennial")%>%
+   unite(two_year_e.n, c("prev_e.n", "e.n"), sep = "::", remove = FALSE)%>%
+   #ddply(.(two_year_e.n), function(x)data.frame(
+  #   mean_anpp_response = mean(x$anpp_response),
+  #   se_anpp_response = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code))
+  # ))%>%
+   ggplot(aes(two_year_e.n, anpp_response, color = two_year_e.n))+
+   geom_boxplot()+
+   #geom_pointrange(aes( ymin = mean_anpp_response-se_anpp_response, ymax = mean_anpp_response+se_anpp_response), size = 1)+
+   scale_color_manual( values = c("firebrick2",  "purple", "forestgreen", "dodgerblue" ))+
+   #ylim(-1.4,-0.1)+
+   theme_base()
   
 
 
@@ -201,17 +224,18 @@ history.df <- data.anpp.summary%>% #need details about extreme vs nominanl just 
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 3 & Ann_Per == "Perennial")%>%
+  mutate(prev_e.n = factor(prev_e.n, levels=c("nominal", "extreme")),e.n = factor(e.n, levels = c("nominal", "extreme")))  %>%
   ggplot(aes(drtsev.1, anpp_response#,color = prev_e.n
   ))+
   facet_grid(prev_e.n~e.n)+
-  geom_point(aes(),alpha = 0.8, size = 3, pch = 21)+
-  geom_smooth(aes(),method = "lm", se = FALSE)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  geom_smooth(aes(),method = "lm", se = FALSE, color = "black")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
    ylab("Year 3 ANPP response")+
-  ggtitle("Perennial Dominated")+
-  #scale_color_manual( values = c("firebrick2", "firebrick2", "purple", "dodgerblue", "purple", "dodgerblue" ))+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   scale_fill_gradient(
     low = "red",
     high = "grey",
@@ -220,8 +244,61 @@ data.anpp.summary%>%
     guide = "colourbar",
     aesthetics = "fill"
   )+
-  
   theme_base()
+
+
+#comparison of means
+mod <- lme(anpp_response~two_year_e.n*drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+            subset(Ann_Per == "Perennial" &n_treat_years == 3)%>%
+            unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
+summary(mod)
+pairs(emtrends(mod, ~as.factor(two_year_e.n), var="drtsev.1"))
+
+###comparison of slopes figure
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "extreme" ))
+summary(mod) 
+r.squaredGLMM(mod)#R-squaredm 0.58
+slopey1 <- summary(mod)$coefficients$fixed[[2]]
+se1 <- summary(mod)$tTable[,2]
+
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "nominal" ))
+summary(mod)
+r.squaredGLMM(mod)#R-squaredm 0.05
+slopey2 <- summary(mod)$coefficients$fixed[[2]]
+se2 <- summary(mod)$tTable[,2]
+
+
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "nominal" & e.n == "extreme" ))
+summary(mod)
+r.squaredGLMM(mod)#R-squaredm 0.17
+slopey3 <- summary(mod)$coefficients$fixed[[2]]
+se3 <- summary(mod)$tTable[,2]
+
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "nominal" & e.n == "nominal" ))
+summary(mod)
+r.squaredGLMM(mod)#R-squaredm 0.001
+slopey4 <- summary(mod)$coefficients$fixed[[2]]
+se4 <- summary(mod)$tTable[,2]
+
+
+#INSET
+data.frame(order = c("extreme:extreme", "extreme:nominal", "nominal:extreme", "nominal:nominal"), slope = c(slopey1, slopey2, slopey3, slopey4), se = c(se1, se2, se3, se4))%>%
+  ggplot(aes(order, slope))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_pointrange(aes(ymin = slope-se, ymax = slope+se))+
+  xlab("Order")+
+  theme_base()
+
+
+
+
+#library(emmeans)
+#emtrends(mod, list(pairwise ~ e.n), adjust = "tukey")
+#emtrends(mod, list(pairwise ~ prev_e.n*e.n), adjust = "tukey")
 
 
 
@@ -276,17 +353,22 @@ seasonality <- read.csv("C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\climate
 
 
 ##Create planeled figure for supplements (and some stats to go along with them)
+#YEAR 3
 a <- data.anpp.summary%>%
   #left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(map, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
-  geom_smooth(method = "lm", se = FALSE)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  geom_smooth(method = "lm", se = FALSE, color = "black")+
   xlab("MAP")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
   theme_base()
 
-mod <- lm(anpp_response~map, data = subset(data.anpp.summary, n_treat_years == "3"&Ann_Per == "Perennial"))
+mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "3"&Ann_Per == "Perennial"))
 summary(mod)
 
 
@@ -294,37 +376,45 @@ b <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(sand_mean, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_point(aes(color = typ),alpha = 0.8, size = 3#, pch = 21
+             )+
   #geom_smooth(method = "lm", se = FALSE)+
   xlab("Average sand content")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
   theme_base()
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
-  dplyr::select(anpp_response, sand_mean, n_treat_years, site_code, Ann_Per)%>%
+  dplyr::select(anpp_response, sand_mean, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
   subset(n_treat_years == "3"& Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
-mod <- lm(anpp_response~sand_mean, data = tempdf)
+mod <- lme(anpp_response~sand_mean,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
 
 c <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(AI, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
   xlim(0,2)+
-  geom_smooth(method = "lm", linetype = "dashed",se = FALSE)+#marginal
+  geom_smooth(method = "lm", se = FALSE, color = "black")+
   xlab("Aridity index")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ #marginal?
+  ylim(-3.5, 0.75)+
   theme_base()
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
-  dplyr::select(anpp_response, AI, n_treat_years, site_code, Ann_Per)%>%
+  dplyr::select(anpp_response, AI, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
-mod <- lm(anpp_response~AI, data = tempdf)
+mod <- lme(anpp_response~AI,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
 
 
@@ -333,18 +423,22 @@ d <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(cv_ppt_inter, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
-  geom_smooth(method = "lm", se = FALSE)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  geom_smooth(method = "lm", se = FALSE, color = "black")+
   xlab("Interannual precip CV")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
   theme_base()
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
-  dplyr::select(anpp_response, cv_ppt_inter, n_treat_years, site_code, Ann_Per)%>%
+  dplyr::select(anpp_response, cv_ppt_inter, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
-mod <- lme(anpp_response~cv_ppt_inter, random = ~1|site_code, data = tempdf)
+mod <- lme(anpp_response~cv_ppt_inter, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
 
 
@@ -354,18 +448,22 @@ e <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(percent_graminoid, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
   #geom_smooth(method = "lm", se = FALSE)+
   xlab("Percent graminoid")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
   theme_base()
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
-  dplyr::select(anpp_response, percent_graminoid, n_treat_years, site_code, Ann_Per)%>%
+  dplyr::select(anpp_response, percent_graminoid, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
-mod <- lm(anpp_response~percent_graminoid, data = tempdf)
+mod <- lme(anpp_response~percent_graminoid,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
 
 
@@ -377,22 +475,23 @@ f <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(richness, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
   #geom_smooth(method = "lm", se = FALSE)+
   xlab("Richness")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
   theme_base()
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
-  dplyr::select(anpp_response, richness, n_treat_years, site_code, Ann_Per)%>%
+  dplyr::select(anpp_response, richness, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
-mod <- lm(anpp_response~richness, data = tempdf)
+mod <- lme(anpp_response~richness,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-
-
-
 
 
 
@@ -400,18 +499,22 @@ g <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(seasonality_index, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
-  geom_smooth(method = "lm", linetype = "dashed", se = FALSE)+ #marginal
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  geom_smooth(method = "lm",  se = FALSE, color = "black")+
   xlab("Seasonality")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ #marginal?
+  ylim(-3.5, 0.75)+
   theme_base()
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
-  dplyr::select(anpp_response, seasonality_index, n_treat_years, site_code, Ann_Per)%>%
+  dplyr::select(anpp_response, seasonality_index, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
-mod <- lm(anpp_response~seasonality_index, data = tempdf)
+mod <- lme(anpp_response~seasonality_index,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
 
 
@@ -431,6 +534,345 @@ ggsave(
   limitsize = TRUE
 )
 
+#YEAR 2
+a <- data.anpp.summary%>%
+  #left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(map, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  xlab("MAP")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "2"&Ann_Per == "Perennial"))
+summary(mod)
+
+
+b <- data.anpp.summary%>%
+  left_join(sandsite, by = "site_code")%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(sand_mean, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Average sand content")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(sandsite, by = "site_code")%>%
+  dplyr::select(anpp_response, sand_mean, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"& Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~sand_mean,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+c <- data.anpp.summary%>%
+  left_join(ai, by = "site_code")%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(AI, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  xlim(0,2)+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Aridity index")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(ai, by = "site_code")%>%
+  dplyr::select(anpp_response, AI, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~AI,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+d <- data.anpp.summary%>%
+  left_join(cv1, by = "site_code")%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(cv_ppt_inter, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Interannual precip CV")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(cv1, by = "site_code")%>%
+  dplyr::select(anpp_response, cv_ppt_inter, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~cv_ppt_inter, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+
+e <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(percent_graminoid, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Percent graminoid")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  dplyr::select(anpp_response, percent_graminoid, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~percent_graminoid,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+
+
+
+f <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(richness, anpp_response))+
+  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Richness")+
+  ylab("ANPP response")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  dplyr::select(anpp_response, richness, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~richness,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+
+
+
+g <- data.anpp.summary%>%
+  left_join(seasonality, by = "site_code")%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(seasonality_index, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm",  se = FALSE)+
+  xlab("Seasonality")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(seasonality, by = "site_code")%>%
+  dplyr::select(anpp_response, seasonality_index, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~seasonality_index,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+plot_grid(a,  d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
+
+
+
+#YEAR 1
+a <- data.anpp.summary%>%
+  #left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(map, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("MAP")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "1"&Ann_Per == "Perennial"))
+summary(mod)
+
+
+b <- data.anpp.summary%>%
+  left_join(sandsite, by = "site_code")%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(sand_mean, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Average sand content")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(sandsite, by = "site_code")%>%
+  dplyr::select(anpp_response, sand_mean, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"& Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~sand_mean,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+c <- data.anpp.summary%>%
+  left_join(ai, by = "site_code")%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(AI, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  xlim(0,2)+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Aridity index")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(ai, by = "site_code")%>%
+  dplyr::select(anpp_response, AI, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~AI,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+d <- data.anpp.summary%>%
+  left_join(cv1, by = "site_code")%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(cv_ppt_inter, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Interannual precip CV")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(cv1, by = "site_code")%>%
+  dplyr::select(anpp_response, cv_ppt_inter, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~cv_ppt_inter, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+
+e <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(percent_graminoid, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  #geom_smooth(method = "lm", se = FALSE)+
+  xlab("Percent graminoid")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  dplyr::select(anpp_response, percent_graminoid, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~percent_graminoid,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+
+
+
+f <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(richness, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  xlab("Richness")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  dplyr::select(anpp_response, richness, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~richness,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+
+g <- data.anpp.summary%>%
+  left_join(seasonality, by = "site_code")%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(seasonality_index, anpp_response))+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
+ # geom_smooth(method = "lm",  se = FALSE)+
+  xlab("Seasonality")+
+  ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  ylim(-3.5, 0.75)+
+  theme_base()
+
+tempdf <- data.anpp.summary%>%
+  left_join(seasonality, by = "site_code")%>%
+  dplyr::select(anpp_response, seasonality_index, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~seasonality_index,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+
+
+
+plot_grid(a,  d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
 
 #partial r-squared shit
 
@@ -441,7 +883,7 @@ full_y3 <-  data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   left_join(seasonality, by = "site_code")%>%
   subset(n_treat_years == "3")%>%
-  dplyr::select(site_code, drtsev.1, drtsev.2, drtsev.3,map, anpp_response, sand_mean, AI, cv_ppt_inter, percent_graminoid, richness, seasonality_index, PctAnnual, Ann_Per, r_monthly_t_p)
+  dplyr::select(site_code, drtsev.1, drtsev.2, drtsev.3,map, anpp_response, sand_mean, AI, cv_ppt_inter, percent_graminoid, richness, seasonality_index, PctAnnual, Ann_Per, r_monthly_t_p, ipcc_regions)
 #sandsite, AI, cv1, graminoid_richness
 
 #full_y2 <-  data.anpp.summary%>%
@@ -467,22 +909,24 @@ full_y3%>%
 abiotic.mod <- lm(anpp_response ~  drtsev.1+drtsev.2+drtsev.1:drtsev.2 + map+sand_mean + cv_ppt_inter + seasonality_index + PctAnnual + percent_graminoid + richness, data = full_y2) # the model
 summary(abiotic.mod)
 
-mod <- lm(anpp_response ~  drtsev.1+drtsev.2 + drtsev.1:drtsev.2
+mod <- lme(anpp_response ~  drtsev.1+drtsev.2 + drtsev.1:drtsev.2
           + map+#sand_mean + 
             cv_ppt_inter + r_monthly_t_p #+ PctAnnual  
           #+ percent_graminoid + richness+ 
+          , random = ~1|ipcc_regions
            , data = subset(full_y3, Ann_Per == "Perennial")) # the model
 summary(mod)
 
 
 
-lmFull <- lm(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + map+#sand_mean + 
+lmFull <- lme(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + map+#sand_mean + 
                cv_ppt_inter + r_monthly_t_p #+ PctAnnual  
              #+ percent_graminoid + richness+ 
+             , random = ~1|ipcc_regions
              , data=subset(full_y3, Ann_Per == "Perennial"))
 
 
-lmNull <- lm(anpp_response~1,  data = subset(full_y3, Ann_Per == "Perennial"))
+lmNull <- lme(anpp_response~1,random = ~1|ipcc_regions,  data = subset(full_y3, Ann_Per == "Perennial"))
 
 
 #Forward model selection
@@ -491,7 +935,7 @@ stepAIC(lmNull, scope = list(upper = lmFull,
         trace = F)
 
 
-mod <- lm(anpp_response ~ cv_ppt_inter + drtsev.1 + r_monthly_t_p, 
+mod <- lm(anpp_response ~ cv_ppt_inter + drtsev.1 + r_monthly_t_p + map, 
    data = subset(full_y3, Ann_Per == "Perennial"))
 summary(mod)
 
@@ -503,7 +947,7 @@ r2df <- data.frame( var = rsq.partial(mod,objR=NULL,adj=FALSE)$variable, r2 = rs
 summary(mod)$coefficients
 #adjusted r squared = 0.5867
 
-r2df$sig <- c("significant","significant","significant")
+r2df$sig <- c("significant","significant","significant", "non-significant")
 
 r2df%>%
   mutate(var = fct_reorder(var, desc(r2))) %>%
@@ -579,22 +1023,24 @@ ggsave(
 )
 
 
-mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==1 & Ann_Per == "Perennial"))
-summary(mod) #R-squared 0.06
-slopey1 <- coef(mod)[[2]]
-se1 <- summary(mod)$coefficients[2,2]
+mod <- lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = subset(data.anpp.summary,n_treat_years ==1 & Ann_Per == "Perennial"))
+summary(mod) 
+r.squaredGLMM(mod)#R-squaredm 0.08
+slopey1 <- summary(mod)$coefficients$fixed[[2]]
+se1 <- summary(mod)$tTable[,2]
 
-mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==2 & Ann_Per == "Perennial"))
-summary(mod)#R-squared 0.2
-slopey2 <- coef(mod)[[2]]
-se2 <- summary(mod)$coefficients[2,2]
+mod <- lme(anpp_response~drtsev.1, random = ~1|ipcc_regions,data = subset(data.anpp.summary,n_treat_years ==2 & Ann_Per == "Perennial"))
+summary(mod)
+r.squaredGLMM(mod)#R-squaredm 0.07
+slopey2 <- summary(mod)$coefficients$fixed[[2]]
+se2 <- summary(mod)$tTable[,2]
 
 
-mod <- lm(anpp_response~drtsev.1, data = subset(data.anpp.summary,n_treat_years ==3 & Ann_Per == "Perennial"))
-summary(mod)#R-squared 0.15
-slopey3 <- coef(mod)[[2]]
-se3 <- summary(mod)$coefficients[2,2]
-
+mod <- lme(anpp_response~drtsev.1, random = ~1|ipcc_regions,data = subset(data.anpp.summary,n_treat_years ==3 & Ann_Per == "Perennial"))
+summary(mod)
+r.squaredGLMM(mod)#R-squaredm 0.12
+slopey3 <- summary(mod)$coefficients$fixed[[2]]
+se3 <- summary(mod)$tTable[,2]
 
 #INSET
 data.frame(n_treat_years = c("1", "2", "3"), slope = c(slopey1, slopey2, slopey3), se = c(se1, se2, se3))%>%
@@ -619,7 +1065,7 @@ ggsave(
 )
 
 
-mod <- lmer(anpp_response~drtsev.1*as.factor(n_treat_years)+ (1|site_code), data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3 & Ann_Per == "Perennial"))
+mod <- lme(anpp_response~drtsev.1*as.factor(n_treat_years), random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3 & Ann_Per == "Perennial"))
 summary(mod)
 pairs(emtrends(mod, ~as.factor(n_treat_years), var="drtsev.1"))
 
@@ -658,8 +1104,8 @@ ggsave(
 
 
 ##################################
-data.anpp.summary$temp <- ifelse(data.anpp.summary$drtsev.1 > .50, "MoreDrought",
-                                 "LessDrought")
+#data.anpp.summary$temp <- ifelse(data.anpp.summary$drtsev.1 > .50, "MoreDrought",
+  #                               "LessDrought")
 data.anpp.year <- data.anpp.summary%>%
  # subset(Ann_Per == "Perennial")%>%
   ddply(.(n_treat_years, type
@@ -686,12 +1132,12 @@ data.anpp.year%>%
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Years of drought")+
   ylab("ANPP response")+
-  scale_color_manual("Prevailing veg type", values = c("firebrick2", "dodgerblue", "tan" ))+
+  scale_color_manual("Prevailing veg type", values = c("#D9782D", "#1E4D2B", "#C8C372" ))+
   #coord_flip()+
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
-mod <- lmer(anpp_response~type*as.factor(n_treat_years)+(1|site_code), data = data.anpp.summary)
+mod <- lme(anpp_response~type*as.factor(n_treat_years), random = ~1|ipcc_regions, data = data.anpp.summary)
 summary(mod)
 library(emmeans)
 emmeans(mod, list(pairwise ~ type), adjust = "tukey")
