@@ -91,4 +91,4 @@ subset(combfin, is.na(n_treat_years) == TRUE)
 
 
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-16.csv")
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-19.csv")

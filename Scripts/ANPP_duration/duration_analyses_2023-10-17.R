@@ -78,10 +78,10 @@ data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
 setdiff(data.anpp$site_code,data.anpp1$site_code) #"brandjberg.dk" "garraf.es"  "swift.ca" eliminated here
 length(unique(data.anpp1$site_code)) #1o9
 
-##How many treatment years does each site have of the first 4 years?
+##How many treatment years does each site have of the first 3 years?
 num.treat.years <- data.anpp1[,c("site_code", "n_treat_years")]%>%
   unique()%>%
-  subset(n_treat_years>=1&n_treat_years<=4)
+  subset(n_treat_years>=1&n_treat_years<=3)
 
 num.treat.years <- ddply(num.treat.years,.(site_code),
                          function(x)data.frame(
@@ -108,7 +108,7 @@ data.anpp2$Ann_Per <- ifelse(data.anpp2$PctAnnual > 60, "Annual",
 data.anpp2$Ann_Per <- ifelse(is.na(data.anpp2$Ann_Per) == TRUE, "Perennial", data.anpp2$Ann_Per) #morient.ar, b=nyngan.au, riomayo.ar, stubai.at, and syferkuil.za don't have cover data, but based on biomass and site info data that they submitted we can say that they are all perennial grassland.
 
   
-  length(unique(data.anpp2$site_code)) #68
+  length(unique(data.anpp2$site_code)) #66
 
 subset(data.anpp2, PctAnnual != "NA")$site_code%>%
     unique()%>%
@@ -258,7 +258,7 @@ pairs(emtrends(mod, ~as.factor(two_year_e.n), var="drtsev.1"))
 mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
              subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "extreme" ))
 summary(mod) 
-r.squaredGLMM(mod)#R-squaredm 0.58
+r.squaredGLMM(mod)#R-squaredm 0.55
 slopey1 <- summary(mod)$coefficients$fixed[[2]]
 se1 <- summary(mod)$tTable[,2]
 
@@ -376,7 +376,7 @@ b <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   ggplot(aes(sand_mean, anpp_response))+
-  geom_point(aes(color = typ),alpha = 0.8, size = 3#, pch = 21
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
   #geom_smooth(method = "lm", se = FALSE)+
   xlab("Average sand content")+
@@ -405,7 +405,7 @@ c <- data.anpp.summary%>%
   xlab("Aridity index")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
-  geom_hline(yintercept = 0, linetype = "dashed")+ #marginal?
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()
 
@@ -467,10 +467,6 @@ mod <- lme(anpp_response~percent_graminoid,random = ~1|ipcc_regions, data = temp
 summary(mod)
 
 
-
-
-
-
 f <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
@@ -501,11 +497,11 @@ g <- data.anpp.summary%>%
   ggplot(aes(seasonality_index, anpp_response))+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  geom_smooth(method = "lm",  se = FALSE, color = "black")+
+  geom_smooth(method = "lm",  se = FALSE, color = "black", linetype = "dashed")+ #marginal
   xlab("Seasonality")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
-  geom_hline(yintercept = 0, linetype = "dashed")+ #marginal?
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()
 
@@ -656,10 +652,12 @@ f <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
   subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
   ggplot(aes(richness, anpp_response))+
-  geom_point(alpha = 0.8, size = 3, pch = 21)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+             )+
   #geom_smooth(method = "lm", se = FALSE)+
   xlab("Richness")+
   ylab("ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()
@@ -1076,12 +1074,12 @@ data.anpp.summary%>%
   subset( n_treat_years == 3)%>%
   dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
   ggplot(  aes(site_code, anpp_response, color = type))+
-  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se, fill = cut(drtsev.1, 6)))+
-  scale_color_manual("Prevailing veg type", values = c("firebrick2", "dodgerblue", "tan" ))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error, fill = cut(drtsev.1, 6)))+
+  scale_color_manual("Prevailing veg type", values = c("#D9782D", "#1E4D2B", "#C8C372" ))+
   #scale_fill_brewer(palette = "Reds", direction = -1
   #                  , drop = FALSE)+
   geom_hline(yintercept = 0,linetype="dashed")+
-  ylim(-7, 5)+#this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
+  #ylim(-10, 10)+#this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
   ylab("ANPP response")+
   xlab("")+
   #scale_color_manual("Extremity of drought", values = c("firebrick2", "dodgerblue" ))+
@@ -1100,6 +1098,29 @@ ggsave(
   dpi = 600,
   limitsize = TRUE
 )
+
+
+
+
+data.anpp.summary%>%
+    ddply(c("site_code"), function(x)data.frame(
+    three_year_precip_reduction = mean(x$drtsev.1)
+  ))%>%
+  left_join(dplyr::select(subset(data.anpp.summary, n_treat_years == 3), site_code, anpp_response))%>%
+  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
+  ggplot(  aes(site_code, three_year_precip_reduction, fill = three_year_precip_reduction))+
+  geom_bar(stat = "identity")+
+  #scale_color_manual("Prevailing veg type", values = c("#D9782D", "#1E4D2B", "#C8C372" ))+
+  #scale_fill_brewer(palette = "Reds", direction = -1
+  #                  , drop = FALSE)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(-1, 1)+#this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
+  ylab("Precip reduction over 3 years")+
+  xlab("")+
+  scale_fill_gradient(low = "goldenrod1", high = "red", na.value = NA)+
+  #scale_color_manual("Extremity of drought", values = c("firebrick2", "dodgerblue" ))+
+  coord_flip()+
+  theme_base()
 
 
 
