@@ -8,7 +8,7 @@ library(plyr)
 
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-16.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-21.csv")
 
 anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-10-19.csv")
 
