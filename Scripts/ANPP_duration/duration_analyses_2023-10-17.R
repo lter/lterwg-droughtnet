@@ -189,15 +189,28 @@ data.anpp.summary%>%
     mean_anpp_response = mean(x$anpp_response),
     se_anpp_response = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code))
   ))%>%
-  mutate(two_year_e.n = factor(two_year_e.n, levels=c("nominal::nominal", "extreme:nominal", "nominal:extreme", "extreme:extreme")),e.n = factor(e.n, levels = c("nominal", "extreme")))  %>%
-  ggplot(aes(two_year_e.n, mean_anpp_response, color = two_year_e.n))+
+  mutate(two_year_e.n = factor(two_year_e.n, levels=c("nominal::nominal", "extreme::nominal", "nominal::extreme", "extreme::extreme")))  %>%
+  ggplot(aes(two_year_e.n, mean_anpp_response))+
 
     geom_pointrange(aes( ymin = mean_anpp_response-se_anpp_response, ymax = mean_anpp_response+se_anpp_response), size = 1)+
    geom_hline(yintercept = 0, linetype = "dashed")+
-  #scale_color_manual( values = c("firebrick2",  "purple", "forestgreen", "dodgerblue" ))+
-  ylim(-1.2,0.1)+
+  ylim(-1.1,0.1)+
+  ylab("ANPP response")+
+  xlab("")+
   theme_base()
 
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_means.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 5,
+  height = 5,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 data.anpp.summary%>%
@@ -223,7 +236,22 @@ data.anpp.summary%>%
     guide = "colourbar",
     aesthetics = "fill"
   )+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
+
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_facets.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 6,
+  height = 6,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 #comparison of means
