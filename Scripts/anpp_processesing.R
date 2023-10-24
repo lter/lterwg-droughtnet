@@ -8,13 +8,13 @@ library(plyr)
 
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-21.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2023-10-24.csv")
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-10-19.csv")
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2023-10-24.csv")
 
 
 
-treatment_info <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_10-16-2023.csv")
+treatment_info <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_10-24-2023.csv")
 treatment_info <- treatment_info[,c("site_code", "year", "n_treat_days", "block", "plot", "subplot", "trt")]
 treatment_info <- unique(treatment_info)
 infrastructure_controls <- subset(treatment_info, trt == "Control_infrastructure")
