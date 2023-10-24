@@ -15,7 +15,7 @@ library(rsq)
 
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-10-23.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-10-24.csv")%>%
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")#%>%
 
 length(unique(data.anpp$site_code)) #112
@@ -76,7 +76,7 @@ Plot.trt.ct2<-tidyr::gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
 
 setdiff(data.anpp$site_code,data.anpp1$site_code) #"brandjberg.dk" "garraf.es"  "swift.ca" eliminated here
-length(unique(data.anpp1$site_code)) #1o9
+length(unique(data.anpp1$site_code)) #111
 
 ##How many treatment years does each site have of the first 3 years?
 num.treat.years <- data.anpp1[,c("site_code", "n_treat_years")]%>%
@@ -108,7 +108,7 @@ data.anpp2$Ann_Per <- ifelse(data.anpp2$PctAnnual > 60, "Annual",
 data.anpp2$Ann_Per <- ifelse(is.na(data.anpp2$Ann_Per) == TRUE, "Perennial", data.anpp2$Ann_Per) #morient.ar, b=nyngan.au, riomayo.ar, stubai.at, and syferkuil.za don't have cover data, but based on biomass and site info data that they submitted we can say that they are all perennial grassland.
 
   
-  length(unique(data.anpp2$site_code)) #66
+  length(unique(data.anpp2$site_code)) #67
 
 subset(data.anpp2, PctAnnual != "NA")$site_code%>%
     unique()%>%
