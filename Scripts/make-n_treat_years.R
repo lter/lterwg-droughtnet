@@ -9,7 +9,7 @@ data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/fu
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()
 
-data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-10-21.csv")%>%
+data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2023-10-25.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()%>%
               subset(n_treat_days != "NULL")#marcdrt.ar has some null values for unknown reasons
