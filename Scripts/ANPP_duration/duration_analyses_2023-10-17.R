@@ -15,10 +15,10 @@ library(rsq)
 
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-10-24.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-10-25.csv")%>%
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")#%>%
 
-length(unique(data.anpp$site_code)) #112
+length(unique(data.anpp$site_code)) #114
 
 prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
 
@@ -175,6 +175,9 @@ winning.mod <- lm(anpp_response ~ drtsev.1, data = tempdf)
 summary(winning.mod)
 
 
+d<-dredge(lmFull)
+sw(d)
+
 history.df <- data.anpp.summary%>% #need details about extreme vs nominanl just for figure
   dplyr::select(site_code, n_treat_years, e.n)%>%
   pivot_wider(names_from = n_treat_years, values_from = e.n)%>%
@@ -277,14 +280,14 @@ mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.s
 summary(mod) 
 r.squaredGLMM(mod)#R-squaredm 0.41
 slopey1 <- summary(mod)$coefficients$fixed[[2]]
-se1 <- summary(mod)$tTable[,2]
+se1 <- summary(mod)$tTable[2,2]
 
 mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
              subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "nominal" ))
 summary(mod)
 r.squaredGLMM(mod)#R-squaredm 0.05
 slopey2 <- summary(mod)$coefficients$fixed[[2]]
-se2 <- summary(mod)$tTable[,2]
+se2 <- summary(mod)$tTable[2,2]
 
 
 mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
@@ -292,22 +295,25 @@ mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.s
 summary(mod)
 r.squaredGLMM(mod)#R-squaredm 0.12
 slopey3 <- summary(mod)$coefficients$fixed[[2]]
-se3 <- summary(mod)$tTable[,2]
+se3 <- summary(mod)$tTable[2,2]
 
 mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
              subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "nominal" & e.n == "nominal" ))
 summary(mod)
 r.squaredGLMM(mod)#R-squaredm 0.001
 slopey4 <- summary(mod)$coefficients$fixed[[2]]
-se4 <- summary(mod)$tTable[,2]
+se4 <- summary(mod)$tTable[2,2]
 
 
 #INSET
-data.frame(order = c("extreme:extreme", "extreme:nominal", "nominal:extreme", "nominal:nominal"), slope = c(slopey1, slopey2, slopey3, slopey4), se = c(se1, se2, se3, se4))%>%
-  ggplot(aes(order, slope))+
+data.frame(two_year_e.n = c("extreme::extreme", "extreme::nominal", "nominal::extreme", "nominal::nominal"), slope = c(slopey1, slopey2, slopey3, slopey4)
+           , se = c(se1, se2, se3, se4)
+           )%>%
+  mutate(two_year_e.n = factor(two_year_e.n, levels=c("nominal::nominal", "extreme::nominal", "nominal::extreme", "extreme::extreme")))  %>%
+  ggplot(aes(two_year_e.n, slope))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_pointrange(aes(ymin = slope-se, ymax = slope+se))+
-  xlab("Order")+
+  xlab("")+
   theme_base()
 
 
@@ -330,7 +336,7 @@ data.anpp.summary%>%
 
 
 ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2_prevonly.pdf",
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_slopes.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
@@ -377,7 +383,8 @@ a <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "3"&Ann_Per == "Perennial"))
 summary(mod)
@@ -395,7 +402,8 @@ b <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -418,7 +426,8 @@ c <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -442,7 +451,8 @@ d <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -467,7 +477,8 @@ e <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -490,7 +501,8 @@ f <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -498,7 +510,8 @@ tempdf <- data.anpp.summary%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~richness,random = ~1|ipcc_regions, data = tempdf)
-summary(mod)
+summary(mod)+
+  theme(legend.position = "none")
 
 
 
@@ -514,7 +527,8 @@ g <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -554,7 +568,8 @@ a <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "2"&Ann_Per == "Perennial"))
 summary(mod)
@@ -572,7 +587,8 @@ b <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -595,7 +611,8 @@ c <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -619,7 +636,8 @@ d <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -644,7 +662,8 @@ e <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -671,7 +690,8 @@ f <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -698,7 +718,8 @@ g <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -712,7 +733,18 @@ summary(mod)
 
 plot_grid(a,  d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
 
-
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_Y2.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 10,
+  height = 6,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 #YEAR 1
 a <- data.anpp.summary%>%
@@ -727,7 +759,8 @@ a <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "1"&Ann_Per == "Perennial"))
 summary(mod)
@@ -745,7 +778,8 @@ b <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -768,7 +802,8 @@ c <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -792,7 +827,8 @@ d <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -817,7 +853,8 @@ e <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -844,7 +881,8 @@ f <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -869,7 +907,8 @@ g <- data.anpp.summary%>%
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -882,6 +921,21 @@ summary(mod)
 
 
 plot_grid(a,  d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
+
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_Y3.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 10,
+  height = 6,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
 
 #partial r-squared shit
 
@@ -915,21 +969,19 @@ full_y3%>%
   dplyr::select( drtsev.1,drtsev.2,map,AI,sand_mean,cv_ppt_inter,seasonality_index, PctAnnual, r_monthly_t_p)%>%
   chart.Correlation( histogram=TRUE, pch=19)
 
-abiotic.mod <- lm(anpp_response ~  drtsev.1+drtsev.2+drtsev.1:drtsev.2 + map+sand_mean + cv_ppt_inter + seasonality_index + PctAnnual + percent_graminoid + richness, data = full_y2) # the model
-summary(abiotic.mod)
 
-mod <- lme(anpp_response ~  drtsev.1*drtsev.2 + drtsev.1:drtsev.2
-          + map+#sand_mean + 
-            cv_ppt_inter + r_monthly_t_p #+ PctAnnual  
+#mod <- lme(anpp_response ~  drtsev.1*drtsev.2 + drtsev.1:drtsev.2
+#          + map+#sand_mean + 
+#            cv_ppt_inter + r_monthly_t_p #+ PctAnnual  
           #+ percent_graminoid + richness+ 
-          , random = ~1|ipcc_regions
-           , data = subset(full_y3, Ann_Per == "Perennial")) # the model
-summary(mod)
+#          , random = ~1|ipcc_regions
+#           , data = subset(full_y3, Ann_Per == "Perennial")) # the model
+#summary(mod)
 
 
-tempdf <- subset(full_y2, Ann_Per == "Perennial")
-lmFull <- lme(anpp_response~drtsev.1 * drtsev.2 * #drtsev.3 *
-                map+#sand_mean + 
+tempdf <- subset(full_y3, Ann_Per == "Perennial")
+lmFull <- lme(anpp_response~drtsev.1 *
+                map*#sand_mean + 
                cv_ppt_inter * 
                 r_monthly_t_p #+ PctAnnual  
              #+ percent_graminoid + richness+ 
@@ -937,7 +989,7 @@ lmFull <- lme(anpp_response~drtsev.1 * drtsev.2 * #drtsev.3 *
              , data=tempdf)
 
 
-lmNull <- lme(anpp_response~1,random = ~1|ipcc_regions,method = "ML",  data = subset(full_y3, Ann_Per == "Perennial"))
+lmNull <- lme(anpp_response~1,random = ~1|ipcc_regions,method = "ML",  data = tempdf)
 
 
 #Forward model selection
@@ -946,8 +998,8 @@ stepAIC(lmNull, scope = list(upper = lmFull,
         trace = F)
 
 
-mod <- lm(anpp_response ~  drtsev.1, 
-   data = subset(full_y3, Ann_Per == "Perennial"))
+mod <- lm(anpp_response ~ map + drtsev.1 + cv_ppt_inter , 
+   data = tempdf)
 summary(mod)
 
 
@@ -962,9 +1014,9 @@ summary(mod)
 ms2<-dredge(lmFull, rank = "AIC") 
 #(attr(ms2,"rank.call")) 
 #Getthemodels(fittedbyREML,asintheglobalmodel) 
-fmList<-get.models(ms2,1:835) #Becausethemodelsoriginatefrom'dredge(...,rank=AICc,REML=FALSE)', 
+fmList<-get.models(ms2,1:167) #Becausethemodelsoriginatefrom'dredge(...,rank=AICc,REML=FALSE)', 
 #thedefaultweightsin'model.avg'areMLbased: 
-summary(model.avg(fmList))
+#summary(model.avg(fmList))
 sw(ms2)
 sw(subset(ms2,delta<=10))
 am <- model.avg(ms2)
@@ -1254,25 +1306,25 @@ data.anpp.year%>%
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
 
-mod <- lmer(anpp_response~e.n*as.factor(n_treat_years)+(1|site_code), data = subset(data.anpp.summary,Ann_Per == "Perennial"))
-summary(mod)
-library(emmeans)
-emmeans(mod, list(pairwise ~ e.n), adjust = "tukey")
-emmeans(mod, list(pairwise ~ n_treat_years*e.n), adjust = "tukey")
+# mod <- lmer(anpp_response~e.n*as.factor(n_treat_years)+(1|site_code), data = subset(data.anpp.summary,Ann_Per == "Perennial"))
+#summary(mod)
+ #library(emmeans)
+#emmeans(mod, list(pairwise ~ e.n), adjust = "tukey")
+#emmeans(mod, list(pairwise ~ n_treat_years*e.n), adjust = "tukey")
 
-ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
-  plot = last_plot(),
-  device = "pdf",
-  path = NULL,
-  scale = 1,
+#ggsave(
+#  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
+#  plot = last_plot(),
+#  device = "pdf",
+#  path = NULL,
+#  scale = 1,
   #width = 3,
-  width = 5,
-  height = 3,
-  units = c("in"),
-  dpi = 600,
-  limitsize = TRUE
-)
+#  width = 5,
+#  height = 3,
+#  units = c("in"),
+#  dpi = 600,
+#  limitsize = TRUE
+#)
 
 mod <- lmer(anpp_response~as.factor(n_treat_years)*map + (1|site_code), data.anpp.summary)
 summary(mod)
@@ -1281,3 +1333,47 @@ anova(mod)
 mod <- lmer(anpp_response~as.factor(n_treat_years) + (1|site_code), subset(data.anpp.summary, Ann_Per == "Perennial"))
 summary(mod)
 anova(mod)
+
+
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial")%>%
+  left_join(sandsite, by = "site_code")%>%
+  left_join(ai, by = "site_code")%>%
+  left_join(cv1, by = "site_code")%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  left_join(seasonality, by = "site_code")%>%
+  subset( Ann_Per == "Perennial")
+lmFull <- lme(anpp_response~drtsev.1 *
+                as.factor(n_treat_years)#*
+               # map*#sand_mean + 
+                #cv_ppt_inter# * 
+                #r_monthly_t_p #+ PctAnnual  
+              #+ percent_graminoid + richness+ 
+              , random = ~1|ipcc_regions/site_code, method = "ML"
+              , data=tempdf)
+
+lmNull <- lme(anpp_response~1,random = ~1|ipcc_regions/site_code,method = "ML",  data = data.anpp.summary)
+#Forward model selection
+stepAIC(lmNull, scope = list(upper = lmFull,
+                             lower = ~1),
+        trace = F)
+
+
+mod <- lm(anpp_response ~ drtsev.1 , 
+          data = tempdf)
+summary(mod)
+
+
+#Modelselection:rankingbyAICcusingML 
+ms2<-dredge(lmFull, rank = "AIC") 
+#(attr(ms2,"rank.call")) 
+#Getthemodels(fittedbyREML,asintheglobalmodel) 
+fmList<-get.models(ms2,1:5) #Becausethemodelsoriginatefrom'dredge(...,rank=AICc,REML=FALSE)', 
+#thedefaultweightsin'model.avg'areMLbased: 
+#summary(model.avg(fmList))
+sw(ms2)
+sw(subset(ms2,delta<=4))
+am <- model.avg(ms2)
+coef(am)
+
+
