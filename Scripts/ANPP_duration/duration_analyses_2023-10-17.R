@@ -980,11 +980,11 @@ full_y3%>%
 
 
 tempdf <- subset(full_y3, Ann_Per == "Perennial")
-lmFull <- lme(anpp_response~drtsev.1 *
-                map*#sand_mean + 
-               cv_ppt_inter * 
+lmFull <- lme(anpp_response~drtsev.1 +
+                map+#sand_mean + 
+               cv_ppt_inter + 
                 r_monthly_t_p #+ PctAnnual  
-             #+ percent_graminoid + richness+ 
+#             + percent_graminoid + richness
              , random = ~1|ipcc_regions, method = "ML"
              , data=tempdf)
 
@@ -1014,13 +1014,14 @@ summary(mod)
 ms2<-dredge(lmFull, rank = "AIC") 
 #(attr(ms2,"rank.call")) 
 #Getthemodels(fittedbyREML,asintheglobalmodel) 
-fmList<-get.models(ms2,1:167) #Becausethemodelsoriginatefrom'dredge(...,rank=AICc,REML=FALSE)', 
+fmList<-get.models(ms2,1:16) #Becausethemodelsoriginatefrom'dredge(...,rank=AICc,REML=FALSE)', 
 #thedefaultweightsin'model.avg'areMLbased: 
 #summary(model.avg(fmList))
 sw(ms2)
-sw(subset(ms2,delta<=10))
-am <- model.avg(ms2)
+sw(subset(ms2,delta<=4))
+am <- model.avg(subset(ms2,delta<=4))
 coef(am)
+summary(am)
 
 #lets plot it!
 
@@ -1082,14 +1083,17 @@ new_labs <- as_labeller(
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   subset(Ann_Per == "Perennial")%>%
   ggplot( aes(drtsev.1, anpp_response))+
-  facet_grid(Ann_Per~n_treat_years)+
-  geom_point(alpha = 0.8,pch = 21,size=3)+
+  facet_wrap(~n_treat_years)+
+  geom_point(aes(color = type),alpha = 0.8,#pch = 21,
+             size=3)+
   geom_smooth(method = "lm", color = "black")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3.pdf",
