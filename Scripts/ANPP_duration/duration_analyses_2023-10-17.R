@@ -225,7 +225,7 @@ data.anpp.summary%>%
   facet_grid(prev_e.n~e.n)+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  geom_smooth(aes(),method = "lm", se = FALSE, color = "black")+
+  geom_smooth(aes(),method = "lm", se = TRUE, color = "black")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlab("Drought severity (percent reduction of MAP)")+
@@ -244,7 +244,7 @@ data.anpp.summary%>%
 
 
 ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_facets.pdf",
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_facets_withSE.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
@@ -1143,8 +1143,8 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 3,
-  height = 3,
+  width = 2,
+  height = 2.75,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
@@ -1334,7 +1334,7 @@ mod <- lmer(anpp_response~as.factor(n_treat_years)*map + (1|site_code), data.anp
 summary(mod)
 anova(mod)
 
-mod <- lmer(anpp_response~as.factor(n_treat_years) + (1|site_code), subset(data.anpp.summary, Ann_Per == "Perennial"))
+mod <- lme(anpp_response~as.factor(n_treat_years) + (1|ipccsite_code), subset(data.anpp.summary, Ann_Per == "Perennial"))
 summary(mod)
 anova(mod)
 
@@ -1347,7 +1347,7 @@ tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial")%>%
   left_join(graminoid_richness, by = "site_code")%>%
   left_join(seasonality, by = "site_code")%>%
   subset( Ann_Per == "Perennial")
-lmFull <- lme(anpp_response~drtsev.1 *
+lmFull <- lme(anpp_response~#drtsev.1 *
                 as.factor(n_treat_years)#*
                # map*#sand_mean + 
                 #cv_ppt_inter# * 
@@ -1363,7 +1363,7 @@ stepAIC(lmNull, scope = list(upper = lmFull,
         trace = F)
 
 
-mod <- lm(anpp_response ~ drtsev.1 , 
+mod <- lm(anpp_response ~ as.factor(n_treat_years), 
           data = tempdf)
 summary(mod)
 
