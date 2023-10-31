@@ -25,7 +25,7 @@ if (user == "MTH"){
 
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-10-12.csv") %>% 
+dat<-read.csv("cover_ppt_2023-10-21.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
 #dropping datasets without pretreatment
@@ -114,8 +114,8 @@ drt<-dat2 %>%
 
 site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Oct2023.csv")
 
-continent<-read.csv("Site_Elev-Disturb.csv") %>% 
-  select(site_code, continent)
+# continent<-read.csv("Site_Elev-Disturb.csv") %>% 
+  # select(site_code, continent)
 
 
 #write.csv(drt, "C:\\Users\\mavolio2\\Dropbox\\IDE_DroughtSeverity.csv", row.names=F)
@@ -364,26 +364,71 @@ length(unique(RRall$site_code))
 #   xlab("Measure of Community Change")+
 #   ylab("Drought-Control Difference")
 
+
+
+# doing stats on change ---------------------------------------------------
+
+#1) Are there differences from zero?
+
+RRallstats<-RRall %>% 
+  group_by(measure) %>% 
+  summarize(pval=t.test(RR, mu=0, alternative="two.sided")$p.value) %>% 
+  mutate(padj=p.adjust(pval, method="BH"))
+
+
+#1A) are C-T rates of change different from one-another and do they differ over time
+
+deltarac3yrs<-deltaracs %>% 
+  filter(n_treat_years<4& n_treat_years>0)
+
+length(unique(deltarac3yrs$site_code))
+
+mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mrich)
+
+meven<-lmer(evenness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(meven)
+
+mrank<-lmer(rank_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mrank)
+
+mgain<-lmer(gains~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mgain)
+
+mloss<-lmer(losses~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+anova(mloss)
+
+ggplot(data=deltarac3yrs, aes(x=n_treat_years, y=rank_change, color=trt))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+#adjust P-values for treat effect
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.0002454, 0.5475, 0.20764, 0.01591, 0.0001927)) %>%
+  mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
+
+pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.654, 0.374, 0.022, 0.988, 0.444)) %>% 
+  mutate(padj=p.adjust(pvalue, method="BH"))
+
 meanCIdiff<-RRall %>% 
   group_by(measure) %>% 
   summarize(mean=mean(RR, na.rm=T), n=length(RR), sd=sd(RR, na.rm=T)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96)
-  
-##Top panel. Mean with CI on the differences between treatment and control changes.
-CTdiff_measures<-ggplot(data = subset(meanCIdiff, measure!="dispersion_change"|measure!="Dominance"|measure!='composition_change'), aes(x=measure, y=mean))+
-  geom_point(size=3)+
-  scale_x_discrete(limits=c("richness_change", "evenness_change", 'rank_change', 'gains', 'losses'), labels=c("Richness", "Evenness", "Ranks", "Gains", 'Losses'))+
-  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI), width=0.5)+
-  geom_hline(yintercept = 0)+
-  # annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
-  # annotate("text", x=4, y=0.001, label="*", size=8, color="red")+
-  # annotate("text", x=5, y=.07, label="*", size=8,color="red")+
-  # annotate("text", x=6, y=.06, label="*", size=8,color="red")+
-  xlab("Measure of Community Change")+
-  ylab("Control-Treatment Differences")+
-  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank())
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", plot=CTdiff_measures, units = "in", width=6, height=3.5)
+##Top panel. Mean with CI on the differences between treatment and control changes.
+# CTdiff_measures<-ggplot(data = subset(meanCIdiff, measure!="dispersion_change"|measure!="Dominance"|measure!='composition_change'), aes(x=measure, y=mean))+
+#   geom_point(size=3)+
+#   scale_x_discrete(limits=c("richness_change", "evenness_change", 'rank_change', 'gains', 'losses'), labels=c("Richness", "Evenness", "Ranks", "Gains", 'Losses'))+
+#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI), width=0.5)+
+#   geom_hline(yintercept = 0)+
+#   # annotate("text", x=1, y=-0.03, label="*", size=8, color="red")+
+#   # annotate("text", x=4, y=0.001, label="*", size=8, color="red")+
+#   # annotate("text", x=5, y=.07, label="*", size=8,color="red")+
+#   # annotate("text", x=6, y=.06, label="*", size=8,color="red")+
+#   xlab("Measure of Community Change")+
+#   ylab("Control-Treatment Differences")+
+#   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+# 
+# ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", plot=CTdiff_measures, units = "in", width=6, height=3.5)
 
 meanCIcomp<-deltamult %>%
   group_by(trt) %>% 
@@ -405,7 +450,7 @@ MeanCI<-deltaracs %>%
 labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Reordering')
 #figure of CT differences
 CTCompare<-
-ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
+  ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
   geom_point(size=4)+
   scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
@@ -453,51 +498,6 @@ ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CT
 #   scale_y_continuous(limits=c(-1, 1))+
 #   ggtitle("Richness Change")+
 #   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
-
-
-
-# doing stats on change ---------------------------------------------------
-
-#1) Are there differences from zero?
-
-RRallstats<-RRall %>% 
-  group_by(measure) %>% 
-  summarize(pval=t.test(RR, mu=0, alternative="two.sided")$p.value) %>% 
-  mutate(padj=p.adjust(pval, method="BH"))
-
-
-#1A) are C-T rates of change different from one-another and do they differ over time
-
-deltarac3yrs<-deltaracs %>% 
-  filter(n_treat_years<4& n_treat_years>0)
-
-length(unique(deltarac3yrs$site_code))
-
-mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mrich)
-
-meven<-lmer(evenness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(meven)
-
-mrank<-lmer(rank_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mrank)
-
-mgain<-lmer(gains~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mgain)
-
-mloss<-lmer(losses~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mloss)
-
-ggplot(data=deltarac3yrs, aes(x=n_treat_years, y=rank_change, color=trt))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-#adjust P-values for treat effect
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.0002454, 0.5475, 0.20764, 0.01591, 0.0001927)) %>%
-  mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
-
-pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.654, 0.374, 0.022, 0.988, 0.444)) %>% 
-  mutate(padj=p.adjust(pvalue, method="BH"))
 
 ###looking at changes over time.
 ##there are no differences among the years at all

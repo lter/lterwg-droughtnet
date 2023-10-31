@@ -8,7 +8,7 @@ library(tidyverse)
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 setwd("E:Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-10-12.csv") %>% 
+dat<-read.csv("cover_ppt_2023-10-21.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"),
          lifeform2=ifelse(local_lifeform=="GRAMINOID"|local_lifeform=="Grass", "GRASS", local_lifeform))
 
@@ -64,6 +64,7 @@ write.csv(pctLifehistory, "community_comp\\Prc_LifeHistory_Oct2023.csv", row.nam
 
 # Calculating for controls over all years ---------------------------------
 
+#this is what we are going to use now.
 #dropping treated plots
 controls<-dat %>%
   select(site_code, trt) %>%
