@@ -377,7 +377,7 @@ a <- data.anpp.summary%>%
   ggplot(aes(map, anpp_response))+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  geom_smooth(method = "lm", se = TRUE, color = "black")+
   xlab("MAP")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
@@ -396,7 +396,7 @@ b <- data.anpp.summary%>%
   ggplot(aes(sand_mean, anpp_response))+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  #geom_smooth(method = "lm", se = FALSE)+
+  #geom_smooth(method = "lm", se = TRUE)+
   xlab("Average sand content")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
@@ -420,7 +420,7 @@ c <- data.anpp.summary%>%
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
   xlim(0,2)+
-  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Aridity index")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
@@ -445,7 +445,7 @@ d <- data.anpp.summary%>%
   ggplot(aes(cv_ppt_inter, anpp_response))+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Interannual precip CV")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
@@ -471,8 +471,7 @@ e <- data.anpp.summary%>%
   ggplot(aes(percent_graminoid, anpp_response))+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  #geom_smooth(method = "lm", se = FALSE)+
-  xlab("Percent graminoid")+
+  #geom_smooth(method = "lm", se = TRUE)+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -495,7 +494,7 @@ f <- data.anpp.summary%>%
   ggplot(aes(richness, anpp_response))+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  #geom_smooth(method = "lm", se = FALSE)+
+  #geom_smooth(method = "lm", se = TRUE)+
   xlab("Richness")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
@@ -510,8 +509,7 @@ tempdf <- data.anpp.summary%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~richness,random = ~1|ipcc_regions, data = tempdf)
-summary(mod)+
-  theme(legend.position = "none")
+summary(mod)
 
 
 
@@ -521,7 +519,7 @@ g <- data.anpp.summary%>%
   ggplot(aes(seasonality_index, anpp_response))+
   geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
              )+
-  geom_smooth(method = "lm",  se = FALSE, color = "black", linetype = "dashed")+ #marginal
+  geom_smooth(method = "lm",  se = TRUE, color = "black", linetype = "dashed")+ #marginal
   xlab("Seasonality")+
   ylab("ANPP response")+
   scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
@@ -540,7 +538,7 @@ summary(mod)
 
 
 
-plot_grid(a,  d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
+plot_grid(a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G'))
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental.pdf",
@@ -549,7 +547,7 @@ ggsave(
   path = NULL,
   scale = 1,
   width = 10,
-  height = 6,
+  height = 9,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
@@ -980,7 +978,7 @@ full_y3%>%
 
 
 tempdf <- subset(full_y3, Ann_Per == "Perennial")
-lmFull <- lme(anpp_response~drtsev.1 +
+lmFull <- lme(anpp_response~drtsev.1 + 
                 map+#sand_mean + 
                cv_ppt_inter + 
                 r_monthly_t_p #+ PctAnnual  
