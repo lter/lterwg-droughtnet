@@ -38,7 +38,7 @@ treatment_info <- treatment_info%>%
 treatment_info$trt <- plyr::revalue(treatment_info$trt, c("Control_infrastructure"="Control"))
 
 site_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")%>%
-  dplyr::select(site_code, precip, habitat.type, arid, ipcc_regions)%>%
+  dplyr::select(site_code, precip, habitat.type, arid, ipcc_regions, continent)%>%
   dplyr::rename(map = precip)
 #full_biomass <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_test.csv")
 #details <- full_biomass[,c("site_code", block, plot, subplot, year, )]
@@ -143,6 +143,6 @@ anpp_ppt.end <- data.all%>%
 
 
 
-write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-10-25.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-11-03.csv")
 
 

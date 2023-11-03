@@ -15,7 +15,7 @@ library(rsq)
 
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-10-25.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-11-03.csv")%>%
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")#%>%
 
 length(unique(data.anpp$site_code)) #114
@@ -216,6 +216,38 @@ ggsave(
 )
 
 
+#Y2
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 2 & Ann_Per == "Perennial")%>%
+  mutate(prev_e.n = factor(prev_e.n, levels=c("nominal", "extreme")),e.n = factor(e.n, levels = c("nominal", "extreme")))  %>%
+  ggplot(aes(drtsev.1, anpp_response#,color = prev_e.n
+  ))+
+  facet_grid(prev_e.n~e.n)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+  )+
+  geom_smooth(aes(),method = "lm", se = TRUE, color = "black")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  ylab("Year 2 ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  scale_fill_gradient(
+    low = "red",
+    high = "grey",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "fill"
+  )+
+  theme_base()+
+  theme(legend.position = "none")
+
+
+#Y3
+
+
+
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 3 & Ann_Per == "Perennial")%>%
@@ -277,6 +309,8 @@ pairs(emtrends(mod, ~as.factor(two_year_e.n), var="drtsev.1"))
 
 mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
              subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "extreme" ))
+mod <-  lm(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+              subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "extreme" ))
 summary(mod) 
 r.squaredGLMM(mod)#R-squaredm 0.41
 slopey1 <- summary(mod)$coefficients$fixed[[2]]
@@ -1252,6 +1286,33 @@ data.anpp.year%>%
 
 
 
+
+
+
+
+
+mod <- lme(anpp_response~type*as.factor(n_treat_years), random = ~1|ipcc_regions/site_code, data = data.anpp.summary)
+summary(mod)
+library(emmeans)
+means <- emmeans(mod, ~n_treat_years*type)
+emmeans(mod, list(pairwise ~ type), adjust = "tukey")
+emmeans(mod, list(pairwise ~ n_treat_years*type), adjust = "tukey")
+confint(means)
+
+
+ggplot(confint(means),aes(as.factor(n_treat_years), emmean, color = type
+))+
+  geom_pointrange(aes(ymin = lower.CL, ymax = upper.CL), position = position_dodge(width = 0.5))+
+  #ylim(-1.2, 0.3)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  xlab("Years of drought")+
+  ylab("ANPP response")+
+  scale_color_manual("Prevailing veg type", values = c("#D9782D", "#1E4D2B", "#C8C372" ))+
+  #coord_flip()+
+  theme_base()+
+  theme(axis.ticks.length=unit(-0.25, "cm"))
+
+
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_response-by-year-type-confidence.pdf",
   plot = last_plot(),
@@ -1264,15 +1325,6 @@ ggsave(
   dpi = 600,
   limitsize = TRUE
 )
-
-
-
-mod <- lme(anpp_response~type*as.factor(n_treat_years), random = ~1|ipcc_regions, data = data.anpp.summary)
-summary(mod)
-library(emmeans)
-emmeans(mod, list(pairwise ~ type), adjust = "tukey")
-emmeans(mod, list(pairwise ~ n_treat_years*type), adjust = "tukey")
-
 
 
 
@@ -1306,6 +1358,8 @@ data.anpp.year%>%
   #coord_flip()+
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
+
+
 
 
 # mod <- lmer(anpp_response~e.n*as.factor(n_treat_years)+(1|site_code), data = subset(data.anpp.summary,Ann_Per == "Perennial"))
