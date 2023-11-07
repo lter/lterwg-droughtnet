@@ -219,6 +219,36 @@ ggsave(
 #Y2
 data.anpp.summary%>%
   left_join(history.df, by = "site_code")%>%
+  subset(n_treat_years == 2 | n_treat_years == 3)%>% 
+         subset( Ann_Per == "Perennial")%>%
+  mutate(prev_e.n = factor(prev_e.n, levels=c("nominal", "extreme")),e.n = factor(e.n, levels = c("nominal", "extreme")))  %>%
+  ggplot(aes(drtsev.1, anpp_response#,color = prev_e.n
+  ))+
+  facet_grid(prev_e.n~e.n)+
+  geom_point(aes(color = type),alpha = 0.8, size = 3#, pch = 21
+  )+
+  geom_smooth(aes(),method = "lm", se = TRUE, color = "black")+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlab("Drought severity (percent reduction of MAP)")+
+  #ylab("Year 2 ANPP response")+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  scale_fill_gradient(
+    low = "red",
+    high = "grey",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "fill"
+  )+
+  theme_base()+
+  theme(legend.position = "none")
+
+
+
+#Y2
+data.anpp.summary%>%
+  left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == 2 & Ann_Per == "Perennial")%>%
   mutate(prev_e.n = factor(prev_e.n, levels=c("nominal", "extreme")),e.n = factor(e.n, levels = c("nominal", "extreme")))  %>%
   ggplot(aes(drtsev.1, anpp_response#,color = prev_e.n
@@ -290,49 +320,57 @@ ggsave(
 
 
 #comparison of means
-mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-            subset(Ann_Per == "Perennial" &n_treat_years == 3)%>%
+mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+            subset(Ann_Per == "Perennial" )%>%
+             subset(n_treat_years == 2 | n_treat_years == 3)%>%
             unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
-mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-             subset(Ann_Per == "Perennial" &n_treat_years == 3)%>%
-             unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
+mod <- lme(anpp_response~e.n*prev_e.n, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" )%>%
+             subset(n_treat_years == 2 | n_treat_years == 3))#%>%
+             #unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
+#mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+#             subset(Ann_Per == "Perennial" &n_treat_years == 3)%>%
+#             unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
 summary(mod)
 pairs(emmeans(mod, ~as.factor(two_year_e.n)))
 
 ###comparison of slopes figure
-mod <- lme(anpp_response~two_year_e.n*drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-             subset(Ann_Per == "Perennial" &n_treat_years == 3)%>%
+mod <- lme(anpp_response~two_year_e.n*drtsev.1, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial")%>%
+              subset(n_treat_years == 2 |n_treat_years == 3)%>%
              unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
 summary(mod)
 pairs(emtrends(mod, ~as.factor(two_year_e.n), var="drtsev.1"))
 
 
-mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "extreme" ))
-mod <-  lm(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-              subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "extreme" ))
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+              subset(Ann_Per == "Perennial"& prev_e.n == "extreme" & e.n == "extreme" )%>%
+              subset(n_treat_years == 2 |n_treat_years == 3 ))
 summary(mod) 
 r.squaredGLMM(mod)#R-squaredm 0.41
 slopey1 <- summary(mod)$coefficients$fixed[[2]]
 se1 <- summary(mod)$tTable[2,2]
 
-mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "extreme" & e.n == "nominal" ))
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial"& prev_e.n == "extreme" & e.n == "nominal" )%>%
+            subset(n_treat_years == 2 |n_treat_years == 3 ))
 summary(mod)
 r.squaredGLMM(mod)#R-squaredm 0.05
 slopey2 <- summary(mod)$coefficients$fixed[[2]]
 se2 <- summary(mod)$tTable[2,2]
 
 
-mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "nominal" & e.n == "extreme" ))
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+              subset(Ann_Per == "Perennial"& prev_e.n == "nominal" & e.n == "extreme" )%>%
+              subset(n_treat_years == 2 |n_treat_years == 3 ))
 summary(mod)
 r.squaredGLMM(mod)#R-squaredm 0.12
 slopey3 <- summary(mod)$coefficients$fixed[[2]]
 se3 <- summary(mod)$tTable[2,2]
 
-mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions, data = data.anpp.summary%>%
-             subset(Ann_Per == "Perennial" &n_treat_years == 3 & prev_e.n == "nominal" & e.n == "nominal" ))
+mod <-  lme(anpp_response~drtsev.1, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+              subset(Ann_Per == "Perennial"& prev_e.n == "nominal" & e.n == "nominal" )%>%
+              subset(n_treat_years == 2 |n_treat_years == 3 ))
 summary(mod)
 r.squaredGLMM(mod)#R-squaredm 0.001
 slopey4 <- summary(mod)$coefficients$fixed[[2]]
@@ -1127,6 +1165,11 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
   theme_base()+
   theme(legend.position = "none")
 
+
+
+
+
+
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3.pdf",
   plot = last_plot(),
@@ -1183,9 +1226,19 @@ ggsave(
 )
 
 
-mod <- lme(anpp_response~drtsev.1*as.factor(n_treat_years), random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3 & Ann_Per == "Perennial"))
+mod <- lme(anpp_response~drtsev.1*n_treat_years, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3 & Ann_Per == "Perennial")%>%
+             mutate_at(vars(n_treat_years), factor)
+             )
 summary(mod)
 pairs(emtrends(mod, ~as.factor(n_treat_years), var="drtsev.1"))
+
+
+#x <- ggpredict(mod, c( "drtsev.1", "n_treat_years"))
+#plot(x)+
+#  facet_wrap(~group)+
+#  geom_point(data=subset(data.anpp.summary, n_treat_years >=1 & n_treat_years <= 3 & Ann_Per == "Perennial"), aes(drtsev.1, anpp_response), inherit.aes = FALSE)
+#  theme_base()
+
 
 
 #####Stitches plot for year 3 only
