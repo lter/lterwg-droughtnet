@@ -8,7 +8,7 @@ library(tidyverse)
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 setwd("E:Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-10-21.csv") %>% 
+dat<-read.csv("cover_ppt_2023-10-25.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"),
          lifeform2=ifelse(local_lifeform=="GRAMINOID"|local_lifeform=="Grass", "GRASS", local_lifeform))
 
