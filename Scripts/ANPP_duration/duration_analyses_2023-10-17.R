@@ -460,7 +460,7 @@ a <- data.anpp.summary%>%
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "3"&Ann_Per == "Perennial"))
 summary(mod)
-
+r.squaredGLMM(mod)
 
 b <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -484,6 +484,8 @@ tempdf <- data.anpp.summary%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~sand_mean,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
+r.squaredGLMM(mod)
+
 
 c <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -508,7 +510,7 @@ tempdf <- data.anpp.summary%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~AI,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-
+r.squaredGLMM(mod)
 
 
 d <- data.anpp.summary%>%
@@ -533,7 +535,7 @@ tempdf <- data.anpp.summary%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~cv_ppt_inter, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-
+r.squaredGLMM(mod)
 
 
 
@@ -607,7 +609,7 @@ tempdf <- data.anpp.summary%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~seasonality_index,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-
+r.squaredGLMM(mod)
 
 
 plot_grid(a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G'))
