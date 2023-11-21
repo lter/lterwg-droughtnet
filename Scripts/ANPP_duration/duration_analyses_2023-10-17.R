@@ -320,13 +320,13 @@ ggsave(
 
 
 #comparison of means
-mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
             subset(Ann_Per == "Perennial" )%>%
-             subset(n_treat_years == 2 | n_treat_years == 3)%>%
+             subset(n_treat_years == 3)%>%
             unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
-mod <- lme(anpp_response~e.n*prev_e.n, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+mod <- lme(anpp_response~e.n*prev_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
              subset(Ann_Per == "Perennial" )%>%
-             subset(n_treat_years == 2 | n_treat_years == 3))#%>%
+             subset(n_treat_years == 3))#%>%
              #unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
 #mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
 #             subset(Ann_Per == "Perennial" &n_treat_years == 3)%>%
