@@ -28,7 +28,7 @@ library(emmeans) # extracting stats
 library(car)
 library(gridExtra)
 
-theme_set(theme_bw(16)) # set theme
+theme_set(theme_bw(12)) # set theme
 
 ################################################################################
 # PART 2: load in data
@@ -37,7 +37,7 @@ theme_set(theme_bw(16)) # set theme
 setwd('C://Users/mavolio2//Dropbox//IDE (1)//data_processed')
 
 # cover data
-dat<-read.csv("cover_ppt_2023-10-13.csv") %>% 
+dat<-read.csv("cover_ppt_2023-10-25.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
 ################################################################################
@@ -109,6 +109,11 @@ table(datblip2$N.fixer)
 table(datblip2$local_lifespan)
 table(datblip2$local_lifeform)
 
+numpersist/11946
+numloss/11946
+numgain/11946
+
+
 ###thinking about groupings
 #c3/c4 with functional type
 group1<-datblip2 %>% 
@@ -117,7 +122,8 @@ group1<-datblip2 %>%
 
 #n-fixer lifeform
 group2<-datblip2 %>% 
-  group_by(local_lifeform, N.fixer) %>% 
+  filter(outcome=='gain') %>% 
+  group_by(local_lifeform, N.fixer, trt) %>% 
   summarise(n=length(pretrt))
 
 group3<-datblip2 %>% 
@@ -138,52 +144,51 @@ plotlifeform<-datblip2 %>%
 LF.Loss<-
 ggplot(data=plotlifeform, aes(x=pretrt, y=loss2, color=local_lifeform, linetype=trt))+
   geom_point()+
-  scale_color_manual(name='Lifeform', values=c('deeppink', 'forestgreen', 'brown'))+
-  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'))+
+  scale_color_manual(name='Lifeform', values=c('darkseagreen2','palegreen4', 'darkgreen'))+
+  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha = 0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   xlab("Pre-treatment Abundance")+
   ylab("Loss Probability")+
-  annotate('text', y=0.75, x=50, label='Trt*FG NS')+
-  annotate('text', y=0.68, x=50, label='Trt*A NS')+
-  annotate('text', y=0.60, x=50, label='Trt*FG*A p = <0.001')
+  guides(linetype=guide_legend(override.aes = list(color='black')))+
+  scale_linetype_manual(name='Treatment', values=c(1,4))
+LF.Loss
 
 loss_lifespan <- glmer(loss ~ trt*local_lifespan*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!="Woody"))
 Anova(loss_lifespan)
 
 plotlifespan<-datblip2 %>% 
+  filter(local_lifeform!='Woody') %>% 
   mutate(loss2=ifelse(local_lifespan=="ANNUAL"&loss==0, 0.02, ifelse(local_lifespan=='Perennial'&loss==1, 0.98, loss)))
 
 LS.loss<-
   ggplot(data=subset(plotlifespan, local_lifeform!='Woody'), aes(x=pretrt, y=loss2, color=local_lifespan, linetype=trt))+
   geom_point()+
-  scale_color_manual(name='Lifespan', values=c('purple', 'forestgreen'),labels=c('Annual', 'Perennial'))+
-  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'))+
+  scale_color_manual(name='Lifespan', values=c('skyblue1', 'skyblue4'),labels=c('Annual', 'Perennial'))+
+  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   xlab("Pre-treatment Abundance")+
   ylab("Loss Probability")+
-  annotate('text', y=0.75, x=50, label='Trt*FG p = 0.002')+
-  annotate('text', y=0.68, x=50, label='Trt*A NS')+
-  annotate('text', y=0.60, x=50, label='Trt*FG*A p = 0.002')
+  guides(linetype=guide_legend(override.aes = list(color='black')))+
+  scale_linetype_manual(name='Treatment', values=c(1,4))
+LS.loss
 
-
-loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform=="Woody"))
+loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!="Grass"))
 Anova(loss_Nfix)
 
 plotnfix<-datblip2 %>% 
   mutate(loss2=ifelse(N.fixer=="Non-N-fixer"&loss==0, 0.02, ifelse(N.fixer=='N-fixer'&loss==1, 0.98, loss)))
 
 NFix.Loss<-
-ggplot(data=subset(plotnfix, local_lifeform=='Forb'), aes(x=pretrt, y=loss2, color=N.fixer, linetype=trt))+
+ggplot(data=subset(plotnfix, local_lifeform!='Grass'), aes(x=pretrt, y=loss2, color=N.fixer, linetype=trt))+
   geom_point()+
-  scale_color_manual(name='N Fixer', values=c('orange', 'forestgreen'))+
-  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), level=0.1)+
+  scale_color_manual(name='N Fixer', values=c('orange', 'orange4'))+
+  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   xlab("Pre-treatment Abundance")+
   ylab("Loss Probability")+
-  annotate('text', y=0.75, x=50, label='Trt*FG NS')+
-  annotate('text', y=0.68, x=50, label='Trt*A NS')+
-  annotate('text', y=0.60, x=50, label='Trt*FG*A NS')
-
+  guides(linetype=guide_legend(override.aes = list(color='black')))+
+  scale_linetype_manual(name='Treatment', values=c(1,4))
+NFix.Loss
 
 loss_ps <- glmer(loss ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform=="Grass"))
 Anova(loss_ps)
@@ -194,209 +199,213 @@ plotps<-datblip2 %>%
 ps.Loss<-
   ggplot(data=subset(plotps, local_lifeform=="Grass"), aes(x=pretrt, y=loss2, color=ps_path, linetype=trt))+
   geom_point()+
-  scale_color_manual(name='PS Pathway', values=c('limegreen', 'darkgreen'))+
-  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'))+
+  scale_color_manual(name='PS Pathway', values=c('darkorchid1', 'darkorchid4'))+
+  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   xlab("Pre-treatment Abundance")+
   ylab("Loss Probability")+
-  annotate('text', y=0.75, x=50, label='Trt*FG NS')+
-  annotate('text', y=0.68, x=50, label='Trt*A NS')+
-  annotate('text', y=0.60, x=50, label='Trt*FG*A NS')
+  guides(linetype=guide_legend(override.aes = list(color='black')))+
+  scale_linetype_manual(name='Treatment', values=c(1,4))
+ps.Loss
 
 ###put all figs together
-grid.arrange(LF.Loss, LS.loss, NFix.Loss, ps.Loss, ncol=2)
+lossfigs<-grid.arrange(LF.Loss, LS.loss, NFix.Loss, ps.Loss, ncol=2)
 
 
-#####PERSIST
-
-persist_lifeform <- glmer(persist ~ trt*local_lifeform*pretrt + (1|site_code), family = binomial(), data = datblip2)
-Anova(persist_lifeform)
-
-plotlifeformP<-datblip2 %>% 
-  mutate(persist2=ifelse(local_lifeform=="Forb"&persist==0, 0.04, ifelse(local_lifeform=='Grass'&persist==0, 0.02, ifelse(local_lifeform=="Grass"&persist==1, 0.98, ifelse(local_lifeform=="Woody"&persist==1, 0.96, persist)))))
-
-LF.Persist<-
-  ggplot(data=plotlifeformP, aes(x=pretrt, y=persist2, color=local_lifeform, linetype=trt))+
-  geom_point()+
-  scale_color_manual(name='Lifeform', values=c('deeppink', 'forestgreen', 'brown'))+
-  geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  xlab("Pre-treatment Abundance")+
-  ylab("Persist Probability")+
-  annotate('text', y=0.75, x=20, label='Trt*FG NS')+
-  annotate('text', y=0.68, x=20, label='Trt*A NS')+
-  annotate('text', y=0.60, x=20, label='Trt*FG*A NS')
-
-persist_lifespan <- glmer(persist ~ trt*local_lifespan*pretrt + (1|site_code), family = binomial(), data = datblip2)
-Anova(persist_lifespan)
-
-plotlifespanP<-datblip2 %>% 
-  mutate(persist2=ifelse(local_lifespan=="ANNUAL"&persist==0, 0.02, ifelse(local_lifespan=="Perennial"&persist==1, 0.98, persist)))
-
-LS.Persist<-
-  ggplot(data=plotlifespanP, aes(x=pretrt, y=persist2, color=local_lifespan, linetype=trt))+
-  geom_point()+
-  scale_color_manual(name='Lifespan', values=c('purple', 'forestgreen'),labels=c('Annual', 'Perennial'))+
-  geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  xlab("Pre-treatment Abundance")+
-  ylab("Persist Probability")+
-  annotate('text', y=0.75, x=20, label='Trt*FG p = <0.001')+
-  annotate('text', y=0.68, x=20, label='Trt*A p < 0.001')+
-  annotate('text', y=0.60, x=20, label='Trt*FG*A NS')
-
-persist_Nfix <- glmer(persist ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = datblip2)
-summary(loss_Nfix)
-Anova(persist_Nfix)
-
-plotnfixP<-datblip2 %>% 
-  mutate(persist2=ifelse(N.fixer=="Non-N-fixer"&persist==0, 0.02, ifelse(N.fixer=='N-fixer'&persist==1, 0.98, persist)))
-
-NFix.Persist<-
-  ggplot(data=plotnfixP, aes(x=pretrt, y=persist2, color=N.fixer, linetype=trt))+
-  geom_point()+
-  scale_color_manual(name='N Fixer', values=c('orange', 'forestgreen'))+
-  geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  xlab("Pre-treatment Abundance")+
-  ylab("Persist Probability")+
-  annotate('text', y=0.75, x=20, label='Trt*FG NS')+
-  annotate('text', y=0.68, x=20, label='Trt*A NS')+
-  annotate('text', y=0.60, x=20, label='Trt*FG*A NS')
-
-persist_ps <- glmer(persist ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = datblip2)
-summary(loss_ps)
-Anova(persist_ps)
-
-plotpsP<-datblip2 %>% 
-  mutate(persist2=ifelse(ps_path=="C3"&persist==0, 0.02, ifelse(ps_path=='C4'&persist==1, 0.98, persist)))
-
-ps.Persist<-
-  ggplot(data=plotpsP, aes(x=pretrt, y=persist2, color=ps_path, linetype=trt))+
-  geom_point()+
-  scale_color_manual(name='PS Pathway', values=c('limegreen', 'darkgreen'))+
-  geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  xlab("Pre-treatment Abundance")+
-  ylab("Persist Probability")+
-  annotate('text', y=0.75, x=20, label='Trt*FG NS')+
-  annotate('text', y=0.68, x=20, label='Trt*A NS')+
-  annotate('text', y=0.60, x=20, label='Trt*FG*A NS')
-
-grid.arrange(LF.Persist, LS.Persist, NFix.Persist, ps.Persist, ncol=2)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfig.jpg", plot=lossfigs, units="in", width=9, height=8)
 
 
-
-
-#####Gains
-
-gain_lifeform <- glmer(gain ~ local_lifeform*trt + (1|site_code), family = binomial(), data = datblip2)
-Anova(gain_lifeform)
-
-lf<- data.frame(summary(emmeans(gain_lifeform, pairwise ~ trt*local_lifeform, type = 'response')$emmeans)) %>% 
-  mutate(trait = "Lifeform")%>% 
-  rename(TraitCat=local_lifeform)
-
-gain_lifespan <- glmer(gain ~ local_lifespan*trt + (1|site_code), family = binomial(), data = datblip2)
-summary(gain_lifespan)
-Anova(gain_lifespan)
-
-ls<- data.frame(summary(emmeans(gain_lifespan, pairwise ~ trt*local_lifespan, type = 'response')$emmeans)) %>% 
-  mutate(trait = "Lifespan")%>% 
-  rename(TraitCat=local_lifespan) %>% 
-  mutate(TraitCat=ifelse(TraitCat=="ANNUAL", "Annual", 'Perennial'))
-
-gain_Nfix <- glmer(gain ~ trt*N.fixer + (1|site_code), family = binomial(), data = datblip2)
-summary(gain_Nfix)
-Anova(gain_Nfix)
-
-nfix<- data.frame(summary(emmeans(gain_Nfix, pairwise ~ trt*N.fixer, type = 'response')$emmeans)) %>% 
-  mutate(trait = "N_Fixer")%>% 
-  rename(TraitCat=N.fixer)
-
-gain_ps <- glmer(gain ~ trt*ps_path + (1|site_code), family = binomial(), data = datblip2)
-summary(gain_ps)
-Anova(gain_ps)
-
-ps<- data.frame(summary(emmeans(gain_ps, pairwise ~ trt*ps_path, type = 'response')$emmeans)) %>% 
-  mutate(trait = "Photo_Path")%>% 
-  rename(TraitCat=ps_path)
-
-
-#plotting gains
-pvals<-data.frame(trait=c('Lifeform', 'Lifespan', 'N_Fixer', 'Photo_Path'), pval=c(0.23097, 0.04163, 0.787599, 0.811343)) %>% 
-  mutate(padj=paste("p = ", p.adjust(pval, method="BH")))
-
-toplot<-lf %>% 
-  bind_rows(ls, nfix, ps) %>%
-  left_join(pvals)
-
-labs=c(Lifeform="Growth Form", Lifespan='Lifespan', N_Fixer="N Fixation", Photo_Path='Photosynthetic Pathway')
-
-gainfig<-
-ggplot(data=toplot, aes(x=TraitCat, y=prob, color=trt, label=padj))+
-  geom_point(size=3, position = position_dodge(width = 0.4))+
-  scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
-  geom_errorbar(aes(ymin=prob-SE, ymax=prob+SE), width=0.2, position = position_dodge(width = 0.4))+
-  geom_text(aes(x=Inf, y=Inf), hjust=1.05, vjust=1.2, color="black")+
-  facet_wrap(~trait, scales = 'free', labeller = labeller(trait=labs))+
-  ylab("Probability of Gains")+
-  xlab("Trait")+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "top")
-
-#ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\probloss.jpg", plot=loss, units = "in", width=6.5, height=5)
-
-
-####losses without pretreatment data
-
-ls_lifeform <- glmer(loss ~ local_lifeform*trt + (1|site_code), family = binomial(), data = datblip2)
-Anova(ls_lifeform)
-
-l_lf<- data.frame(summary(emmeans(ls_lifeform, pairwise ~ trt*local_lifeform, type = 'response')$emmeans)) %>% 
-  mutate(trait = "Lifeform")%>% 
-  rename(TraitCat=local_lifeform)
-
-ls_lifespan <- glmer(loss ~ local_lifespan*trt + (1|site_code), family = binomial(), data = datblip2)
-Anova(ls_lifespan)
-
-l_ls<- data.frame(summary(emmeans(ls_lifespan, pairwise ~ trt*local_lifespan, type = 'response')$emmeans)) %>% 
-  mutate(trait = "Lifespan")%>% 
-  rename(TraitCat=local_lifespan) %>% 
-  mutate(TraitCat=ifelse(TraitCat=="ANNUAL", "Annual", 'Perennial'))
-
-ls_Nfix <- glmer(loss ~ trt*N.fixer + (1|site_code), family = binomial(), data = datblip2)
-Anova(ls_Nfix)
-
-l_nfix<- data.frame(summary(emmeans(ls_Nfix, pairwise ~ trt*N.fixer, type = 'response')$emmeans)) %>% 
-  mutate(trait = "N_Fixer")%>% 
-  rename(TraitCat=N.fixer)
-
-ls_ps <- glmer(loss ~ trt*ps_path + (1|site_code), family = binomial(), data = datblip2)
-Anova(ls_ps)
-
-l_ps<- data.frame(summary(emmeans(ls_ps, pairwise ~ trt*ps_path, type = 'response')$emmeans)) %>% 
-  mutate(trait = "Photo_Path")%>% 
-  rename(TraitCat=ps_path)
-
-
-#plotting losses
-l_pvals<-data.frame(trait=c('Lifeform', 'Lifespan', 'N_Fixer', 'Photo_Path'), pval=c(0.8337, 0.0003422, 0.8611, 0.5033)) %>% 
-  mutate(padj=paste("p = ", p.adjust(pval, method="BH")))
-
-ls.toplot<-l_lf %>% 
-  bind_rows(l_ls, l_nfix, l_ps) %>%
-  left_join(l_pvals)
-
-labs=c(Lifeform="Growth Form", Lifespan='Lifespan', N_Fixer="N Fixation", Photo_Path='Photosynthetic Pathway')
-
-lossfig_nopretrt<-
-  ggplot(data=ls.toplot, aes(x=TraitCat, y=prob, color=trt, label=padj))+
-  geom_point(size=3, position = position_dodge(width = 0.4))+
-  scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
-  geom_errorbar(aes(ymin=prob-SE, ymax=prob+SE), width=0.2, position = position_dodge(width = 0.4))+
-  geom_text(aes(x=Inf, y=Inf), hjust=1.05, vjust=1.2, color="black")+
-  facet_wrap(~trait, scales = 'free', labeller = labeller(trait=labs))+
-  ylab("Probability of Gains")+
-  xlab("Trait")+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "top")
-lossfig_nopretrt
+# #####PERSIST
+# 
+# persist_lifeform <- glmer(persist ~ trt*local_lifeform*pretrt + (1|site_code), family = binomial(), data = datblip2)
+# Anova(persist_lifeform)
+# 
+# plotlifeformP<-datblip2 %>% 
+#   mutate(persist2=ifelse(local_lifeform=="Forb"&persist==0, 0.04, ifelse(local_lifeform=='Grass'&persist==0, 0.02, ifelse(local_lifeform=="Grass"&persist==1, 0.98, ifelse(local_lifeform=="Woody"&persist==1, 0.96, persist)))))
+# 
+# LF.Persist<-
+#   ggplot(data=plotlifeformP, aes(x=pretrt, y=persist2, color=local_lifeform, linetype=trt))+
+#   geom_point()+
+#   scale_color_manual(name='Lifeform', values=c('deeppink', 'forestgreen', 'brown'))+
+#   geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+#   xlab("Pre-treatment Abundance")+
+#   ylab("Persist Probability")+
+#   guides(linetype=guide_legend(override.aes = list(color='black')))+
+#   scale_linetype_manual(name='Treatment', values=c(1,4))
+# 
+# persist_lifespan <- glmer(persist ~ trt*local_lifespan*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!="Woody"))
+# Anova(persist_lifespan)
+# 
+# plotlifespanP<-datblip2 %>% 
+#   mutate(persist2=ifelse(local_lifespan=="ANNUAL"&persist==0, 0.02, ifelse(local_lifespan=="Perennial"&persist==1, 0.98, persist)))
+# 
+# LS.Persist<-
+#   ggplot(data=subset(plotlifespanP, local_lifeform!='Woody'), aes(x=pretrt, y=persist2, color=local_lifespan, linetype=trt))+
+#   geom_point()+
+#   scale_color_manual(name='Lifespan', values=c('purple', 'forestgreen'),labels=c('Annual', 'Perennial'))+
+#   geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+#   xlab("Pre-treatment Abundance")+
+#   ylab("Persist Probability")+
+#   guides(linetype=guide_legend(override.aes = list(color='black')))+
+#   scale_linetype_manual(name='Treatment', values=c(1,4))
+# LS.Persist
+# 
+# persist_Nfix <- glmer(persist ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!="Grass"))
+# summary(loss_Nfix)
+# Anova(persist_Nfix)
+# 
+# plotnfixP<-datblip2 %>% 
+#   mutate(persist2=ifelse(N.fixer=="Non-N-fixer"&persist==0, 0.02, ifelse(N.fixer=='N-fixer'&persist==1, 0.98, persist)))
+# 
+# NFix.Persist<-
+#   ggplot(data=subset(plotnfixP, local_lifeform!='Grass'), aes(x=pretrt, y=persist2, color=N.fixer, linetype=trt))+
+#   geom_point()+
+#   scale_color_manual(name='N Fixer', values=c('orange', 'forestgreen'))+
+#   geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+#   xlab("Pre-treatment Abundance")+
+#   ylab("Persist Probability")+
+#   guides(linetype=guide_legend(override.aes = list(color='black')))+
+#   scale_linetype_manual(name='Treatment', values=c(1,4))
+# 
+# persist_ps <- glmer(persist ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = filter(datblip2, local_lifeform=='Grass'))
+# summary(loss_ps)
+# Anova(persist_ps)
+# 
+# plotpsP<-datblip2 %>% 
+#   mutate(persist2=ifelse(ps_path=="C3"&persist==0, 0.02, ifelse(ps_path=='C4'&persist==1, 0.98, persist)))
+# 
+# ps.Persist<-
+#   ggplot(data=subset(plotpsP, local_lifeform=='Grass'), aes(x=pretrt, y=persist2, color=ps_path, linetype=trt))+
+#   geom_point()+
+#   scale_color_manual(name='PS Pathway', values=c('limegreen', 'darkgreen'))+
+#   geom_smooth(aes(y=persist), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+#   xlab("Pre-treatment Abundance")+
+#   ylab("Persist Probability")+
+#   guides(linetype=guide_legend(override.aes = list(color='black')))+
+#   scale_linetype_manual(name='Treatment', values=c(1,4))
+# 
+# grid.arrange(LF.Persist, LS.Persist, NFix.Persist, ps.Persist, ncol=2)
+# 
+# 
+# 
+# 
+# #####Gains
+# 
+# gain_lifeform <- glmer(gain ~ trt*local_lifeform + (1|site_code), family = binomial(), data = datblip2)
+# Anova(gain_lifeform)
+# 
+# lf<- data.frame(summary(emmeans(gain_lifeform, pairwise ~ trt*local_lifeform, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "Lifeform")%>% 
+#   rename(TraitCat=local_lifeform)
+# 
+# gain_lifespan <- glmer(gain ~ trt*local_lifespan + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!='Woody'))
+# summary(gain_lifespan)
+# Anova(gain_lifespan)
+# 
+# ls<- data.frame(summary(emmeans(gain_lifespan, pairwise ~ trt*local_lifespan, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "Lifespan")%>% 
+#   rename(TraitCat=local_lifespan) %>% 
+#   mutate(TraitCat=ifelse(TraitCat=="ANNUAL", "Annual", 'Perennial'))
+# 
+# gain_Nfix <- glmer(gain ~ trt*N.fixer + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!='Grass'))
+# summary(gain_Nfix)
+# Anova(gain_Nfix)
+# 
+# gain_Nfix <- glmer(gain ~ trt*N.fixer + (1|site_code), family = binomial(), data = datblip2)
+# summary(gain_Nfix)
+# Anova(gain_Nfix)
+# 
+# nfix<- data.frame(summary(emmeans(gain_Nfix, pairwise ~ trt*N.fixer, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "N_Fixer")%>% 
+#   rename(TraitCat=N.fixer)
+# 
+# gain_ps <- glmer(gain ~ trt*ps_path + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform=='Grass'))
+# summary(gain_ps)
+# Anova(gain_ps)
+# 
+# ps<- data.frame(summary(emmeans(gain_ps, pairwise ~ trt*ps_path, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "Photo_Path")%>% 
+#   rename(TraitCat=ps_path)
+# 
+# 
+# #plotting gains
+# pvals<-data.frame(trait=c('Lifeform', 'Lifespan', 'N_Fixer', 'Photo_Path'), pval=c(0.23097, 0.04163, 0.787599, 0.811343)) %>% 
+#   mutate(padj=paste("p = ", p.adjust(pval, method="BH")))
+# 
+# toplot<-lf %>% 
+#   bind_rows(ls, nfix, ps) #%>%
+#   #left_join(pvals)
+# 
+# labs=c(Lifeform="Growth Form", Lifespan='Lifespan', N_Fixer="N Fixation", Photo_Path='Photosynthetic Pathway')
+# 
+# gainfig<-
+# ggplot(data=toplot, aes(x=TraitCat, y=prob, color=trt))+
+#   geom_point(size=3, position = position_dodge(width = 0.4))+
+#   scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
+#   geom_errorbar(aes(ymin=prob-SE, ymax=prob+SE), width=0.2, position = position_dodge(width = 0.4))+
+#   #geom_text(aes(x=Inf, y=Inf), hjust=1.05, vjust=1.2, color="black")+
+#   facet_wrap(~trait, scales = 'free', labeller = labeller(trait=labs))+
+#   ylab("Probability of Gains")+
+#   xlab("Trait")+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "top")
+# gainfig
+# #ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\probloss.jpg", plot=loss, units = "in", width=6.5, height=5)
+# 
+# 
+# ####losses without pretreatment data
+# 
+# ls_lifeform <- glmer(loss ~ local_lifeform*trt + (1|site_code), family = binomial(), data = datblip2)
+# Anova(ls_lifeform)
+# 
+# l_lf<- data.frame(summary(emmeans(ls_lifeform, pairwise ~ trt*local_lifeform, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "Lifeform")%>% 
+#   rename(TraitCat=local_lifeform)
+# 
+# ls_lifespan <- glmer(loss ~ local_lifespan*trt + (1|site_code), family = binomial(), data = datblip2)
+# Anova(ls_lifespan)
+# 
+# l_ls<- data.frame(summary(emmeans(ls_lifespan, pairwise ~ trt*local_lifespan, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "Lifespan")%>% 
+#   rename(TraitCat=local_lifespan) %>% 
+#   mutate(TraitCat=ifelse(TraitCat=="ANNUAL", "Annual", 'Perennial'))
+# 
+# ls_Nfix <- glmer(loss ~ trt*N.fixer + (1|site_code), family = binomial(), data = datblip2)
+# Anova(ls_Nfix)
+# 
+# l_nfix<- data.frame(summary(emmeans(ls_Nfix, pairwise ~ trt*N.fixer, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "N_Fixer")%>% 
+#   rename(TraitCat=N.fixer)
+# 
+# ls_ps <- glmer(loss ~ trt*ps_path + (1|site_code), family = binomial(), data = datblip2)
+# Anova(ls_ps)
+# 
+# l_ps<- data.frame(summary(emmeans(ls_ps, pairwise ~ trt*ps_path, type = 'response')$emmeans)) %>% 
+#   mutate(trait = "Photo_Path")%>% 
+#   rename(TraitCat=ps_path)
+# 
+# 
+# #plotting losses
+# l_pvals<-data.frame(trait=c('Lifeform', 'Lifespan', 'N_Fixer', 'Photo_Path'), pval=c(0.8337, 0.0003422, 0.8611, 0.5033)) %>% 
+#   mutate(padj=paste("p = ", p.adjust(pval, method="BH")))
+# 
+# ls.toplot<-l_lf %>% 
+#   bind_rows(l_ls, l_nfix, l_ps) %>%
+#   left_join(l_pvals)
+# 
+# labs=c(Lifeform="Growth Form", Lifespan='Lifespan', N_Fixer="N Fixation", Photo_Path='Photosynthetic Pathway')
+# 
+# lossfig_nopretrt<-
+#   ggplot(data=ls.toplot, aes(x=TraitCat, y=prob, color=trt, label=padj))+
+#   geom_point(size=3, position = position_dodge(width = 0.4))+
+#   scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
+#   geom_errorbar(aes(ymin=prob-SE, ymax=prob+SE), width=0.2, position = position_dodge(width = 0.4))+
+#   geom_text(aes(x=Inf, y=Inf), hjust=1.05, vjust=1.2, color="black")+
+#   facet_wrap(~trait, scales = 'free', labeller = labeller(trait=labs))+
+#   ylab("Probability of Gains")+
+#   xlab("Trait")+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "top")
+# lossfig_nopretrt
