@@ -15,7 +15,7 @@ library(gridExtra)
 
 #library(plyr)
 
-theme_set(theme_bw(16))
+theme_set(theme_bw(12))
 
 # Set WD
 user <- "MTH"
@@ -25,7 +25,7 @@ if (user == "MTH"){
 
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2023-10-21.csv") %>% 
+dat<-read.csv("cover_ppt_2023-11-27.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
 #dropping datasets without pretreatment
@@ -113,6 +113,12 @@ drt<-dat2 %>%
   filter(n_treat_years<4)
 
 site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Oct2023.csv")
+
+precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv") %>% 
+  select(site_code, cv_ppt_inter) %>% 
+  drop_na() %>% 
+  group_by(site_code) %>% 
+  summarize(cv_ppt_inter=mean(cv_ppt_inter))
 
 # continent<-read.csv("Site_Elev-Disturb.csv") %>% 
   # select(site_code, continent)
@@ -368,7 +374,7 @@ length(unique(RRall$site_code))
 
 # doing stats on change ---------------------------------------------------
 
-#1) Are there differences from zero?
+#1) Are there differences from zero? No longer including this in the paper
 
 RRallstats<-RRall %>% 
   group_by(measure) %>% 
@@ -379,7 +385,7 @@ RRallstats<-RRall %>%
 #1A) are C-T rates of change different from one-another and do they differ over time
 
 deltarac3yrs<-deltaracs %>% 
-  filter(n_treat_years<4& n_treat_years>0)
+  filter(n_treat_years<4& n_treat_years>0) 
 
 length(unique(deltarac3yrs$site_code))
 
@@ -403,10 +409,13 @@ ggplot(data=deltarac3yrs, aes(x=n_treat_years, y=rank_change, color=trt))+
   geom_smooth(method = "lm")
 
 #adjust P-values for treat effect
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.0002454, 0.5475, 0.20764, 0.01591, 0.0001927)) %>%
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.0006716, 0.506,  0.2301, 0.01804, 0.0008891)) %>%
   mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
 
-pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.654, 0.374, 0.022, 0.988, 0.444)) %>% 
+pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.8539968, 0.158, 0.0166, 0.61738, 0.8137216)) %>% 
+  mutate(padj=p.adjust(pvalue, method="BH"))
+
+pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.4341189, 0.932, 0.0001, 0.0001, 0.0001)) %>% 
   mutate(padj=p.adjust(pvalue, method="BH"))
 
 meanCIdiff<-RRall %>% 
@@ -460,20 +469,19 @@ CTCompare<-
   xlab("")
 CTCompare
 
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", CTCompare, units = "in", width=6, height=3.5)
+
 #grid.arrange(CTdiff_measures, CTCompare)
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTchange.jpg", plot=CTCompare, units = "in", width=6.5, height=5)
+#ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTchange.jpg", plot=CTCompare, units = "in", width=6.5, height=5)
 
-# rich<-
-# ggplot(data = subset(MeanCI, measure=="richness_change"), aes(x=trt, y=mean, color=trt))+
-#   geom_point(size=4)+
-#   scale_color_manual(values=c("darkgreen", "darkorange"))+
-#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
-#   geom_hline(yintercept = 0)+
-#   scale_y_continuous(limits=c(-1, 1))+
-#   ggtitle("Richness Change")+
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
-# 
+
+ggplot(data = subset(deltarac3yrs), aes(x=n_treat_years, y=losses, color=trt))+
+  geom_point(size=4)+
+  scale_color_manual(values=c("darkgreen", "darkorange"))+
+  geom_smooth(method = "lm")
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
+
 # ggplot(data = subset(MeanCI, measure=="gains"), aes(x=trt, y=mean, color=trt))+
 #   geom_point(size=4)+
 #   scale_color_manual(values=c("darkgreen", "darkorange"))+
@@ -541,58 +549,132 @@ anova(mcomp)
 
 
 ###
-RR2<-RRall %>% 
+RR2<-RRall %>%
   left_join(site_types) %>% 
   #na.omit() %>% 
-  mutate(MAP=(as.numeric(map)/1000),
-         PAnn=(as.numeric(PctAnnual)/100),
-         PGras=(as.numeric(PctGrass)/100))
+  left_join(precipcv, by="site_code")
 
 length(unique(RR2$site_code))
 #there are only 79 here.
 
 str(RR2)
 
-###looking at local and regional drivers
 
-mrich2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="richness_change"))
+###looking at drought severity
+drt.rich<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="richness_change"))
+summary(drt.rich)
+anova(drt.rich)
+
+drt.even<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="evenness_change"))
+summary(drt.even)
+anova(drt.even)
+
+drt.rank<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="rank_change"))
+summary(drt.rank)
+anova(drt.rank)
+
+drt.gain<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="gains"))
+summary(drt.gain)
+anova(drt.gain)
+
+drt.loss<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="losses"))
+summary(drt.loss)
+anova(drt.loss)
+
+pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.06577, 0.09861, 0.4597, 0.4289, 0.04373)) %>% 
+  mutate(padj=p.adjust(pvalue, method="BH"))
+
+###looking at regional drivers
+map<-drt %>% 
+  group_by(site_code) %>% 
+  summarise(map=mean(map))
+
+RRRac_average<-deltaracs %>% 
+  pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
+  bind_rows(bp_change) %>% 
+  group_by(site_code, year, n_treat_years, trt, measure) %>% 
+  summarise(value=mean(value)) %>% 
+  group_by(site_code, trt, measure) %>% 
+  summarise(value=mean(value)) %>% 
+  pivot_wider(names_from = "trt", values_from = "value") %>% 
+  mutate(RR=(Drought-Control)) %>% 
+  left_join(site_types) %>% 
+  left_join(precipcv, by="site_code") %>% 
+  left_join(map)
+
+length(unique(RRRac_average$site_code))
+
+
+#load importance package here to not interfere with other code
+library(relaimpo)
+
+##these results are pretty different. I wonder if the MAP I'm using is different or the cv_precip_inter
+# test<-RRRac_average %>% 
+#   filter(site_code!='docker.au')
+
+mrich2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="richness_change"))
 summary(mrich2)
-anova(mrich2)
-#nothing
 
-
-meven2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="evenness_change"))
+meven2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="evenness_change"))
 summary(meven2)
-anova(meven2)
-#no effect of anything
 
-mdom2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="Dominance"))
-summary(mdom2)
-anova(mdom2)
-#no effect of anything
+mrank2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="rank_change"))
+summary(mrank2)
 
-mrank2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="rank_change"))
-anova(mrank2)
-#nothing
 
-mgain2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="gains"))
+mgain2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="gains"))
 summary(mgain2)
-anova(mgain2)
-#nothing
 
-mloss2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="losses"))
+mloss2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="losses"))
 summary(mloss2)
-anova(mloss2)
-#sig effect map
+calc.relimp(mloss2)
 
-ggplot(data=subset(RR2, measure="losses"), aes(x=MAP*1000, y=RR))+
+p.rich.map<-ggplot(data=subset(RRRac_average, measure=="richness_change"), aes(x=MAP, y=RR))+
   geom_point()+
   geom_smooth(method="lm", color="black")+
-  ylab("Losses Drought\nControl Differences")+
-  xlab("MAP")
+  ggtitle('Species Richness')+
+  ylab("Drought-Control\nDifferences")+
+  xlab("MAP")+
+  geom_hline(yintercept = 0)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p.rich.map
 
-mcomp2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="composition_change"))
-anova(mcomp2)
+p.rich.ann<-ggplot(data=subset(RRRac_average, measure=="richness_change"), aes(x=PctAnnual, y=RR))+
+  geom_point()+
+  geom_smooth(method="lm", color="black")+
+  #ggtitle('Species Richness')+
+  ylab("Drought-Control\nDifferences")+
+  xlab("% Annuals")+
+  geom_hline(yintercept = 0)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p.rich.ann
+
+p.loss.map<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=MAP, y=RR))+
+  geom_point()+
+  geom_smooth(method="lm", color="black")+
+  ggtitle('Species Losses')+
+  ylab("")+
+  xlab("MAP")+
+  geom_hline(yintercept = 0)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p.loss.map
+
+p.loss.ann<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=PctAnnual, y=RR))+
+  geom_point()+
+  geom_smooth(method="lm", color="black")+
+  #ggtitle('Species Losses')+
+  ylab("")+
+  xlab("% Annuals")+
+  geom_hline(yintercept = 0)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p.loss.ann
+
+Plots<-grid.arrange(p.rich.map,p.loss.map, p.rich.ann,  p.loss.ann)
+
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=Plots, units="in", width=6.5, height=4.5)
+
+# mcomp2<-lmer(RR~drtseverity+MAP+PAnn+PGras+(1|site_code), data=subset(RR2, measure=="composition_change"))
+# anova(mcomp2)
 #noting
 # 
 # mdisp<-lmer(RR~drtseverity+map+PctAnnual+PctGrass+(1|site_code), data=subset(RR2, measure=="dispersion_change"))
@@ -605,13 +687,6 @@ anova(mcomp2)
 #   ylab("Dispersion Response")
 
 ###pairs
-allwide<-RRall %>% 
-  #select(-cntSD) %>% 
-   pivot_wider(names_from="measure", values_from = "RR") #%>% 
-  #select(-dominance, -dispersion_change, -rank_change)
-
-
-
 panel.cor <- function(x, y, cex.cor = 0.8, method = "pearson", ...) {
   options(warn = -1)                   # Turn of warnings (e.g. tied ranks)
   usr <- par("usr"); on.exit(par(usr)) # Saves current "usr" and resets on exit
@@ -626,7 +701,7 @@ panel.cor <- function(x, y, cex.cor = 0.8, method = "pearson", ...) {
   options(warn = 0)                                             # Reset warning
 }
 
-pairs(allwide[,7:11], lower.panel = panel.cor, cex.cor=2)
+pairs(RR2[,c(7, 8, 9, 10, 20)], lower.panel = panel.cor, cex.cor=2)
 
 #### Figures -------
 
@@ -661,30 +736,11 @@ sites<-drt1yr %>%
 map <- ggplot() + 
   geom_sf(data = world, fill = "antiquewhite") + 
   #geom_sf(data = oz_states, colour = "black", fill = NA) + 
-  geom_point(data = sites, mapping = aes(x = longitud, y = latitud, fill = continent),
+  geom_point(data = sites, mapping = aes(x = longitud, y = latitud),
              pch = 21, 
              color = "black", 
-             size = 2) + 
-  scale_fill_paletteer_d(`"dutchmasters::milkmaid"`) +
-  geom_jitter(position = "jitter") +
-  theme_bw(base_size = 16) +
-  labs(x = "Latitude", y = "Longitude", fill = "IDE Sites (n = 77)") + 
-  annotation_north_arrow(location = "bl", which_north = "true", 
-                         pad_x = unit(0.25, "in"), pad_y = unit(0.5, "in"),
-                         style = north_arrow_fancy_orienteering) + 
-  theme(panel.grid.major = element_line(color = gray(.5), linetype = "dashed", size = 0.5), 
-        panel.background = element_rect(fill = "aliceblue")) + 
-  coord_sf(ylim = c(-80, 80), expand = FALSE)
-map
-
-#make for ESA
-esamap <- ggplot() + 
-  geom_sf(data = world, fill = "antiquewhite") + 
-  #geom_sf(data = oz_states, colour = "black", fill = NA) + 
-  geom_point(data = sites, mapping = aes(x = longitud, y = latitud, fill=continent),
-             pch = 21, 
-             color = "black",
-             size = 2) + 
+             size = 2, 
+             fill='darkgray') + 
   scale_fill_paletteer_d(`"dutchmasters::milkmaid"`) +
   geom_jitter(position = "jitter") +
   theme_bw(base_size = 16) +
@@ -692,9 +748,30 @@ esamap <- ggplot() +
   annotation_north_arrow(location = "bl", which_north = "true", 
                          pad_x = unit(0.25, "in"), pad_y = unit(0.5, "in"),
                          style = north_arrow_fancy_orienteering) + 
-  theme(panel.grid.major = element_line(color = gray(.5), linetype = "dashed", size = 0.5), 
-        panel.background = element_rect(fill = "aliceblue"), legend.position = "none") + 
-  coord_sf(ylim = c(-80, 80), expand = FALSE)
+  theme(panel.grid.major = element_blank(), 
+        panel.background = element_rect(fill = "aliceblue")) + 
+  coord_sf(ylim = c(-80, 80), expand = FALSE)#+
+  #ggtitle('IDE Sites (n = 83)')
+map
+
+#make for ESA
+# esamap <- ggplot() + 
+#   geom_sf(data = world, fill = "antiquewhite") + 
+#   #geom_sf(data = oz_states, colour = "black", fill = NA) + 
+#   geom_point(data = sites, mapping = aes(x = longitud, y = latitud, fill=continent),
+#              pch = 21, 
+#              color = "black",
+#              size = 2) + 
+#   scale_fill_paletteer_d(`"dutchmasters::milkmaid"`) +
+#   geom_jitter(position = "jitter") +
+#   theme_bw(base_size = 16) +
+#   labs(x = "Latitude", y = "Longitude") + 
+#   annotation_north_arrow(location = "bl", which_north = "true", 
+#                          pad_x = unit(0.25, "in"), pad_y = unit(0.5, "in"),
+#                          style = north_arrow_fancy_orienteering) + 
+#   theme(panel.grid.major = element_line(color = gray(.5), linetype = "dashed", size = 0.5), 
+#         panel.background = element_rect(fill = "aliceblue"), legend.position = "none") + 
+#   coord_sf(ylim = c(-80, 80), expand = FALSE)
 
 
 # Make histograms of covariates
@@ -709,7 +786,7 @@ hist2 <- ggplot() +
   geom_histogram(data = RR2_rich, binwidth = 5, mapping = aes(x = rich), fill = "darkgreen", color = "antiquewhite") +
   theme_bw(base_size = 12) +
   ylim(0, 20) +
-  labs(x = "Species Richness", y = "")
+  labs(x = "Sp. Richness", y = "")
 hist2
 
 hist3 <- ggplot() +
@@ -720,12 +797,12 @@ hist3 <- ggplot() +
 hist3
 
 # Combine into one figure
-Fig1<- grid.arrange(esamap, hist1, hist2, hist3, nrow = 3, 
+Fig1<- grid.arrange(map, hist1, hist2, hist3, nrow = 3, 
              layout_matrix = rbind(c(1,1,1), c(1,1,1), c(2,3,4)))
 
 Fig1
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\MAP.jpeg", plot=Fig1, units="in", width=7, height=4.5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\MAP.jpeg", plot=Fig1, units="in", width=5.5, height=4.5)
 
 ### Figure 2: Difference in change for drought - control plots ----
 # 2A: Difference in change (Drought - Control)
@@ -859,7 +936,7 @@ Fig.stitch.loss <-ggplot(stitches_loss, aes(x = mean,y=reorder(site_code, -mean)
                    xend=mean+CI,yend=reorder(site_code, -mean), color = habitat.type,
                    linetype = reorder(Sig, mean)),linewidth = 1, size=0.25)+
   geom_point(aes(color = habitat.type), size = 2) +
-  scale_color_manual(name="IDE Sites (n=77)",
+  scale_color_manual(name="IDE Sites (n=83)",
                      values=c("mediumseagreen","rosybrown4"))+
   labs(x = "Species Losses (Drought - Control)", y="",
        linetype = "Significant")+
