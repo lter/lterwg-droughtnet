@@ -161,7 +161,7 @@ comb <- dplyr::select(comb, -c("functional_group_nutnet", "ps_path_nutnet"))
 #details <- full_biomass[, c("site_code", block, plot, subplot, year, )]
 
 #read in precip data
-ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2023-10-25.csv")
+ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2023-11-27.csv")
 
 #reduce column names to minimum
 ppt.1$ppt.1 <- ppt.1$ppt#change precip column names in lag files to reflect lags
@@ -172,7 +172,7 @@ ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"),
 
 
 #read in precip data
-ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2023-10-25.csv")
+ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2023-11-27.csv")
 
 #reduce column names to minimum
 ppt.2$ppt.2 <- ppt.2$ppt#change precip column names in lag files to reflect lags
@@ -182,7 +182,7 @@ ppt.2 <- ddply(ppt.2, c("site_code", "year", "trt"),
         ))
 
 #read in precip data
-ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2023-10-25.csv")
+ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2023-11-27.csv")
 
 #reduce column names to minimum
 ppt.3$ppt.3 <- ppt.3$ppt#change precip column names in lag files to reflect lags
@@ -192,7 +192,7 @@ ppt.3 <- ddply(ppt.3, c("site_code", "year", "trt"),
         ))
 
 #read in precip data
-ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2023-10-25.csv")
+ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2023-11-27.csv")
 
 #reduce column names to minimum
 ppt.4$ppt.4 <- ppt.4$ppt#change precip column names in lag files to reflect lags
@@ -256,7 +256,7 @@ cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", 
 
 
 
-write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-10-25.csv")
+write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-11-27.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))
