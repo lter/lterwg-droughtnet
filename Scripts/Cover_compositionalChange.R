@@ -225,6 +225,11 @@ deltarac3yrs<-deltaracs %>%
 
 length(unique(deltarac3yrs$site_code))
 
+###thinking about other ways of doing this.
+mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate) + (1|site_code:trt) + (1|site_code:n_treat_years) + (1|site_code:n_treat_years:trt), data=deltarac3yrs)
+anova(mrich)
+
+
 mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
 anova(mrich)
 
