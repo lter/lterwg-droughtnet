@@ -19,7 +19,7 @@ library(tidyverse) # data wrangling
 #library(codyn) # diversity indices
 library(lme4) # linear models
 library(lmerTest)
-library(vegan) # diveristy indices
+#library(vegan) # diveristy indices
 #library(chisq.posthoc.test) # post-hoc test
 #library(plotly) # interactive plots
 #library(Hmisc) # confidence intervals
@@ -117,13 +117,13 @@ numgain/11946
 ###thinking about groupings
 #c3/c4 with functional type
 group1<-datblip2 %>% 
-  group_by(local_lifeform, ps_path) %>% 
+  group_by(local_lifeform, N.fixer, ps_path, local_lifespan) %>% 
   summarise(n=length(pretrt))
 
 #n-fixer lifeform
 group2<-datblip2 %>% 
   filter(outcome=='gain') %>% 
-  group_by(local_lifeform, N.fixer, trt) %>% 
+  group_by(local_lifeform, N.fixer, ps_path, local_lifespan) %>% 
   summarise(n=length(pretrt))
 
 group3<-datblip2 %>% 
@@ -172,7 +172,7 @@ LS.loss<-
   scale_linetype_manual(name='Treatment', values=c(1,4))
 LS.loss
 
-loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!="Grass"))
+loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform=="Forb"))
 Anova(loss_Nfix)
 
 plotnfix<-datblip2 %>% 
@@ -208,11 +208,51 @@ ps.Loss<-
   scale_linetype_manual(name='Treatment', values=c(1,4))
 ps.Loss
 
+
+####looking at braod fucntional categories. The model for all categories didn't converge, so I am focusing on annuals only.
+# datablip3<-datblip2 %>% 
+#   mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='ANNUAL', 'Ann. Forb', 
+#              ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='N-fixer', 'N-fix. Forb', 
+#              ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='Non-N-fixer', 'Non-N-fix. Forb',
+#              ifelse(local_lifeform=='Grass'&local_lifespan=='ANNUAL', 'Ann. Grass',
+#              ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C3', 'C3 Grass',
+#              ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C4', 'C4 Grass',
+#              ifelse(local_lifeform=='Woody', 'Woody', 'ZZZ'))))))))
+# 
+# loss_cat <- glmer(loss ~ trt*cat*pretrt + (1|site_code), family = binomial(), data = datablip3)
+# summary(loss_cat)
+# Anova(loss_cat)
+
+loss_Acat <- glmer(loss ~ trt*cat*pretrt + (1|site_code), family = binomial(), data = subset(datablip3, local_lifespan=='ANNUAL'&local_lifeform!='Woody'))
+summary(loss_Acat)
+Anova(loss_Acat)
+
+plotcat<-datablip3 %>% 
+  mutate(loss2=ifelse(cat=="Ann. Forb"&loss==0, 0.02, ifelse(cat=='Ann. Grass'&loss==1, 0.98, loss)))
+
+Acat.loss<-
+  ggplot(data=subset(plotcat, local_lifespan=='ANNUAL'&local_lifeform!='Woody'), aes(x=pretrt, y=loss2, color=cat, linetype=trt))+
+  geom_point()+
+  scale_color_manual(name='Lifeform', values=c('black','darkgray'))+
+  geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha = 0.1)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  xlab("Pre-treatment Abundance")+
+  ylab("Loss Probability")+
+  guides(linetype=guide_legend(override.aes = list(color='black')))+
+  scale_linetype_manual(name='Treatment', values=c(1,4))
+Acat.loss
+
 ###put all figs together
-lossfigs<-grid.arrange(LF.Loss, LS.loss, NFix.Loss, ps.Loss, ncol=2)
+lossfigs<-grid.arrange(LF.Loss, LS.loss, NFix.Loss, ps.Loss, Acat.loss, ncol=2)
 
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfig.jpg", plot=lossfigs, units="in", width=9, height=8)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfig.jpg", plot=lossfigs, units="in", width=9, height=10)
+
+
+###checking pvalues
+
+pvals=data.frame(measure=c('form', 'span', 'N', 'PS', 'AC'), pvalue=c(0.00001, 0.00001, 0.340, 0.238, 0.00001)) %>% 
+  mutate(padj=p.adjust(pvalue, method="BH"))
 
 
 # #####PERSIST
