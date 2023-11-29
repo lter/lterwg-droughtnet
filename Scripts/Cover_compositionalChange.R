@@ -48,11 +48,7 @@ drt<-dat2 %>%
 
 site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Oct2023.csv")
 
-precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv") %>% 
-  select(site_code, cv_ppt_inter) %>% 
-  drop_na() %>% 
-  group_by(site_code) %>% 
-  summarize(cv_ppt_inter=mean(cv_ppt_inter))
+precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv")
 
 #write.csv(drt, "C:\\Users\\mavolio2\\Dropbox\\IDE_DroughtSeverity.csv", row.names=F)
 
@@ -313,7 +309,7 @@ RR2<-RRall %>%
   left_join(precipcv, by="site_code")
 
 length(unique(RR2$site_code))
-#there are only 79 here.
+
 
 str(RR2)
 
@@ -343,9 +339,6 @@ pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue
   mutate(padj=p.adjust(pvalue, method="BH"))
 
 ###looking at regional drivers
-map<-drt %>% 
-  group_by(site_code) %>% 
-  summarise(map=mean(map))
 
 RRRac_average<-deltaracs %>% 
   pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
@@ -357,8 +350,7 @@ RRRac_average<-deltaracs %>%
   pivot_wider(names_from = "trt", values_from = "value") %>% 
   mutate(RR=(Drought-Control)) %>% 
   left_join(site_types) %>% 
-  left_join(precipcv, by="site_code") %>% 
-  left_join(map)
+  left_join(precipcv, by="site_code")
 
 length(unique(RRRac_average$site_code))
 
@@ -370,20 +362,20 @@ length(unique(RRRac_average$site_code))
 # test<-RRRac_average %>% 
 #   filter(site_code!='docker.au')
 
-mrich2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="richness_change"))
+mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="richness_change"))
 summary(mrich2)
 
-meven2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="evenness_change"))
+meven2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="evenness_change"))
 summary(meven2)
 
-mrank2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="rank_change"))
+mrank2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="rank_change"))
 summary(mrank2)
 
 
-mgain2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="gains"))
+mgain2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="gains"))
 summary(mgain2)
 
-mloss2<-lm(RR~map+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="losses"))
+mloss2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="losses"))
 summary(mloss2)
 calc.relimp(mloss2)
 
@@ -407,9 +399,9 @@ calc.relimp(mloss2)
 #   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 # p.rich.ann
 
-p.loss.map<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=map, y=RR))+
+p.loss.map<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=MAP, y=RR))+
   geom_point()+
-  geom_smooth(method="lm", color="black")+
+  geom_smooth(method="lm", color="black", alpha=0.1)+
   #ggtitle('Species Losses')+
   ylab("Drought-Control\nSp. Loss Differences")+
   xlab("MAP")+
@@ -419,7 +411,7 @@ p.loss.map
 
 p.loss.ann<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=PctAnnual, y=RR))+
   geom_point()+
-  geom_smooth(method="lm", color="black")+
+  geom_smooth(method="lm", color="black", alpha=0.2)+
   #ggtitle('Species Losses')+
   ylab("Drought-Control\nSp. Loss Differences")+
   xlab("% Annuals")+
