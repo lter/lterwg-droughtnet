@@ -97,11 +97,12 @@ datblip2<-datblip %>%
   mutate(loss=ifelse(outcome=='loss', 1, 0),
          gain=ifelse(outcome=="gain", 1, 0),
          persist=ifelse(outcome=='persist', 1, 0)) %>% 
-  left_join(pretrt_cover)
+  left_join(pretrt_cover) %>% 
+  filter(!is.na(pretrt))
 
 length(unique(datblip2$site_code))
 numloss<-sum(datblip2$loss)
-numgain<-sum(datblip2$gain)
+#numgain<-sum(datblip2$gain)
 numpersist<-sum(datblip2$persist)
 
 table(datblip2$ps_path)
@@ -109,9 +110,9 @@ table(datblip2$N.fixer)
 table(datblip2$local_lifespan)
 table(datblip2$local_lifeform)
 
-numpersist/11946
-numloss/11946
-numgain/11946
+numpersist/7778
+numloss/7778
+numgain/7778
 
 
 ###thinking about groupings
@@ -210,14 +211,14 @@ ps.Loss
 
 
 ####looking at braod fucntional categories. The model for all categories didn't converge, so I am focusing on annuals only.
-# datablip3<-datblip2 %>% 
-#   mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='ANNUAL', 'Ann. Forb', 
-#              ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='N-fixer', 'N-fix. Forb', 
-#              ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='Non-N-fixer', 'Non-N-fix. Forb',
-#              ifelse(local_lifeform=='Grass'&local_lifespan=='ANNUAL', 'Ann. Grass',
-#              ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C3', 'C3 Grass',
-#              ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C4', 'C4 Grass',
-#              ifelse(local_lifeform=='Woody', 'Woody', 'ZZZ'))))))))
+datablip3<-datblip2 %>% 
+  mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='ANNUAL', 'Ann. Forb',
+             ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='N-fixer', 'N-fix. Forb',
+             ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='Non-N-fixer', 'Non-N-fix. Forb',
+             ifelse(local_lifeform=='Grass'&local_lifespan=='ANNUAL', 'Ann. Grass',
+             ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C3', 'C3 Grass',
+             ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C4', 'C4 Grass',
+             ifelse(local_lifeform=='Woody', 'Woody', 'ZZZ'))))))))
 # 
 # loss_cat <- glmer(loss ~ trt*cat*pretrt + (1|site_code), family = binomial(), data = datablip3)
 # summary(loss_cat)
@@ -251,7 +252,7 @@ ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lo
 
 ###checking pvalues
 
-pvals=data.frame(measure=c('form', 'span', 'N', 'PS', 'AC'), pvalue=c(0.00001, 0.00001, 0.340, 0.238, 0.00001)) %>% 
+pvals=data.frame(measure=c('form', 'span', 'N', 'PS', 'AC'), pvalue=c(0.176715, 0.957090, 0.098945, 0.001589, 0.510575)) %>% 
   mutate(padj=p.adjust(pvalue, method="BH"))
 
 
