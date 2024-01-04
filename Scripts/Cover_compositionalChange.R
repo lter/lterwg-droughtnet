@@ -223,6 +223,8 @@ RRallstats<-RRall %>%
 deltarac3yrs<-deltaracs %>% 
   filter(n_treat_years<4& n_treat_years>0) 
 
+write.csv(deltarac3yrs, "CommunityData_DrtbyTime_forSAS.csv", row.names=F)
+
 length(unique(deltarac3yrs$site_code))
 
 ###thinking about other ways of doing this.
@@ -315,7 +317,7 @@ RR2<-RRall %>%
 
 length(unique(RR2$site_code))
 
-
+write.csv(RR2, 'communityData_DrtSeverity_forSAS.csv', row.names=F)
 str(RR2)
 
 
