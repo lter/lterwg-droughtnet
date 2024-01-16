@@ -20,7 +20,7 @@ theme_set(theme_bw(12))
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
 dat<-read.csv("cover_ppt_2023-11-27.csv") %>% 
-  mutate(replicate=paste(block, plot, subplot, sep="::"))
+  mutate(replicate=paste(block, plot, subplot, sep="_"))
 
 #dropping datasets without pretreatment
 drop_no_pretrt<-dat %>% 
@@ -77,15 +77,27 @@ precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv")
 drt1yr<-dat2 %>% 
   filter(n_treat_years==1) %>% 
   select(site_code) %>% 
-  unique()
+  unique() %>% 
+  mutate(p=1)
 drt2yr<-dat2 %>% 
   filter(n_treat_years==2) %>% 
   select(site_code) %>% 
-  unique()
+  unique() %>% 
+  mutate(p2=1)
 drt3yr<-dat2 %>% 
   filter(n_treat_years==3) %>% 
   select(site_code) %>% 
   unique()
+
+#five sites are not repeated over years, and only have one year of data.
+oneyr<-dat2 %>% 
+  select(site_code, n_treat_years) %>% 
+  unique() %>% 
+  group_by(site_code) %>% 
+  mutate(max=max(n_treat_years)) %>% 
+  filter(max==1)
+
+
 
 ###looping through site for changes with pretreatmetn as a reference year
 
@@ -223,14 +235,23 @@ RRallstats<-RRall %>%
 deltarac3yrs<-deltaracs %>% 
   filter(n_treat_years<4& n_treat_years>0) 
 
-write.csv(deltarac3yrs, "CommunityData_DrtbyTime_forSAS.csv", row.names=F)
+# uniquereps<-deltarac3yrs %>% 
+#   select(site_code, replicate, n_treat_years) %>% 
+#   unique() %>% 
+#   group_by(site_code) %>% 
+#   mutate(rep=rank(replicate))
+# 
+# test<-uniquereps %>% 
+#   group_by(site_code, rep) %>% 
+#   summarize(n=length(rep))
+# 
+# deltarac3yrs2<-deltarac3yrs %>% 
+#   left_join(uniquereps) %>% 
+#   mutate()
+
+write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_newrep2.csv", row.names=F)
 
 length(unique(deltarac3yrs$site_code))
-
-###thinking about other ways of doing this.
-mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate) + (1|site_code:trt) + (1|site_code:n_treat_years) + (1|site_code:n_treat_years:trt), data=deltarac3yrs)
-anova(mrich)
-
 
 mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
 anova(mrich)
