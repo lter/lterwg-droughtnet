@@ -151,7 +151,35 @@ data.anpp.summary$type <- ifelse(data.anpp.summary$Ann_Per == "Annual" & is.na(d
 
 data.anpp.summary$type <-   plyr::revalue(data.anpp.summary$type, c(Grassland = "Herbaceous.Perennial", Shrubland = "Woody.Perennial"))
 
+#of sites by prevailing vegetation type
+data.anpp.summary%>%
+    dplyr::select(site_code, type)%>%
+    unique()%>%
+    group_by(type)%>%
+    tally()
 
+
+tempsites <- data.anpp.summary%>%
+                subset(type == "Annual" & site_code != "cobar.au")%>%
+  subset(n_treat_years == 2 | n_treat_years == 3)
+mean(subset(tempsites, n_treat_years == 2)$anpp_response)
+mean(subset(tempsites, n_treat_years == 3)$anpp_response)
+
+mean(subset(tempsites, n_treat_years == 2)$drtsev.1)
+mean(subset(tempsites, n_treat_years == 3)$drtsev.1)
+  
+  
+tempdf <-subset(data.anpp.summary, Ann_Per == "Perennial")
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, method = "ML", data=tempdf)
+summary(mod)
+
+tempdf <-subset(data.anpp.summary, Ann_Per == "Perennial" & e.n == "extreme")
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, method = "ML", data=tempdf)
+summary(mod)
+
+tempdf <-subset(data.anpp.summary, Ann_Per == "Perennial" & e.n == "nominal")
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, method = "ML", data=tempdf)
+summary(mod)
 
 ##Here we generate the stats and figure for Fig 2
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
@@ -171,8 +199,9 @@ stepAIC(lmNull, scope = list(upper = lmFull,
         trace = F)
 
 
-winning.mod <- lm(anpp_response ~ drtsev.1, data = tempdf)
+winning.mod <- lme(anpp_response ~ drtsev.1, random = ~1|ipcc_regions,method = "ML",data = tempdf)
 summary(winning.mod)
+r.squaredGLMM(winning.mod)
 
 
 d<-dredge(lmFull)
@@ -420,6 +449,12 @@ ggsave(
   limitsize = TRUE
 )
 
+
+#catastrophic scenario
+mod <-  lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
+              subset(Ann_Per == "Perennial"& prev_e.n == "extreme" & e.n == "extreme" & drtsev.1 >= 0.6 &drtsev.2 >= 0.6)%>%
+              subset(n_treat_years == 2 |n_treat_years == 3 ))
+summary(mod) 
 
 ##add some covariates to try out in model selection
 #sand, MAP, ln(aridity), CV of MAP--- %graminoids is tricky, skpping for now
@@ -1140,8 +1175,18 @@ new_labs <- as_labeller(
     `2` = "Year 2",
     `3` = "Year 3"))
 
+###simple model comparisons with AIC
+tempdf <- subset(full_y3, Ann_Per == "Perennial")
 
+drt <- lme(anpp_response~drtsev.1, random = ~1|ipcc_regions,data = tempdf)
+map <- lme(anpp_response~map, random = ~1|ipcc_regions,data = tempdf)
+AI <- lme(anpp_response~AI, random = ~1|ipcc_regions,data = tempdf)
+cv <- lme(anpp_response~cv_ppt_inter, random = ~1|ipcc_regions,data = tempdf)
+seasonality <- lme(anpp_response~seasonality_index, random = ~1|ipcc_regions,data = tempdf)
 
+AIC(drt, map, AI, cv, seasonality)
+summary(drt)
+r.squaredGLMM(drt)
 #subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 3)%>%
 #  ggplot( aes(drtsev.1, anpp_response))+
 #  facet_wrap(~n_treat_years, labeller = new_labs)+
