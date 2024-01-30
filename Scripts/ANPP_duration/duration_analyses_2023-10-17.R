@@ -595,7 +595,7 @@ tempdf <- data.anpp.summary%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~percent_graminoid,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-
+r.squaredGLMM(mod)
 
 f <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -619,7 +619,7 @@ tempdf <- data.anpp.summary%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~richness,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-
+r.squaredGLMM(mod)
 
 
 g <- data.anpp.summary%>%
