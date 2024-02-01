@@ -37,7 +37,7 @@ theme_set(theme_bw(12)) # set theme
 setwd('C://Users/mavolio2//Dropbox//IDE (1)//data_processed')
 
 # cover data
-dat<-read.csv("cover_ppt_2023-10-25.csv") %>% 
+dat<-read.csv("cover_ppt_2023-11-27.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="::"))
 
 ################################################################################
@@ -244,7 +244,7 @@ Acat.loss<-
 Acat.loss
 
 ###put all figs together
-lossfigs<-grid.arrange(LF.Loss, LS.loss, NFix.Loss, ps.Loss, Acat.loss, ncol=2)
+lossfigs<-grid.arrange(LF.Loss, LS.loss, Acat.loss, ncol=2)
 
 
 ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfig.jpg", plot=lossfigs, units="in", width=9, height=10)
