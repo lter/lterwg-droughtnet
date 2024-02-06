@@ -251,35 +251,39 @@ deltarac3yrs<-deltaracs %>%
 
 write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_newrep2.csv", row.names=F)
 
-length(unique(deltarac3yrs$site_code))
+#####I am no longer doing these stats in R.
 
-mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mrich)
-
-meven<-lmer(evenness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(meven)
-
-mrank<-lmer(rank_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mrank)
-
-mgain<-lmer(gains~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mgain)
-
-mloss<-lmer(losses~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
-anova(mloss)
-
-ggplot(data=deltarac3yrs, aes(x=n_treat_years, y=rank_change, color=trt))+
-  geom_point()+
-  geom_smooth(method = "lm")
+# length(unique(deltarac3yrs$site_code))
+# 
+# mrich<-lmer(richness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+# anova(mrich)
+# 
+# meven<-lmer(evenness_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+# anova(meven)
+# 
+# mrank<-lmer(rank_change~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+# anova(mrank)
+# 
+# mgain<-lmer(gains~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+# anova(mgain)
+# 
+# mloss<-lmer(losses~trt*n_treat_years + (1|site_code/replicate), data=deltarac3yrs)
+# anova(mloss)
+# 
+# ggplot(data=deltarac3yrs, aes(x=n_treat_years, y=rank_change, color=trt))+
+#   geom_point()+
+#   geom_smooth(method = "lm")
 
 #adjust P-values for treat effect
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.0006716, 0.506,  0.2301, 0.01804, 0.0008891)) %>%
+#these values are now from SAS
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.00001, 0.357,  0.214, 0.011, 0.00001)) %>%
   mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
 
-pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.8539968, 0.158, 0.0166, 0.61738, 0.8137216)) %>% 
-  mutate(padj=p.adjust(pvalue, method="BH"))
+#all not sig in SAS not doing this
+# pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.8539968, 0.158, 0.0166, 0.61738, 0.8137216)) %>% 
+#   mutate(padj=p.adjust(pvalue, method="BH"))
 
-pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.4341189, 0.932, 0.0001, 0.0001, 0.0001)) %>% 
+pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.013, 0.001, 0.001, 0.0001, 0.0001)) %>% 
   mutate(padj=p.adjust(pvalue, method="BH"))
 
 meanCIdiff<-RRall %>% 
@@ -300,24 +304,56 @@ MeanCI<-deltaracs %>%
   bind_rows(meanCIcomp) %>% 
   filter(measure!="dispersion_change"&measure!="Dominance"&measure!=
            "Composition_change") %>% 
-  mutate(measure2=factor(measure, levels=c("gains", "losses", 'richness_change', 'evenness_change', 'rank_change'))) %>% 
-  left_join(pvalsTRT)
+  mutate(n_treat_years=4)
 
 
+
+# #figure of CT differences
+# CTCompare<-
+#   ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
+#   geom_point(size=4)+
+#   scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
+#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x =element_blank(), legend.position = c(0.8,0.3))+
+#   facet_wrap(~measure2, scales='free', labeller = labeller(measure2=labs), ncol=3)+
+#   ylab("Change from Pre-Treatment")+
+#   xlab("")
+# CTCompare
+# 
+# ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", CTCompare, units = "in", width=6, height=3.5)
+
+
+### Supplemental Figure 1: Magnitude of effects over time ----
+# Pivot and get summary stats
+deltaracs_long_by_year <-deltaracs %>% 
+  pivot_longer(richness_change:losses, names_to = "measure", values_to = "value") %>% 
+  filter(n_treat_years < 4&n_treat_years>0) %>%
+  group_by(n_treat_years, trt, measure) %>% 
+  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
+            n = length(value)) %>% 
+  mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
+  bind_rows(MeanCI)
+
+deltaracs_long_by_year$measure <- factor(deltaracs_long_by_year$measure, # Reordering group factor levels
+                                         levels = c("gains",
+                                                    "losses",
+                                                    "richness_change",
+                                                    "evenness_change",
+                                                    "rank_change"))
 labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Reordering')
-#figure of CT differences
-CTCompare<-
-  ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
-  geom_point(size=4)+
-  scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
-  geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x =element_blank(), legend.position = c(0.8,0.3))+
-  facet_wrap(~measure2, scales='free', labeller = labeller(measure2=labs), ncol=3)+
-  ylab("Change from Pre-Treatment")+
-  xlab("")
-CTCompare
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", CTCompare, units = "in", width=6, height=3.5)
+SuppFig1 <- ggplot(data = deltaracs_long_by_year, aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+  scale_color_manual(values=c("darkgreen","darkorange")) + 
+  facet_wrap(~measure, scales = "free_y", nrow = 2, labeller = labeller(measure=labs)) +
+  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, size = 1, position = position_dodge(width = 0.3)) +
+  labs(y = "Change from pre-treatment", x = "Years of treatment", color = "Treatment")+
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), legend.position = c(0.8,0.3))+
+  geom_vline(xintercept = 3.5)+
+  scale_x_discrete(labels=c('1', '2', '3', 'Overall'))
+
+SuppFig1
 
 #grid.arrange(CTdiff_measures, CTCompare)
 
@@ -341,30 +377,32 @@ length(unique(RR2$site_code))
 write.csv(RR2, 'communityData_DrtSeverity_forSAS.csv', row.names=F)
 str(RR2)
 
-
+####doing this is SAS now
 ###looking at drought severity
-drt.rich<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="richness_change"))
-summary(drt.rich)
-anova(drt.rich)
-
-drt.even<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="evenness_change"))
-summary(drt.even)
-anova(drt.even)
-
-drt.rank<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="rank_change"))
-summary(drt.rank)
-anova(drt.rank)
-
-drt.gain<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="gains"))
-summary(drt.gain)
-anova(drt.gain)
-
-drt.loss<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="losses"))
-summary(drt.loss)
-anova(drt.loss)
-
-pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.06577, 0.09861, 0.4597, 0.4289, 0.04373)) %>% 
-  mutate(padj=p.adjust(pvalue, method="BH"))
+# 
+# drt.rich<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="richness_change"))
+# summary(drt.rich)
+# anova(drt.rich)
+# 
+# drt.even<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="evenness_change"))
+# summary(drt.even)
+# anova(drt.even)
+# 
+# drt.rank<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="rank_change"))
+# summary(drt.rank)
+# anova(drt.rank)
+# 
+# drt.gain<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="gains"))
+# summary(drt.gain)
+# anova(drt.gain)
+# 
+# drt.loss<-lmer(RR~drtseverity+(1|site_code), data=subset(RR2, measure=="losses"))
+# summary(drt.loss)
+# anova(drt.loss)
+# 
+#####not doing this b/c nothing is significant in SAS so why bother
+# pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.06577, 0.09861, 0.4597, 0.4289, 0.04373)) %>% 
+#   mutate(padj=p.adjust(pvalue, method="BH"))
 
 ###looking at regional drivers
 
@@ -575,37 +613,7 @@ Fig1
 ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\MAP.jpeg", plot=Fig1, units="in", width=5.5, height=4.5)
 
 
-### Supplemental Figure 1: Magnitude of effects over time ----
-# Pivot and get summary stats
-deltaracs_long_by_year <-delta_long %>% 
-  filter(n_treat_years < 4) %>%
-  pivot_longer(names_to="measure", values_to = "value", richness_change:composition_change) %>% 
-  group_by(n_treat_years, trt, measure) %>% 
-  summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
-            n = length(value)) %>% 
-  mutate(se=sd/sqrt(n), CI=se*1.96)
-# Re-order
-deltaracs_long_by_year$measure <- factor(deltaracs_long_by_year$measure, # Reordering group factor levels
-                                 levels = c("richness_change",
-                                            "evenness_change",
-                                            "gains",
-                                            "losses",
-                                            "rank_change",
-                                            "composition_change"))
 
-SuppFig1 <- ggplot(data = subset(deltaracs_long_by_year, !is.na(measure)), aes(x=as.factor(n_treat_years), y=mean, 
-                                                                               color = trt))+
-  scale_color_manual(values=c("mediumseagreen","wheat4")) + 
-  facet_wrap(~measure, labeller = new_labs, scales = "free_y",
-             nrow = 3) +
-  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
-  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
-                width = 0, size = 1, position = position_dodge(width = 0.3)) +
-  labs(y = "Change from pre-treatment (mean +/- SE)", x = "Years of treatment",
-       color = "Treatment") +
-  theme_bw(base_size = 15)
-
-SuppFig1
 
 ### Supplemental Figure 2: stitches plots of all sites ----
 
