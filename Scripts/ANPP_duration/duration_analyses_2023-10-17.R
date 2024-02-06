@@ -181,6 +181,20 @@ tempdf <-subset(data.anpp.summary, Ann_Per == "Perennial" & e.n == "nominal")
 mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, method = "ML", data=tempdf)
 summary(mod)
 
+#######Correlation 3-year sverage drought severity and y3 response
+
+data.anpp.summary$avgdrtsev <- (data.anpp.summary$drtsev.1 + data.anpp.summary$drtsev.2 + data.anpp.summary$drtsev.3)/3
+tempdf <-subset(data.anpp.summary, n_treat_years == 3& Ann_Per == "Perennial")
+
+mod <- lme(anpp_response~avgdrtsev, random = ~1|ipcc_regions, method = "ML", data=tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+ggplot(tempdf, aes(x=avgdrtsev, y = anpp_response))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
 ##Here we generate the stats and figure for Fig 2
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
 tempdf <-subset(data.anpp.summary, n_treat_years == 3& Ann_Per == "Perennial")
