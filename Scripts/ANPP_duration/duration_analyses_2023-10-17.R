@@ -367,6 +367,30 @@ mod <- lme(anpp_response~two_year_e.n, random = ~1|ipcc_regions, data = data.anp
             subset(Ann_Per == "Perennial" )%>%
              subset(n_treat_years == 3)%>%
             unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
+
+
+
+pairs(emmeans(mod, ~as.factor(two_year_e.n)))
+
+mod <- lmer(anpp_response~two_year_e.n + (1|ipcc_regions), data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" )%>%
+             subset(n_treat_years == 3)%>%
+             unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
+visreg(mod)
+
+mod <- lme(anpp_response~e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" )%>%
+             subset(n_treat_years == 2))
+summary(mod)
+pairs(emmeans(mod, ~as.factor(e.n)))
+
+mod <- lme(anpp_response~three_year_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
+             subset(Ann_Per == "Perennial" )%>%
+             subset(n_treat_years == 3)%>%
+             unite(three_year_e.n, c( "prev_e.n", "e.n", "prev_e.n2"), sep = "::", remove = FALSE))
+pairs(emmeans(mod, ~as.factor(three_year_e.n)))
+
+
 mod <- lme(anpp_response~e.n*prev_e.n, random = ~1|ipcc_regions, data = data.anpp.summary%>%
              subset(Ann_Per == "Perennial" )%>%
              subset(n_treat_years == 3))#%>%
@@ -375,7 +399,9 @@ mod <- lme(anpp_response~e.n*prev_e.n, random = ~1|ipcc_regions, data = data.anp
 #             subset(Ann_Per == "Perennial" &n_treat_years == 3)%>%
 #             unite(two_year_e.n, c( "prev_e.n", "e.n"), sep = "::", remove = FALSE))
 summary(mod)
-pairs(emmeans(mod, ~as.factor(two_year_e.n)))
+pairs(emmeans(mod, ~as.factor(e.n)))
+
+
 
 ###comparison of slopes figure
 mod <- lme(anpp_response~two_year_e.n*drtsev.1, random = ~1|ipcc_regions/site_code, data = data.anpp.summary%>%
