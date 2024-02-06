@@ -41,22 +41,24 @@ anpp$X = NULL
 ## Need to double check; to make max_cover NOT a character
 cover$max_cover <- as.numeric(cover$max_cover)
 
-## Filter data table to live cover
-cover = cover[live==1,]
-
 ## Are species that are absent recorded?
 summary(cover$max_cover)
 summary(cover$max_cover == "0")
 
-#Are there really some sites that have 7 years of pretreat data?
+## Filter data table to live cover and drop species with max_cover of 0.
+cover = cover[live==1,]
+cover = cover[max_cover > 0,]
+
+#Are there really some sites that have 7 years of pretreat data? Which?
 table(cover$n_treat_years)
+View(cover[which(cover$n_treat_years== "-6" ),]) # sgsdrt.us
 
 ############################################################################################################
 ### Native vs Non-Native Variables #########################################################################
 #############################################################################################################
 table(cover$local_provenance)
 # INT    NAT native   NULL    UNK 
-# 6194  41146      9    910   3838 
+# 6194  41146  9    910   3838 
 
 # covert native to NAT 
 cover[local_provenance =="native", local_provenance:="NAT"]
@@ -125,6 +127,8 @@ cover[, SR.site.allyears := length(unique(cover[,.(site_code, Taxon)]))]
 # REORDERING***
 
 
+# changes in types of species by plot
+local_lifespan
 
 ############################################################################################################
 ### Prep data and species list  #########################################################################
