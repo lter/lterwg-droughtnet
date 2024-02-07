@@ -190,7 +190,7 @@ show.plot = function(dat, site, label="", show.means=TRUE) {
 show.plot(anpp, "sgsdrt.us")  
 table(sg$n_treat_years, sg$year)
 
-#***** we should filter to sites with at least one full PT year ###
+#***** we should filter to sites with at least one full PT year, probably earlier.. ###
 
 unique(anpp$site_code[anpp$n_treat_years <= -1])
 show.plot(anpp, "cdpt_drt.us")
