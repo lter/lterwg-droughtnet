@@ -181,7 +181,7 @@ show.plot = function(dat, site, label="", show.means=TRUE) {
 } 
 
 show.plot(anpp)
-show.plot(anpp, "cedartrait.us") # No pretreatment we should filter to sites with at least one full PT year. 
+show.plot(anpp, "sgsdrt.us") # No pretreatment we should filter to sites with at least one full PT year. 
 table(sg$n_treat_years, sg$year)
 
 unique(anpp$site_code[anpp$n_treat_years <= -1])
