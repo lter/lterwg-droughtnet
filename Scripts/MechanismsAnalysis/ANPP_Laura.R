@@ -66,12 +66,12 @@ summary(anpp$mass)
 hist(anpp$mass)
 # check out subplot 
 table(anpp$subplot) 
-View(anpp[which(anpp$subplot == "B" ),]) #sand.us, llara.au , rhijn.nl 
-View(anpp[which(anpp$subplot == "C" ),]) #sand.us, llara.au , rhijn.nl 
-View(anpp[which(anpp$subplot == "D" ),]) #sand.us, llara.au , rhijn.nl 
-View(anpp[which(anpp$subplot == "M" ),]) #cedartraits.us
-View(anpp[which(anpp$subplot == "N" ),]) #cedartraits.us
-View(anpp[which(anpp$subplot == "S" ),]) #cedartraits.us
+# View(anpp[which(anpp$subplot == "B" ),]) #sand.us, llara.au , rhijn.nl 
+# View(anpp[which(anpp$subplot == "C" ),]) #sand.us, llara.au , rhijn.nl 
+# View(anpp[which(anpp$subplot == "D" ),]) #sand.us, llara.au , rhijn.nl 
+# View(anpp[which(anpp$subplot == "M" ),]) #cedartraits.us
+# View(anpp[which(anpp$subplot == "N" ),]) #cedartraits.us
+# View(anpp[which(anpp$subplot == "S" ),]) #cedartraits.us
 
 #*** HENRY TO CHECK UNQIUE SUBPLOTS *****
 
@@ -94,6 +94,20 @@ anpp$year <- as.character(anpp$year)
 ## Create year to year change variable #####################################################
 #############################################################################################
 anpp[order(year), changemass := mass-shift(mass), by =.(newplotid)]
+
+####################################################################################
+### Plot variation in ANPP by plot from year to year by site ########################
+######################################################################################
+# anpp = anpp[changemass != NA,]
+Fig <- ggplot(data = anpp, aes(x = changemass)) +  facet_wrap(~site_code) + theme_bw() +
+  geom_vline(xintercept=c(0,0), color = "blue", linetype="dashed") +
+  geom_histogram(bins = 1000) +
+  labs(x = "Plot-level change in species richness year to year") +  theme_bw() +
+  theme(axis.title.y= element_text(size=14)) + theme(axis.title.x= element_text(size=12)) +
+  theme(axis.text.y = element_text(size = 14)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(size=14)) 
+Fig
 
 ##################################################################################################
 ### Make some dummy variables  #############################################################
@@ -122,6 +136,7 @@ anpp$treat_exp = anpp$exp*anpp$treat
 #####################################################################################
 ## From: https://skranz.github.io/r/2021/10/20/ParallelTrendsPlot.html
 ## and this website for the standard deviations on the plots: https://typethepipe.com/vizs-and-tips/ggplot-geom_ribbon-shadow-confidence-interval/
+
 # show.plot = function(dat,label="", show.means=TRUE) {
 #   library(ggplot2)
 #   gdat = dat %>%
@@ -261,6 +276,7 @@ stargazer( reg,
 shrub.anpp = anpp[habitat.type == "Shrubland", ] 
 reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
 reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.anpp)
+
 
 ######################################################################
 ### Drought Severity and Drought Classifications ########################
