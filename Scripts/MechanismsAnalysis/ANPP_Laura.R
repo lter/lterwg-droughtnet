@@ -121,7 +121,7 @@ anpp$treat_exp = anpp$exp*anpp$treat
 ## Parallel Trends Plot ###########################################################
 #####################################################################################
 ## From: https://skranz.github.io/r/2021/10/20/ParallelTrendsPlot.html
-
+## and this website for the standard deviations on the plots: https://typethepipe.com/vizs-and-tips/ggplot-geom_ribbon-shadow-confidence-interval/
 # show.plot = function(dat,label="", show.means=TRUE) {
 #   library(ggplot2)
 #   gdat = dat %>%
