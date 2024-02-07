@@ -157,7 +157,7 @@ show.plot = function(dat, site, label="", show.means=TRUE) {
   gdat = dat %>%
     dplyr::filter(site_code == site) %>%
     dplyr::group_by(trt,year,exp,treat) %>%
-    dplyr::summarize(y = mean(mass)) %>%
+    dplyr::summarize(y = mean(mass), y_sd = sd(mass)) %>%
     dplyr::mutate(year = as.numeric(year))
   
   first_treatment_yr <- min(gdat$year[gdat$exp == 1]) - 0.5
@@ -165,6 +165,8 @@ show.plot = function(dat, site, label="", show.means=TRUE) {
 
   gg = ggplot(gdat, aes(y=y,x=year, color= trt)) +
     geom_line() + 
+    geom_ribbon(aes(ymin=y-y_sd, ymax=y+y_sd), alpha = 0.1, group = gdat$trt,
+                linetype = "dotted") +
     geom_vline(xintercept=first_treatment_yr) +
     scale_x_continuous(limits = c(min(gdat$year), max(gdat$year)),
                        breaks = seq(min(gdat$year), max(gdat$year), 1)) +
@@ -196,9 +198,6 @@ show.plot(anpp, "kranz.de")
 show.plot(anpp, "morient.ar")
 show.plot(anpp, "sgsdrt.us")
 show.plot(anpp, "yarradrt.au")
-
-##*** ADD ERROR BARS TO THE FIGURE ****
-
 
 #####################################################################################
 ## Diff-in-Diff ####################################################################
