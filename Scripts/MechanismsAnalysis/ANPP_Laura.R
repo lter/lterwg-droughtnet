@@ -247,3 +247,6 @@ stargazer( reg,
 
 shrub.anpp = anpp[habitat.type == "Shrubland", ] 
 reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
+reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.anpp)
+
+
