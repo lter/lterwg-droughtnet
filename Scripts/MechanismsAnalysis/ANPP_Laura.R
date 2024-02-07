@@ -235,7 +235,7 @@ stargazer( reg,
                                 "Post-treatment (B2)", 
                                 "Diff in Diff (B3)"),
            omit.stat = "all", 
-          ci=TRUE, ci.level=0.95, 
+           ci=TRUE, ci.level=0.95, 
            digits = 0, 
            intercept.bottom = FALSE)
 
