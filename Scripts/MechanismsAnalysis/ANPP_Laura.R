@@ -200,12 +200,14 @@ show.plot(anpp, "yarradrt.au")
 #filter to only sites that have pre-treatment data
 #Find min value of treatment years; 0 = pre-treatment data
 anpp[,min.trt.yr:=min(n_treat_years), by=.(site_code)]
+anpp[,max.trt.yr:=max(n_treat_years), by=.(site_code)]
 anpp = anpp[min.trt.yr <= 0, ] 
 anpp = anpp[habitat.type != "Forest" ,]
 anpp = anpp[habitat.type != "Forest understory" ,]
 
 reg <- lm(mass ~ treat + exp + treat_exp, data = anpp)
 reg <- lm(mass ~ treat + exp + treat_exp:habitat.type, data = anpp)
+reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = anpp)
 reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = anpp)
 # reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = anpp)
 stargazer( reg, 
@@ -213,7 +215,7 @@ stargazer( reg,
          type = "text",
          summary = TRUE,
            dep.var.labels = ("ANPP"),
-           column.labels = c(""),
+           column.labels = c("Estimate"),
            covariate.labels = c("Intercept (B0)", 
                                 "Treatment group (B1)", 
                                 "Post-treatment (B2)", 
