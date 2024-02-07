@@ -63,7 +63,7 @@ table(anpp$n_treat_years)
 table(anpp$trt)
 table(anpp$mass_category)
 summary(anpp$mass)
-hist(anpp$mass)
+# hist(anpp$mass)
 # check out subplot 
 table(anpp$subplot) 
 # View(anpp[which(anpp$subplot == "B" ),]) #sand.us, llara.au , rhijn.nl 
@@ -99,9 +99,10 @@ anpp[order(year), changemass := mass-shift(mass), by =.(newplotid)]
 ### Plot variation in ANPP by plot from year to year by site ########################
 ######################################################################################
 # anpp = anpp[changemass != NA,]
-Fig <- ggplot(data = anpp, aes(x = changemass)) +  facet_wrap(~site_code) + theme_bw() +
+anpp1 = anpp[!is.na(changemass)]
+Fig <- ggplot(data = anpp1, aes(x = changemass)) +  facet_wrap(~site_code) + theme_bw() +
   geom_vline(xintercept=c(0,0), color = "blue", linetype="dashed") +
-  geom_histogram(bins = 1000) +
+  geom_histogram(bins = 500) +
   labs(x = "Plot-level change in species richness year to year") +  theme_bw() +
   theme(axis.title.y= element_text(size=14)) + theme(axis.title.x= element_text(size=12)) +
   theme(axis.text.y = element_text(size = 14)) + 
