@@ -82,8 +82,13 @@ anpp[,newplotid:=as.factor(paste(site_code, block, plot, subplot, sep="_"))]
 class(anpp$year) 
 anpp$year <- as.character(anpp$year)
 
+###############################################################################################
+## Create year to year change variable #####################################################
+#############################################################################################
+anpp[order(year), changemass := mass-shift(mass), by =.(newplotid)]
+
 ##################################################################################################
-### Make some dummy variables  ####################################################
+### Make some dummy variables  #############################################################
 ##################################################################################################
 # Make a variable that identifies if it is a pre-treatment year or not 
 anpp[,is.PretreatmentYr := (n_treat_years <= 0),]
@@ -186,4 +191,7 @@ show.plot(anpp, "sgsdrt.us")
 show.plot(anpp, "yarradrt.au")
 
 ##*** ADD ERROR BARS TO THE FIGURE ****
+
+
+
   
