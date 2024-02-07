@@ -102,8 +102,8 @@ anpp[order(year), changemass := mass-shift(mass), by =.(newplotid)]
 anpp1 = anpp[!is.na(changemass)]
 Fig <- ggplot(data = anpp1, aes(x = changemass)) +  facet_wrap(~site_code) + theme_bw() +
   geom_vline(xintercept=c(0,0), color = "blue", linetype="dashed") +
-  geom_histogram(bins = 500) +
-  labs(x = "Plot-level change in species richness year to year") +  theme_bw() +
+  geom_histogram(bins = 10) +
+  labs(x = "Plot-level change in anpp year to year") +  theme_bw() +
   theme(axis.title.y= element_text(size=14)) + theme(axis.title.x= element_text(size=12)) +
   theme(axis.text.y = element_text(size = 14)) + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
