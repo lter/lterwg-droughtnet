@@ -201,8 +201,11 @@ show.plot(anpp, "yarradrt.au")
 #Find min value of treatment years; 0 = pre-treatment data
 anpp[,min.trt.yr:=min(n_treat_years), by=.(site_code)]
 anpp = anpp[min.trt.yr <= 0, ] 
+anpp = anpp[habitat.type != "Forest" ,]
+anpp = anpp[habitat.type != "Forest understory" ,]
 
 reg <- lm(mass ~ treat + exp + treat_exp, data = anpp)
+reg <- lm(mass ~ treat + exp + treat_exp:habitat.type, data = anpp)
 reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = anpp)
 # reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = anpp)
 stargazer( reg, 
@@ -216,6 +219,29 @@ stargazer( reg,
                                 "Post-treatment (B2)", 
                                 "Diff in Diff (B3)"),
            omit.stat = "all", 
-          ci=TRUE, ci.level=0.90, 
+          ci=TRUE, ci.level=0.95, 
            digits = 0, 
-           intercept.bottom = FALSE )
+           intercept.bottom = FALSE)
+
+grass.anpp = anpp[habitat.type == "Grassland", ] 
+
+reg <- lm(mass ~ treat + exp + treat_exp, data = grass.anpp)
+reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = grass.anpp)
+# reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = grass.anpp)
+stargazer( reg, 
+           #type = "html",
+           type = "text",
+           summary = TRUE,
+           dep.var.labels = ("ANPP"),
+           column.labels = c("estimate"),
+           covariate.labels = c("Intercept (B0)", 
+                                "Treatment group (B1)", 
+                                "Post-treatment (B2)", 
+                                "Diff in Diff (B3)"),
+           omit.stat = "all", 
+           ci=TRUE, ci.level=0.95, 
+           digits = 0, 
+           intercept.bottom = FALSE)
+
+shrub.anpp = anpp[habitat.type == "Shrubland", ] 
+reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
