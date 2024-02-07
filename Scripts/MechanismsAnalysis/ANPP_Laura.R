@@ -22,6 +22,7 @@ library(fixest)
 library(viridis)
 require(ggplot2)
 require(knitr)
+require(stargazer)
 
 setwd("~/Dropbox/data_processed/")
 cover <- fread("Cover_ppt_2023-11-27.csv")
@@ -109,8 +110,8 @@ anpp$treat <- ifelse(anpp$trt == "Drought", 1, 0)
 #create variable if treated and after 
 anpp$treat_exp = anpp$exp*anpp$treat
 
-###########################################################
-## Parallel Trends Plot #######################################
+###############################################################################
+## Parallel Trends Plot ###########################################################
 #####################################################################################
 ## From: https://skranz.github.io/r/2021/10/20/ParallelTrendsPlot.html
 
@@ -193,5 +194,28 @@ show.plot(anpp, "yarradrt.au")
 ##*** ADD ERROR BARS TO THE FIGURE ****
 
 
+#####################################################################################
+## Diff-in-Diff #################################################################
+#####################################################################################
+#filter to only sites that have pre-treatment data
+#Find min value of treatment years; 0 = pre-treatment data
+anpp[,min.trt.yr:=min(n_treat_years), by=.(site_code)]
+anpp = anpp[min.trt.yr <= 0, ] 
 
-  
+reg <- lm(mass ~ treat + exp + treat_exp, data = anpp)
+reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = anpp)
+# reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = anpp)
+stargazer( reg, 
+         #type = "html",
+         type = "text",
+         summary = TRUE,
+           dep.var.labels = ("ANPP"),
+           column.labels = c(""),
+           covariate.labels = c("Intercept (B0)", 
+                                "Treatment group (B1)", 
+                                "Post-treatment (B2)", 
+                                "Diff in Diff (B3)"),
+           omit.stat = "all", 
+          ci=TRUE, ci.level=0.90, 
+           digits = 0, 
+           intercept.bottom = FALSE )
