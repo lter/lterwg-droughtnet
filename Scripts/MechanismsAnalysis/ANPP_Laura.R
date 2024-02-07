@@ -2,7 +2,12 @@
 ## DroughtNet: Explore ANPP 
 #Feb 7 2024
 
-#File paths to IDE data. 
+##******### To do - Feb 7 2024 - create a filter to remove sites with no pretreatment year, 
+##*# and a certain number of years of data?
+##*#**# create error bars on the parallel trends figures 
+##****  Create the nominal and extreme drought variables and drought severity 
+
+#File paths to IDE data:
 # •IDE dropbox
 # •Data and metadata
 # •ANPP data
@@ -23,6 +28,8 @@ library(viridis)
 require(ggplot2)
 require(knitr)
 require(stargazer)
+require(tidyr)
+require(ddplyr)
 
 setwd("~/Dropbox/data_processed/")
 cover <- fread("Cover_ppt_2023-11-27.csv")
@@ -59,14 +66,14 @@ summary(anpp$mass)
 hist(anpp$mass)
 # check out subplot 
 table(anpp$subplot) 
-View(anpp[which(anpp$subplot == "B" ),])  #sand.us, llara.au , rhijn.nl 
+View(anpp[which(anpp$subplot == "B" ),]) #sand.us, llara.au , rhijn.nl 
 View(anpp[which(anpp$subplot == "C" ),]) #sand.us, llara.au , rhijn.nl 
 View(anpp[which(anpp$subplot == "D" ),]) #sand.us, llara.au , rhijn.nl 
 View(anpp[which(anpp$subplot == "M" ),]) #cedartraits.us
 View(anpp[which(anpp$subplot == "N" ),]) #cedartraits.us
-View(anpp[which(anpp$subplot == "S" ),])#cedartraits.us
+View(anpp[which(anpp$subplot == "S" ),]) #cedartraits.us
 
-#*** HENRY TO CHECK UNQIUE SUBPLOTS 
+#*** HENRY TO CHECK UNQIUE SUBPLOTS *****
 
 ##################################################################################################
 ### Making a unique plot id and year as factor ####################################################
@@ -141,10 +148,8 @@ anpp$treat_exp = anpp$exp*anpp$treat
 # gg
 # }  
 # show.plot(dat)
-library(tidyr)
-first_treatment_yr <- min(gdat$year[gdat$exp == 1])
 
-sg = anpp[site_code == "sgsdrt.us",]
+#first_treatment_yr <- min(gdat$year[gdat$exp == 1])
 
 show.plot = function(dat, site, label="", show.means=TRUE) {
    library(ggplot2)
@@ -180,9 +185,10 @@ show.plot = function(dat, site, label="", show.means=TRUE) {
   gg
 } 
 
-show.plot(anpp)
-show.plot(anpp, "sgsdrt.us") # No pretreatment we should filter to sites with at least one full PT year. 
+show.plot(anpp, "sgsdrt.us")  
 table(sg$n_treat_years, sg$year)
+
+#***** we should filter to sites with at least one full PT year ###
 
 unique(anpp$site_code[anpp$n_treat_years <= -1])
 show.plot(anpp, "cdpt_drt.us")
@@ -195,7 +201,7 @@ show.plot(anpp, "yarradrt.au")
 
 
 #####################################################################################
-## Diff-in-Diff #################################################################
+## Diff-in-Diff ####################################################################
 #####################################################################################
 #filter to only sites that have pre-treatment data
 #Find min value of treatment years; 0 = pre-treatment data
@@ -204,6 +210,14 @@ anpp[,max.trt.yr:=max(n_treat_years), by=.(site_code)]
 anpp = anpp[min.trt.yr <= 0, ] 
 anpp = anpp[habitat.type != "Forest" ,]
 anpp = anpp[habitat.type != "Forest understory" ,]
+
+#five sites are not repeated over years, and only have one year of data - from Meghan Avolio 
+# oneyr<-dat2 %>% 
+#   select(site_code, n_treat_years) %>% 
+#   unique() %>% 
+#   group_by(site_code) %>% 
+#   mutate(max=max(n_treat_years)) %>% 
+#   filter(max==1)
 
 reg <- lm(mass ~ treat + exp + treat_exp, data = anpp)
 reg <- lm(mass ~ treat + exp + treat_exp:habitat.type, data = anpp)
@@ -249,4 +263,13 @@ shrub.anpp = anpp[habitat.type == "Shrubland", ]
 reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
 reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.anpp)
 
-
+######################################################################
+### Drought Severity and Drought Classifications ########################
+########################################################################
+# #getting drought severity - from Meghan Avolio 
+# drt<-dat2 %>% 
+#   filter(trt=="Drought") %>% 
+#   select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>%   unique() %>% 
+#   mutate(drtseverity=(ppt.1-map)/map) %>% 
+#   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4) %>% 
+#   filter(n_treat_years<4)
