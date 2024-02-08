@@ -217,9 +217,9 @@ cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatm
 # 
 # # if the species isn't present at a site in year_trt == 0, give the species a relative abundance of 0 in that year:
 
-########################################################################################
+####################################################################################################
 #### Create a relative frequency of each species at site in year 0 ##################################
-########################################################################################
+####################################################################################################
 # #total # of plots within a site, for pre-treatment year:
 # # again we use the pre-treatment year because we calculate the metrics at the site level and want to avoid classifying species post treatment
 cover[, tot.num.plots := length(unique(plot[n_treat_years == 0])), by =.(site_code)]  #this will work because no records of max_cover = 0.
@@ -319,7 +319,6 @@ cover[local_lifespan =="INDETERMINATE", local_lifespan:="OTHER"]
 
 ##local life form cleaning ### 
 # #table(cover$local_lifeform)
-# 
 # BRYOPHYTE    CACTUS  CLUBMOSS      FERN      FORB     FUNGI GRAMINOID     Grass     GRASS    LEGUME 
 # 755       422         4         7     25563         1      3372         4     13942      1771 
 # LICHEN      MOSS      NULL     SHRUB  SUBSHRUB SUCCULENT      TREE      VINE     WOODY 
@@ -339,8 +338,6 @@ cover[local_lifeform == "SHRUB", local_lifeform := "WOODY"]
 cover[local_lifeform =="SUBSHRUB",local_lifeform := "WOODY"]
 
 ## Combine functional groups ## 
-
-table(cover$functional_group)
 #combine Null and unk
 cover[functional_group == "UNK", functional_group := "NULL"]
 cover[functional_group == "GRAMINOID", functional_group := "GRASS"]
@@ -355,31 +352,31 @@ cover[functional_group== "BRYOPHYTE", functional_group:= "NONVASCULAR"]
 
 ### now make some variables about the SR of groups/combinations of these groups ##
 
-##invasive - annual or perennial
-cover[, sr_annual_INT := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "INT"])), by = .(newplotid, year)]
-cover[, sr_per_INT := length(unique(Taxon[local_lifespan == "PERENNIAL" & local_provenance == "INT"])), by = .(newplotid, year)]
+##invasive: annual or perennial
+cover[, sr_annual_INT := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "INT" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_per_INT := length(unique(Taxon[local_lifespan == "PERENNIAL" & local_provenance == "INT" & max_cover>0])), by = .(newplotid, year)]
 
-# Native -- annual or perennial
-cover[, sr_annual_NAT := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "NAT"])), by = .(newplotid, year)]
-cover[, sr_per_NAT := length(unique(Taxon[local_lifespan == "PERENNIAL" & local_provenance == "NAT"])), by = .(newplotid, year)]
+# Native: annual or perennial
+cover[, sr_annual_NAT := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "NAT" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_per_NAT := length(unique(Taxon[local_lifespan == "PERENNIAL" & local_provenance == "NAT" & max_cover>0])), by = .(newplotid, year)]
 
-## Annual/perennial forb or grass or woody 
-cover[, sr_annual_forb := length(unique(Taxon[local_lifespan == "ANNUAL" & functional_group  == "FORB"])), by = .(newplotid, year)]
-cover[, sr_per_forb := length(unique(Taxon[local_lifespan == "PERENNIAL" & functional_group  == "FORB"])), by = .(newplotid, year)]
-cover[, sr_annual_grass := length(unique(Taxon[local_lifespan == "ANNUAL" & functional_group  == "GRASS"])), by = .(newplotid, year)]
-cover[, sr_per_grass := length(unique(Taxon[local_lifespan == "PERENNIAL" & functional_group == "GRASS"])), by = .(newplotid, year)]
+## Annual/perennial, forb or grass 
+cover[, sr_annual_forb := length(unique(Taxon[local_lifespan == "ANNUAL" & functional_group  == "FORB" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_per_forb := length(unique(Taxon[local_lifespan == "PERENNIAL" & functional_group  == "FORB" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_annual_grass := length(unique(Taxon[local_lifespan == "ANNUAL" & functional_group  == "GRASS" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_per_grass := length(unique(Taxon[local_lifespan == "PERENNIAL" & functional_group == "GRASS" & max_cover>0])), by = .(newplotid, year)]
 
 ### Richness of grasses, woody, forbs  from the "functional_group" column
 ## woody
-cover[, sr_woody := length(unique(Taxon[functional_group == "WOODY"])), by =.(newplotid, year) ]
+cover[, sr_woody := length(unique(Taxon[functional_group == "WOODY" & max_cover>0])), by =.(newplotid, year) ]
 # Grasses 
-cover[, sr_grass := length(unique(Taxon[functional_group=="GRASS"])), by = .(newplotid, year)]
+cover[, sr_grass := length(unique(Taxon[functional_group=="GRASS" & max_cover>0])), by = .(newplotid, year)]
 # Forbs
-cover[, sr_forbs := length(unique(Taxon[functional_group=="FORB"])), by = .(newplotid, year)]
+cover[, sr_forbs := length(unique(Taxon[functional_group=="FORB"& max_cover>0])), by = .(newplotid, year)]
 # Legumes
-cover[, sr_legume := length(unique(Taxon[functional_group=="LEGUME"])), by = .(newplotid, year)]
+cover[, sr_legume := length(unique(Taxon[functional_group=="LEGUME" & max_cover>0])), by = .(newplotid, year)]
 # Non vascular
-cover[, sr_nonvascular := length(unique(Taxon[functional_group=="NONVASCULAR"])), by = .(newplotid, year)]
+cover[, sr_nonvascular := length(unique(Taxon[functional_group=="NONVASCULAR" & max_cover>0])), by = .(newplotid, year)]
 
 ## compute SR of C3, C4 and CAM ps pathways
 # consider only species that were actually present (filter to max_cover>0)
@@ -391,13 +388,11 @@ cover[, sr_CAM := length(unique(Taxon[ps_path =="CAM" & max_cover>0])), by = .(n
 ####################################################################################################
 ###  Changes in types of species by plot:  % Cover ########################################
 ################################################################################################
-
-## Convert the relative cover that is NA to 0 before computing (or do na remove when summing with  na.rm=T)
-
-relative_sp_cover.plot
+## chec that  relative cover that is NA to 0 before computing (or do na remove when summing with  na.rm=T)
+summary(cover$relative_sp_cover.plot)
+table(cover$relative_sp_cover.plot)
 
 ###INVASIVE VS NATIVE ########
-
 ## Percent cover of introduced species (non-native to the site) per plot and year  ## 
 ## compute total cover of non-natives # local_provenance == INT
 cover[, INTcover := sum(relative_sp_cover.plot[local_provenance=="INT"], na.rm=T), by = .(newplotid, year)]
