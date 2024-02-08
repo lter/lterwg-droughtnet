@@ -260,7 +260,7 @@ for (i in 1:nrow(metrics_df)) {
 }
 
 ####################################################################################################
-###  Changes in types of species by plot: Number of species & % Cover ########################################
+###  Changes in types of species by plot: Number of species ########################################
 ################################################################################################
 
 ###INVASIVE VS NATIVE ########
@@ -282,7 +282,6 @@ printNA <- table(cover$sr_NA, cover$site_code)
 write.csv(printNA, "~/Dropbox/printNAbysite_droughtnet.csv")
 cover.NA.unique = unique(cover[, .(site_code, year,  plot,  trt,  sr_NA)])
 
-###
 ##### Lifespan, lifeform, functional group cleaning #########
 
 # table(cover$local_lifespan)
@@ -332,12 +331,33 @@ cover[functional_group] = ifelse("SUBSHRUB", "WOODY")
 cover[functional_group == "LICHEN", functional_group := "NONVASCULAR"]
 cover[functional_group== "BRYOPHYTE", functional_group:= "NONVASCULAR"]
 
-### now make some variables about the SR and cover of groups/combinations of these groups ##
+### now make some variables about the SR of groups/combinations of these groups ##
+
+##invasive - annual or perennial
 cover[, sr_annual_INT := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "INT"])), by = .(newplotid, year)]
 cover[, sr_per_INT := length(unique(Taxon[local_lifespan == "PERENNIAL" & local_provenance == "INT"])), by = .(newplotid, year)]
 
+# Native -- annual or perennial
+cover[, sr_annual_NAT := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "NAT"])), by = .(newplotid, year)]
+cover[, sr_per_NAT := length(unique(Taxon[local_lifespan == "PERENNIAL" & local_provenance == "NAT"])), by = .(newplotid, year)]
+
+## Annual/perennial forb or grass or woody 
+cover[, sr_annual_forb := length(unique(Taxon[local_lifespan == "ANNUAL" & functional_group  == "FORB"])), by = .(newplotid, year)]
+cover[, sr_per_forb := length(unique(Taxon[local_lifespan == "PERENNIAL" & functional_group  == "FORB"])), by = .(newplotid, year)]
+cover[, sr_annual_grass := length(unique(Taxon[local_lifespan == "ANNUAL" & functional_group  == "GRASS"])), by = .(newplotid, year)]
+cover[, sr_per_grass := length(unique(Taxon[local_lifespan == "PERENNIAL" & functional_group == "GRASS"])), by = .(newplotid, year)]
+
+## woody
+cover[, sr_woody := length(unique(Taxon[functional_group == "WOODY"])), by = .(newplotid, year)]
 
 
+####################################################################################################
+###  Changes in types of species by plot:  % Cover ########################################
+################################################################################################
+
+###INVASIVE VS NATIVE ########
+
+###INVASIVE VS NATIVE ########
 
 
 
