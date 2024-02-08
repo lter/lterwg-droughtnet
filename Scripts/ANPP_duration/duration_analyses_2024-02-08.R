@@ -34,7 +34,8 @@ extremeyrs <- subset(data.anpp, trt == "Control")%>%
   dplyr::select(site_code, n_treat_years, year, ppt.1, map)%>%
   unique() %>%
   mutate(ppt.minus.map=ppt.1-map,
-         e.n=ifelse(ppt.minus.map>0, "nominal", "extreme")) %>%
+         e.n=ifelse(n_treat_years <1, NA,
+           ifelse(ppt.minus.map>0, "nominal", "extreme"))) %>%
   dplyr::select(site_code, year, n_treat_years, e.n)
 
 extremeyrs.prev <- extremeyrs%>%
@@ -46,12 +47,12 @@ extremeyrs.prev$year <- extremeyrs.prev$year + 1
 extremeyrs.prev2 <- extremeyrs%>%
   dplyr::select(site_code, year, e.n)%>%
   dplyr::rename(prev_e.n2 = e.n)
-extremeyrs.prev2$year <- extremeyrs.prev$year + 2
+extremeyrs.prev2$year <- extremeyrs.prev$year + 1 #had some trouble with these addition things but I think it's fine now
 
 extremeyrs.prev3 <- extremeyrs%>%
   dplyr::select(site_code, year, e.n)%>%
   dplyr::rename(prev_e.n3 = e.n)
-extremeyrs.prev3$year <- extremeyrs.prev$year + 3
+extremeyrs.prev3$year <- extremeyrs.prev$year + 2
 
 #Only using sites with >= 2 reps for drought and >=1 rep for control
 #Counting the number of reps for each treatment and year
@@ -1594,7 +1595,7 @@ data.anpp.year <- data.anpp.summary%>%
 
 data.anpp.year%>%
   # subset(e.n != "NA")%>%
-  #   subset(Ann_Per != "NA")%>%
+  #   subset(Ann_Per != "Perennial")%>%
   
   ggplot(aes(as.factor(n_treat_years), anpp_response, color = e.n
   ))+
@@ -1738,21 +1739,97 @@ ggplot(alan, aes(x = factor(history,level=c("One", "Two", "Three", "Four")), anp
   geom_point()+
   theme_base()
 
-alan%>%
-  ddply(.(history), function(x)data.frame(
-    anpp_response = mean(x$anpp_response),
-    se = sd(x$anpp_response)/length(x$history)
-  ))%>%
-  ggplot( aes(x = factor(history,level=c("One", "Two", "Three", "Four")), anpp_response))+
-  geom_pointrange(aes(ymax = anpp_response+se, ymin = anpp_response-se))+
+
+
+#all nominal avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "nominal"))
+nominal.avg <- summary(mod)[[20]][1]
+nominal.se <- summary(mod)[[20]][2]
+
+#all extreme avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "extreme"))
+summary(mod)
+extreme.avg <- summary(mod)[[20]][1]
+extreme.se <- summary(mod)[[20]][2]
+
+#all one avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(alan, history == "One"))
+summary(mod)
+one.avg <- summary(mod)[[20]][1]
+one.se <- summary(mod)[[20]][2]
+
+#all two avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(alan, history == "Two"))
+summary(mod)
+two.avg <- summary(mod)[[20]][1]
+two.se <- summary(mod)[[20]][2]
+
+#all three avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(alan, history == "Three"))
+summary(mod)
+three.avg <- summary(mod)[[20]][1]
+three.se <- summary(mod)[[20]][2]
+
+#all four avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(alan, history == "Four"))
+summary(mod)
+four.avg <- summary(mod)[[20]][1]
+four.se <- summary(mod)[[20]][2]
+
+
+
+
+
+#year one nominal avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "nominal" & n_treat_years == 1 & Ann_Per == "Perennial"))
+nominal.avg <- summary(mod)[[20]][1]
+nominal.se <- summary(mod)[[20]][2]
+
+#year one extreme avg
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "extreme" & n_treat_years == 1 & Ann_Per == "Perennial"))
+summary(mod)
+extreme.avg <- summary(mod)[[20]][1]
+extreme.se <- summary(mod)[[20]][2]
+
+data.frame(history = c("One", "Two", "Three", "Four"), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))%>%
+  ggplot( aes(x = factor(history,level=c("One", "Two", "Three", "Four")), avg))+
+  geom_pointrange(aes(ymax = avg+se, ymin = avg-se))+
   geom_hline(yintercept = 0)+
+  geom_hline(yintercept = nominal.avg, color = "blue")+
+  geom_hline(yintercept = nominal.avg+nominal.se, color = "blue", linetype = "dashed")+
+  geom_hline(yintercept = nominal.avg-nominal.se, color = "blue", linetype = "dashed")+
+  geom_hline(yintercept = extreme.avg, color = "red")+
+  geom_hline(yintercept = extreme.avg+extreme.se, color = "red", linetype = "dashed")+
+  geom_hline(yintercept = extreme.avg-extreme.se, color = "red", linetype = "dashed")+
   xlab("# consecutive years extreme drought")+
+  ylab("ANPP response")+
   theme_base()
 
 
-mod <- lme(anpp_response~history, random = ~1|ipcc_regions/site_code, data = alan)
-summary(mod)
+nonconsecutive <- data.anpp.summary%>%
+  subset(Ann_Per == "Perennial")%>%
+  unite(historyroad, c("e.n", "prev_e.n", "prev_e.n2", "prev_e.n3"), sep = "::")%>%
+  subset(historyroad == "extreme::extreme::nominal::extreme" | historyroad == "extreme::nominal::extreme::extreme" |historyroad == "extreme::nominal::extreme::nominal" | historyroad == "extreme::nominal::extreme::NA")
+  
+nonconsecutive$two_or_three <- ifelse(nonconsecutive$historyroad == "extreme::extreme::nominal::extreme" | nonconsecutive$historyroad == "extreme::nominal::extreme::extreme", "Three_nonconsecutive",
+                               ifelse(
+                                 nonconsecutive$historyroad == "extreme::nominal::extreme::nominal" | nonconsecutive$historyroad == "extreme::nominal::extreme::NA", "Two_nonconsecutive",
+                                 NA
+                               ))
+mean(subset(nonconsecutive, two_or_three == "Three_nonconsecutive")$anpp_response)
+sd(subset(nonconsecutive, two_or_three == "Three_nonconsecutive")$anpp_response)/5
+mean(subset(nonconsecutive, two_or_three == "Two_nonconsecutive")$anpp_response)
+sd(subset(nonconsecutive, two_or_three == "Two_nonconsecutive")$anpp_response)/5
 
+
+
+alan$historycont <- as.numeric(revalue(alan$history, c("One"=1, "Two"=2, "Three"=3, "Four"=4)))
+mod <- lme(anpp_response~history, random = ~1|ipcc_regions/site_code, method = "REML",data = alan)
+summary(mod)
+pairs(emmeans(mod, ~history))
+
+mod <- lme(anpp_response~historycont, random = ~1|ipcc_regions/site_code, data = alan)
+summary(mod)
 
 
 ##Sites to ask for 4 years
