@@ -468,9 +468,11 @@ cover[, CAMCover := sum(relative_sp_cover.plot[ps_path== "CAM"], na.rm=T), by = 
 cover[, C3C4INTERCover := sum(relative_sp_cover.plot[ps_path == "C3-C4 INTERMEDIATE"], na.rm=T), by = .(newplotid, year)]
 
 
-###################################################################################################################################################
-####### Make Categorical Variables to Label Spp as Dominant, Subordinant, and Rare   - based on the relative abundance Quantiles per Site #########################################
-#############################################################################################################################################
+#############################################################################################################################################################
+####### Make Categorical Variables to Label Spp as Dominant, Subordinant, and Rare, based on the relative abundance Quantiles per Site PRETREAT #############
+#############################################################################################################################################################
+
+#Relative_sp_cover_site_pre is the relative spp cover based on the aggregate pre-treatment years
 
 #**Note to self ****
 #0 quartile = 0 quantile = 0 percentile
@@ -479,7 +481,7 @@ cover[, C3C4INTERCover := sum(relative_sp_cover.plot[ps_path == "C3-C4 INTERMEDI
 # 3 quartile = .75 quantile = 75 percentile
 # 4 quartile = 1 quantile = 100 percentile
 
-unique.ras = unique(cover_present_year0[, .(site_code, Taxon, relative_abundance_spp_site.yr0)])
+unique.ras = unique(cover_present_year0[, .(site_code, Taxon, relative_sp_cover_site_pre)])
 
 unique.ras[,RAquant0.6:=quantile(relative_abundance_spp_site.yr0, probs=0.6), by=site_code]
 unique.ras[,RAquant0.95:=quantile(relative_abundance_spp_site.yr0, probs=0.95), by=site_code]
@@ -497,12 +499,22 @@ unique.ras[,relative_abundance_spp_site.yr0:=NULL] # drop before re-merge
 cover_present_year0 = merge(cover_present_year0, unique.ras, by=c("site_code", "Taxon"))
 
 
-###### PULLING FROM LAURAS OLDER CODE - once we have a single variable per newplotid and year
-sr.summaries[order(year), 
+###### PULLING FROM LAURAS OLDER CODE - maybe wait to do once we have a single variable per newplotid and year
+cover[order(year), 
              `:=`(change_sr_INT = sr_INT-shift(sr_INT), 
                   change_sr_NAT = sr_NAT-shift(sr_NAT),
-                  change_sr_NULL = sr_NULL-shift(sr_NULL),
-                  change_sr_UNK = sr_NULL-shift(sr_UNK)
+                  change_sr_UNK = sr_UNK-shift(sr_UNK)
              ),             
-             by =.(plot, site_code)]
+             by =.(newplotid)]
 
+hist(cover$change_sr_INT)
+#*** I need to loop this code to actually be able to see the different sites *****
+Fig <- ggplot(data = cover, aes(x = change_sr_INT)) +  facet_wrap(~site_code) + theme_bw() +
+  geom_vline(xintercept=c(0,0), color = "blue", linetype="dashed") +
+  geom_histogram(bins = 100) +
+  labs(x = "Plot-level change in INT SR year to year") +  theme_bw() +
+  theme(axis.title.y= element_text(size=14)) + theme(axis.title.x= element_text(size=12)) +
+  theme(axis.text.y = element_text(size = 14)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(size=14)) 
+Fig
