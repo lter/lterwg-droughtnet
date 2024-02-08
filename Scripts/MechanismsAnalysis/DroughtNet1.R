@@ -272,3 +272,44 @@ unique.ras[,relative_abundance_spp_site.yr0:=NULL] # drop before re-merge
 cover_present_year0 = merge(cover_present_year0, unique.ras, by=c("site_code", "Taxon"))
 
 
+
+## TO ADD TO HENRYS FILE ### TEMP
+
+## Compute Native species cover
+cover[, Native_cover.yr := sum(relative_sp_cover.yr[local_provenance=="NAT"]), by = .(plot, site_code, year)]
+##########################################################################################################
+### Annual vs Perennial Variables ########################################################################
+###########################################################################################################
+### Now do for an annual and perennial cover
+# Compute richness in annuals and perennials
+cover[, sr_annual := length(unique(Taxon[local_lifespan=="ANNUAL"])), by = .(plot, site_code, year)]
+cover[, sr_peren := length(unique(Taxon[local_lifespan=="PERENNIAL"])), by = .(plot, site_code, year)]
+cover[, sr_null.lspan := length(unique(Taxon[local_lifespan=="NULL"])), by = .(plot, site_code, year)]  # this includes a lot non-live.
+cover[, sr_biennial := length(unique(Taxon[local_lifespan=="BIENNIAL"])), by = .(plot, site_code, year)]
+cover[, sr_indeter := length(unique(Taxon[local_lifespan=="INDETERMINATE"])), by = .(plot, site_code, year)]
+# plot
+hist(cover$sr_annual)
+summary(cover$sr_annual)
+summary(cover$sr_annual)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+# 0.00    0.00    1.00    3.13    4.00   23.00
+hist(cover$sr_peren)
+summary(cover$sr_peren)
+#Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#0.00    4.00    8.00   10.21   14.00   41.00
+# Compute first differences
+cover[order(year), change_sr_annual := sr_annual-shift(sr_annual), by =.(plot, site_code)]
+cover[order(year), change_sr_peren := sr_peren-shift(sr_peren), by =.(plot, site_code)]
+# Plot first differences
+hist(cover$change_sr_annual)
+summary(cover$change_sr_annual)
+hist(cover$change_sr_peren)
+summary(cover$change_sr_peren)
+# compute cover by annuals per plot and year
+cover[, AnnualPercentcover.yr := sum(relative_sp_cover.yr[local_lifespan=="ANNUAL"]), by = .(plot, site_code, year)]
+# compute cover by perennial per plot and year
+cover[, PerenPercentcover.yr := sum(relative_sp_cover.yr[local_lifespan=="PERENNIAL"]), by = .(plot, site_code, year)]
+hist(cover$PerenPercentcover.yr)
+hist(cover$AnnualPercentcover.yr)
+
+## compute combined categories...
