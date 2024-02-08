@@ -357,6 +357,7 @@ cover[, sr_woody := length(unique(Taxon[functional_group == "WOODY"])), by = .(n
 
 ###INVASIVE VS NATIVE ########
 
+
 ###INVASIVE VS NATIVE ########
 
 

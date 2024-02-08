@@ -305,3 +305,25 @@ reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.an
 #   mutate(drtseverity=(ppt.1-map)/map) %>% 
 #   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4) %>% 
 #   filter(n_treat_years<4)
+
+###***** TO DO ******
+###CHECK FOR DUPLICATES ### 
+# looks ok after filtering out forests (prades.es) and making a unique ID that includes block (for Boulder)
+dups = anpp[,.N, by=c("site_code", "plot", "year")][N>1,]
+# Empty data.table (0 rows and 4 cols): site_code,plot,year,N
+table(anpp[,.N, by=c("site_code", "plot", "year")][,N])
+
+bldrdrt.us = anpp[site_code == "bldrdrt.us"]
+View(bldrdrt.us) ## this has a block!! so it is unique 
+
+prades.es = anpp[site_code == "prades.es"]  # filter this one out 
+View(prades.es) # filter this one out 
+
+anpp[,.N, by=c("site_code", "newplotid", "year")][N>1,]
+# Empty data.table (0 rows and 4 cols): site_code,newplotid,year,N
+
+anpp[,.N, by=c("site_code", "newplotid", "n_treat_years")][N>1,]
+# Empty data.table (0 rows and 4 cols): site_code,newplotid,year_trt,N
+
+anpp[,.N, by=c("site_code", "plot", "n_treat_years")][N>1,]
+#Empty data.table (0 rows and 4 cols): site_code,plot,year_trt,N
