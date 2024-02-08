@@ -467,12 +467,15 @@ cover[, C4Cover := sum(relative_sp_cover.plot[ps_path== "C4"], na.rm=T), by = .(
 cover[, CAMCover := sum(relative_sp_cover.plot[ps_path== "CAM"], na.rm=T), by = .(newplotid, year)]
 cover[, C3C4INTERCover := sum(relative_sp_cover.plot[ps_path == "C3-C4 INTERMEDIATE"], na.rm=T), by = .(newplotid, year)]
 
-
 #############################################################################################################################################################
 ####### Make Categorical Variables to Label Spp as Dominant, Subordinant, and Rare, based on the relative abundance Quantiles per Site PRETREAT #############
 #############################################################################################################################################################
+#**** TO DO -- make this directlu on the cover dataset so its not making multiple additional datasets! ***
+#*** THINK:: to do -- do i need to filter out species with max_cover == 0 for Treatment year 0??
+#*
+#*
 
-#Relative_sp_cover_site_pre is the relative spp cover based on the aggregate pre-treatment years
+#col: Relative_sp_cover_site_pre is the relative spp cover based on the aggregate pre-treatment years
 
 #**Note to self ****
 #0 quartile = 0 quantile = 0 percentile
@@ -483,21 +486,28 @@ cover[, C3C4INTERCover := sum(relative_sp_cover.plot[ps_path == "C3-C4 INTERMEDI
 
 unique.ras = unique(cover_present_year0[, .(site_code, Taxon, relative_sp_cover_site_pre)])
 
-unique.ras[,RAquant0.6:=quantile(relative_abundance_spp_site.yr0, probs=0.6), by=site_code]
-unique.ras[,RAquant0.95:=quantile(relative_abundance_spp_site.yr0, probs=0.95), by=site_code]
-unique.ras[,RAsite_group := ifelse(relative_abundance_spp_site.yr0<RAquant0.6,"Rare",
-                                   ifelse(relative_abundance_spp_site.yr0<RAquant0.95, "Subordinate","Dominant"))]
+unique.ras[,RAquant0.6:=quantile(relative_sp_cover_site_pre, probs=0.6), by=site_code]
+unique.ras[,RAquant0.95:=quantile(relative_sp_cover_site_pre, probs=0.95), by=site_code]
+unique.ras[,RAsite_group := ifelse(relative_sp_cover_site_pre<RAquant0.6,"Rare",
+                                   ifelse(relative_sp_cover_site_pre<RAquant0.95, "Subordinate","Dominant"))]
 
 #whats the breakdown of species classified in each group overall 
 table(unique.ras$RAsite_group)
 #whats the breakdown of species classified in each group by site
-cut.off1 <- table(unique.ras$site_code, unique.ras$RAsite_group)
-write.csv(cut.off1, "cutoff1_species.csv") 
+species_abundance_groupCutOff1 <- table(unique.ras$site_code, unique.ras$RAsite_group)
+write.csv(species_abundance_groupCutOff1, "~/Dropbox/DroughtMechanisms/cutoff1_species_abundancegroups.csv") 
 
 #re-merge the quantiles and classifications into the cover_present_year0 dataset
-unique.ras[,relative_abundance_spp_site.yr0:=NULL] # drop before re-merge
+unique.ras[,relative_sp_cover_site_pre:=NULL] # drop before re-merge
 cover_present_year0 = merge(cover_present_year0, unique.ras, by=c("site_code", "Taxon"))
 
+## Create dominants of different functional and life span groups!
+cover_present_year0[, .( dom_c3 = length(unique(Taxon[RAsite_group == "Dominant" & ps_path == "C3"])),
+                         rare_c3 = length(unique(Taxon[RAsite_group == "Rare" & ps_path == "C3"]))), 
+                     by = .(site_code, trt, year)]
+
+
+# ------------------------------------------------------# -----------------------------------#
 
 ###### PULLING FROM LAURAS OLDER CODE - maybe wait to do once we have a single variable per newplotid and year
 cover[order(year), 
