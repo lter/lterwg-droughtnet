@@ -12,6 +12,15 @@
 # •Site info
 # •IDE/data_processed/Site_Elev-Disturb.csv
 
+
+### mediators identified by the group (and composition analysis)
+# C3/C4
+# dominant vs rare
+# P50 (not in here)
+# Rooting Depth  (not in here)
+# % Annual spp 
+# rare forbs are lost
+
 #Close graphics and clear local memory
 graphics.off()
 rm(list=ls())
@@ -347,24 +356,104 @@ cover[, sr_per_forb := length(unique(Taxon[local_lifespan == "PERENNIAL" & funct
 cover[, sr_annual_grass := length(unique(Taxon[local_lifespan == "ANNUAL" & functional_group  == "GRASS"])), by = .(newplotid, year)]
 cover[, sr_per_grass := length(unique(Taxon[local_lifespan == "PERENNIAL" & functional_group == "GRASS"])), by = .(newplotid, year)]
 
+### Richness of grasses, woody, forbs  from the "functional_group" column
 ## woody
-cover[, sr_woody := length(unique(Taxon[functional_group == "WOODY"])), by = .(newplotid, year)]
-
+cover[, sr_woody := length(unique(Taxon[functional_group == "WOODY"])), by =.(newplotid, year) ]
+# Grasses 
+cover[, sr_grass := length(unique(Taxon[functional_group=="GRASS"])), by = .(newplotid, year)]
+# Forbs
+cover[, sr_forbs := length(unique(Taxon[functional_group=="FORB"])), by = .(newplotid, year)]
+# Legumes
+cover[, sr_legume := length(unique(Taxon[functional_group=="LEGUME"])), by = .(newplotid, year)]
+# Non vascular
+cover[, sr_nonvascular := length(unique(Taxon[functional_group=="NONVASCULAR"])), by = .(newplotid, year)]
 
 ####################################################################################################
 ###  Changes in types of species by plot:  % Cover ########################################
 ################################################################################################
 
+## Convert the relative cover that is NA to 0 before computing (or do na remove when summing with  na.rm=T)
+
+relative_sp_cover.plot
+
 ###INVASIVE VS NATIVE ########
 
+## Percent cover of introduced species (non-native to the site) per plot and year  ## 
+## compute total cover of non-natives # local_provenance == INT
+cover[, INTcover := sum(relative_sp_cover.plot[local_provenance=="INT"], na.rm=T), by = .(newplotid, year)]
+head(cover)
+## Compute Native species cover 
+cover[, Native_cover.yr := sum(relative_sp_cover.plot[local_provenance=="NAT"], na.rm=T), by = .(newplotid, year)]
 
-###INVASIVE VS NATIVE ########
+# compute cover by annuals per plot and year
+cover[, AnnualPercentcover.yr := sum(relative_sp_cover.plot[local_lifespan=="ANNUAL"],  na.rm=T), by = .(newplotid, year)]
+# compute cover by perennial per plot and year
+cover[, PerenPercentcover.yr := sum(relative_sp_cover.plot[local_lifespan=="PERENNIAL"], na.rm=T), by = .(newplotid, year)]
 
+### GRASS VS FORB VS WOODY ########
+### Compute *cover* by Functional groups - grasses, woody, forbs, legumes -- per plot and year
+cover[, GrassPercentcover.yr := sum(relative_sp_cover.plot[functional_group=="GRASS"],na.rm=T), by = .(newplotid, year)]
+cover[, ForbPercentcover.yr := sum(relative_sp_cover.plot[functional_group=="FORB"],na.rm=T), by = .(newplotid, year)]
+cover[, WoodyPercentcover.yr := sum(relative_sp_cover.plot[functional_group=="WOODY"],na.rm=T), by = .(newplotid, year)]
+cover[, LegumePercentcover.yr := sum(relative_sp_cover.plot[functional_group=="LEGUME"],na.rm=T), by = .(newplotid, year)]
+# 
+# hist(cover$LegumePercentcover.yr)
+# plot(cover$LegumePercentcover.yr ~ cover$year)
+# lm(cover$LegumePercentcover.yr ~ as.numeric(cover$year))
+# abline(lm(cover$LegumePercentcover.yr ~ as.numeric(cover$year)))
+# 
+# hist(cover$ForbPercentcover.yr)
+# plot(cover$ForbPercentcover.yr ~ cover$year)
 
+### Nitrogen Fixers #########
+## Number of N-fixer in a plot over time
+sr.summaries = cover[, .(sr_Nfixer = length(unique(Taxon[N.fixer==1])),
+                         sr_non.Nfixer = length(unique(Taxon[N.fixer==0]))), 
+                     by = .(newplotid, year)]
 
+# what are the plots where there are 0 species that are NOT n-fixers?
+hist(sr.summaries$sr_non.Nfixer)
+hist(sr.summaries$sr_Nfixer)
+table(sr.summaries$sr_non.Nfixer)
 
+# lag and change in N-fixers in a plot
+sr.summaries[order(year),
+             `:=`(
+               lagged_sr_Nfixer = shift(sr_Nfixer),
+               change_sr_Nfixer = sr_Nfixer-shift(sr_Nfixer)
+             ),
+             by =.(newplotid)]
+hist(sr.summaries$change_sr_Nfixer)
+summary(sr.summaries$change_sr_Nfixer)
 
+cover = merge(cover, sr.summaries, by = c("newplotid","year"))
 
+### Percent cover of N-fixers ###
+sr.summaries = cover[, .(N.fixer_cover.yr = sum(relative_sp_cover.plot[N.fixer==1], na.rm = T)), by = .(newplotid, year)]
+# lag & change in N-fixer cover
+sr.summaries[order(year), `:=`(lagged_N.fixer_cover.yr = shift(N.fixer_cover.yr),
+                               change_N.fixer_cover = N.fixer_cover.yr - shift(N.fixer_cover.yr)), 
+             by = .(newplotid)]
+# merge back in
+cover = merge(cover, sr.summaries, by=c("newplotid","year"))
+
+##### COMBINATION GROUPS AND COVER #####
+cover[, AnnualForbCover := sum(relative_sp_cover.plot[local_lifespan=="ANNUAL" & functional_group == "FORB"],  na.rm=T), by = .(newplotid, year)]
+# compute cover by perennial per plot and year
+cover[, PerForbCover := sum(relative_sp_cover.plot[local_lifespan=="PERENNIAL" & functional_group == "FORB"], na.rm=T), by = .(newplotid, year)]
+cover[, AnnualGrassCover := sum(relative_sp_cover.plot[local_lifespan=="ANNUAL" & functional_group == "GRASS"],  na.rm=T), by = .(newplotid, year)]
+# compute cover by perennial per plot and year
+cover[, PerenGrassCover := sum(relative_sp_cover.plot[local_lifespan=="PERENNIAL" & functional_group == "GRASS"], na.rm=T), by = .(newplotid, year)]
+cover[, WoodyCover := sum(relative_sp_cover.plot[functional_group == "WOODY"], na.rm=T), by = .(newplotid, year)]
+
+################################################################################################################################################
+#### Species change by Photosynthetic Pathway  #############################################################################################
+############################################################################################################################
+table(cover$ps_path) 
+cover[, C3Cover := sum(relative_sp_cover.plot[ps_path== "C3"], na.rm=T), by = .(newplotid, year)]
+cover[, C4Cover := sum(relative_sp_cover.plot[ps_path== "C4"], na.rm=T), by = .(newplotid, year)]
+cover[, CAMCover := sum(relative_sp_cover.plot[ps_path== "CAM"], na.rm=T), by = .(newplotid, year)]
+cover[, C3C4INTERCover := sum(relative_sp_cover.plot[ps_path == "C3-C4 INTERMEDIATE"], na.rm=T), by = .(newplotid, year)]
 
 
 ###################################################################################################################################################
@@ -395,4 +484,13 @@ write.csv(cut.off1, "cutoff1_species.csv")
 unique.ras[,relative_abundance_spp_site.yr0:=NULL] # drop before re-merge
 cover_present_year0 = merge(cover_present_year0, unique.ras, by=c("site_code", "Taxon"))
 
+
+###### PULLING FROM LAURAS OLDER CODE - once we have a single variable per newplotid and year
+sr.summaries[order(year), 
+             `:=`(change_sr_INT = sr_INT-shift(sr_INT), 
+                  change_sr_NAT = sr_NAT-shift(sr_NAT),
+                  change_sr_NULL = sr_NULL-shift(sr_NULL),
+                  change_sr_UNK = sr_NULL-shift(sr_UNK)
+             ),             
+             by =.(plot, site_code)]
 
