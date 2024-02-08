@@ -262,6 +262,9 @@ for (i in 1:nrow(metrics_df)) {
 ####################################################################################################
 ###  Changes in types of species by plot: Number of species & % Cover ########################################
 ################################################################################################
+
+###INVASIVE VS NATIVE ########
+
 # Compute native, non-native, and unknown origin species richness by plot, site, year. Note filter to max_cover > 0 to 
 # consider only species that were actually present (filter to max_cover>0)
 cover[, sr_INT := length(unique(Taxon[local_provenance=="INT" & max_cover>0])), by = .(plot, site_code, year)]
@@ -279,8 +282,8 @@ printNA <- table(cover$sr_NA, cover$site_code)
 write.csv(printNA, "~/Dropbox/printNAbysite_droughtnet.csv")
 cover.NA.unique = unique(cover[, .(site_code, year,  plot,  trt,  sr_NA)])
 
-#####
-# 
+###
+##### Lifespan, lifeform, functional group cleaning #########
 
 # table(cover$local_lifespan)
 # ANNUAL      BIENNIAL INDETERMINATE          NULL     PERENNIAL           UNK 
@@ -290,12 +293,10 @@ cover.NA.unique = unique(cover[, .(site_code, year,  plot,  trt,  sr_NA)])
 # covert native to NAT 
 cover[local_lifespan =="NULL", local_lifespan:="OTHER"]
 cover[local_lifespan =="UNK", local_lifespan:="OTHER"]
-# cover[local_lifespan =="UNK", local_provenance:="OTHER"]
+cover[local_lifespan =="BIENNIAL", local_lifespan:="OTHER"]
+cover[local_lifespan =="INDETERMINATE", local_lifespan:="OTHER"]
 
-#convert NULL to UNK to combine  #these NULLs are stored as a string in the data.table so can run this. Checked with:
-#cover[is.null(local_provenance),]
-
-
+##local life form cleaning ### 
 # #table(cover$local_lifeform)
 # 
 # BRYOPHYTE    CACTUS  CLUBMOSS      FERN      FORB     FUNGI GRAMINOID     Grass     GRASS    LEGUME 
@@ -303,15 +304,37 @@ cover[local_lifespan =="UNK", local_lifespan:="OTHER"]
 # LICHEN      MOSS      NULL     SHRUB  SUBSHRUB SUCCULENT      TREE      VINE     WOODY 
 # 176       328       950      2635      1503       106       214       204       114
 
-#fix grass 
-cover[local_lifeform =="Grass", local_lifeform =="GRASS"]
+#fix grass and consolidate groups 
+cover[local_lifeform =="Grass", local_lifeform := "GRASS"]
+cover[local_lifeform =="GRAMINOID", local_lifeform := "GRASS"]
+cover[local_lifeform == "CLUBMOSS", local_lifeform := "NONVASCULAR"]
+cover[local_lifeform == "FUNGI", local_lifeform := "NONVASCULAR"]
+cover[local_lifeform == "MOSS", local_lifeform := "NONVASCULAR"]
+cover[local_lifeform == "LICHEN", local_lifeform := "NONVASCULAR"]
+cover[local_lifeform == "BRYOPHYTE", local_lifeform := "NONVASCULAR"]
+cover[local_lifeform == "VINE" , local_lifeform := "WOODY"]
+cover[local_lifeform =="TREE", local_lifeform := "WOODY"]
+cover[local_lifeform == "SHRUB", local_lifeform := "WOODY"]
+cover[local_lifeform =="SUBSHRUB",local_lifeform := "WOODY"]
+
+## Combine functional groups ## 
+
+table(cover$functional_group)
 #combine Null and unk
-cover[functional_group =="UNK", functional_group =="NULL"]
+cover[functional_group == "UNK", functional_group := "NULL"]
+cover[functional_group == "GRAMINOID", functional_group := "GRASS"]
 
+#condense woody species and trees all to woody:
+cover[functional_group] = ifelse("VINE", "WOODY")
+cover[functional_group] = ifelse("TREE", "WOODY")
+cover[functional_group] = ifelse("SHRUB", "WOODY")
+cover[functional_group] = ifelse("SUBSHRUB", "WOODY")
+cover[functional_group == "LICHEN", functional_group := "NONVASCULAR"]
+cover[functional_group== "BRYOPHYTE", functional_group:= "NONVASCULAR"]
 
-# consider only species that were actually present (filter to max_cover>0)!!!
-
-cover[, sr_ := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "INT"])), by = .(newplotid, year)]
+### now make some variables about the SR and cover of groups/combinations of these groups ##
+cover[, sr_annual_INT := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "INT"])), by = .(newplotid, year)]
+cover[, sr_per_INT := length(unique(Taxon[local_lifespan == "PERENNIAL" & local_provenance == "INT"])), by = .(newplotid, year)]
 
 
 
