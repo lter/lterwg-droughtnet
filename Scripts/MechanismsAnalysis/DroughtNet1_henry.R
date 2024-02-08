@@ -156,12 +156,20 @@ cover[,totplotcover.yr.live := sum(max_cover, na.rm= T), by=.(newplotid, year)]
 cover[,relative_sp_cover.plot := max_cover/totplotcover.yr.live]
 #***to check, run: sum(is.na(cover$relative_sp_cover.plot))
 
+#####################################################################################   
+## Convert NAs to max_cover of 0  ######################################################     
+#####################################################################################   
+
 # in some cases, no live species in plot and year, so getting NA since totplotcover.yr.live is zero. Set these to zero.
 cover[is.na(relative_sp_cover.plot),relative_sp_cover.plot:=0]
 
+###################################################################################   
+## Calculate site-level relative abundance   #########################################     
+#####################################################################################   
+
 # calculate site-level relative abundance 2 ways:
 # 1) pre-treatment relative abundance for each species, aggregated across all pre-treatment years
-# 2) post-treatment relative abundance for each species, separated by year and treatment group
+# 2) post-treatment relative abundance for each species, separated by year and treatment group for all years including post treatment
 
 # calculate site-level relative abundance #1
 total_cover_site_pre <- cover %>%
@@ -208,21 +216,25 @@ cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatm
 # cover[is.infinite(relative_abundance_spp_site.yr0),relative_abundance_spp_site.yr0 := NA]
 # 
 # # if the species isn't present at a site in year_trt == 0, give the species a relative abundance of 0 in that year:
-# 
-# ### Next step --create a relative frequency in year 0 variable #####
+
+########################################################################################
+#### Create a relative frequency of each species at site in year 0 ##################################
+########################################################################################
 # #total # of plots within a site, for pre-treatment year:
 # # again we use the pre-treatment year because we calculate the metrics at the site level and want to avoid classifying species post treatment
-# cover[, tot.num.plots := length(unique(plot[n_treat_years == 0])), by =.(site_code)]  #this will work because no records of max_cover = 0.
-# 
+cover[, tot.num.plots := length(unique(plot[n_treat_years == 0])), by =.(site_code)]  #this will work because no records of max_cover = 0.
+
 # #number of plots within a site, in the pre-treatment year, that a species occurred in:
-# cover[, tot.num.plots.with.spp := length(unique(plot[n_treat_years== 0 & max_cover>0])), by =.(site_code, Taxon)]
-# 
+ cover[, tot.num.plots.with.spp := length(unique(plot[n_treat_years== 0 & max_cover>0])), by =.(site_code, Taxon)]
+
 # ##Compute Relative Frequency in year 0.
 # ## Relative frequency = number of plots at a site in year 0 a species occurred / total number of plots at a site in year 0" 
 # # If a site has no records for plots in a pre-treatment year (year_trt==0), rel_freq.space will be NA.
 # # That's fine -- these sites will be filtered out later
-# cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
-# cover[is.na(rel_freq.space),rel_freq.space  := 0]
+
+##Compute Relative Frequency in year 0.
+cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
+cover[is.na(rel_freq.space),rel_freq.space  := 0]
 
 #################################################################################################################################
 ## Run this Code   if you want to Filter data to only species present in year 0 and save that dataset  #####
@@ -232,10 +244,6 @@ cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot)]
 
 cover_present_year0 = cover[present_year0 == TRUE,]
 #write.csv(cover_present_year0, "~/Dropbox/DroughtMechanisms/data_processed/cover_present_year0.csv")
-
-#####################################################################################   
-## Convert NAs to max_cover of 0  ######################################################     
-#####################################################################################   
 
 ##############################################################################    
 ## Compute Species Richness  ######################################################     
