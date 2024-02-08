@@ -422,14 +422,14 @@ cover[, LegumePercentcover.yr := sum(relative_sp_cover.plot[functional_group=="L
 
 ### Nitrogen Fixers #########
 ## Number of N-fixer in a plot over time
-sr.summaries = cover[, .(sr_Nfixer = length(unique(Taxon[N.fixer==1])),
-                         sr_non.Nfixer = length(unique(Taxon[N.fixer==0]))), 
+sr.summaries = cover[, .(sr_Nfixer = length(unique(Taxon[N.fixer==1 & max_cover>0])),
+                         sr_non.Nfixer = length(unique(Taxon[N.fixer==0 & max_cover>0]))), 
                      by = .(newplotid, year)]
 
 # what are the plots where there are 0 species that are NOT n-fixers?
-hist(sr.summaries$sr_non.Nfixer)
-hist(sr.summaries$sr_Nfixer)
-table(sr.summaries$sr_non.Nfixer)
+# hist(sr.summaries$sr_non.Nfixer)
+# hist(sr.summaries$sr_Nfixer)
+# table(sr.summaries$sr_non.Nfixer)
 
 # lag and change in N-fixers in a plot
 sr.summaries[order(year),
