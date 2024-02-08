@@ -51,7 +51,7 @@ cover = cover[max_cover > 0,]
 
 #Are there really some sites that have 7 years of pretreat data? Which?
 table(cover$n_treat_years)
-View(cover[which(cover$n_treat_years== "-6" ),]) # sgsdrt.us
+# View(cover[which(cover$n_treat_years== "-6" ),]) # sgsdrt.us
 
 ############################################################################################################
 ### Native vs Non-Native Variables #########################################################################
@@ -68,7 +68,7 @@ cover[local_provenance =="native", local_provenance:="NAT"]
 cover[local_provenance=="NULL", local_provenance:="UNK"] 
 
 # all are all of the unknowns are a single site or across sites? Check with this line:
-View(cover[which(cover$local_provenance == "UNK"),]) # the species of unknown origins are across different sites.
+# View(cover[which(cover$local_provenance == "UNK"),]) # the species of unknown origins are across different sites.
 
 ###################################################################################################
 #### Use to filter pre-treatment years or treated years ############################################
@@ -98,12 +98,12 @@ table(cover$subplot)
 
 # A     B     C     D     M     N     S 
 # 49576   275   326   298   545   534   543 
-View(cover[which(cover$subplot == "B" ),]) #rhijn.nl and  llara.au 
-View(cover[which(cover$subplot == "C" ),]) #rhijn.nl and  llara.au 
-View(cover[which(cover$subplot == "D" ),]) #rhijn.nl and  llara.au  
-View(cover[which(cover$subplot == "M" ),]) #cedartrait.us
-View(cover[which(cover$subplot == "N" ),]) #cedartrait.us
-View(cover[which(cover$subplot == "S" ),]) #cedartrait.us
+# View(cover[which(cover$subplot == "B" ),]) #rhijn.nl and  llara.au 
+# View(cover[which(cover$subplot == "C" ),]) #rhijn.nl and  llara.au 
+# View(cover[which(cover$subplot == "D" ),]) #rhijn.nl and  llara.au  
+# View(cover[which(cover$subplot == "M" ),]) #cedartrait.us
+# View(cover[which(cover$subplot == "N" ),]) #cedartrait.us
+# View(cover[which(cover$subplot == "S" ),]) #cedartrait.us
 
 ## check out block situation
 table(cover$block) 
@@ -114,6 +114,7 @@ table(cover$block)
 # Species Richness
 cover[, sr_plot := length(unique(Taxon[max_cover>0])), by = .(plot, site_code, year)]
 cover[, sr_site := length(unique(Taxon[max_cover>0])), by = .(site_code, year)]
+
 
 ggplot(data = cover, aes(x=year, y=sr_site)) +
   +     geom_line(aes(group=site_code))

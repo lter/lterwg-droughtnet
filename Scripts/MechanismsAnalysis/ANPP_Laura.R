@@ -297,7 +297,8 @@ reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.an
 ######################################################################
 ### Drought Severity and Drought Classifications ########################
 ########################################################################
-# #getting drought severity - from Meghan Avolio 
+# **** Need to get this code form TIM to classify as nominal, extreme, and to reproduce their continuous severity metrics
+#getting drought severity - from Meghan Avolio 
 # drt<-dat2 %>% 
 #   filter(trt=="Drought") %>% 
 #   select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>%   unique() %>% 
