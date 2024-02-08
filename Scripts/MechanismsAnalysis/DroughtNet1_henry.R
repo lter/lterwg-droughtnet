@@ -154,7 +154,10 @@ cover[,totplotcover.yr.live := sum(max_cover, na.rm= T), by=.(newplotid, year)]
 #Make a relative cover for each species in each plot and year
 # based on TOTAL cover (including only live cover as we already filtered to the data table to live above).
 cover[,relative_sp_cover.plot := max_cover/totplotcover.yr.live]
-#***to check, run: sum(is.na(cover$relative_sp_cover.yr.live))
+#***to check, run: sum(is.na(cover$relative_sp_cover.plot))
+
+# in some cases, no live species in plot and year, so getting NA since totplotcover.yr.live is zero. Set these to zero.
+cover[is.na(relative_sp_cover.plot),relative_sp_cover.plot:=0]
 
 # calculate site-level relative abundance 2 ways:
 # 1) pre-treatment relative abundance for each species, aggregated across all pre-treatment years
@@ -184,16 +187,15 @@ sp_cover_site_post <- cover %>%
   mutate(relative_sp_cover_site_treatment = max_cover / total_cover) %>%
   select(-c(max_cover, total_cover))
 
-
 # add site-level relative abundances to main dataframe
 cover <- cover %>%
   left_join(sp_cover_site_pre) %>%
   left_join(sp_cover_site_post)
 cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatment)] <- cover$relative_sp_cover_site_pre[is.na(cover$relative_sp_cover_site_treatment)]
 
-
 #########################################################################################
-# Laura's old code for calculating site-level relative abundance
+# Laura's old code for calculating site-level relative abundance using data.table ######
+##########################################################################################
 # # make a site-level relative abundance for each species and year. This requires
 # #first summing the total cover per site and year and the total cover of each species in all plots at site 
 # cover[, totsitecover.yr := sum(max_cover, na.rm= T), by=.(site_code, year)]
@@ -229,7 +231,7 @@ cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatm
 cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot)]
 
 cover_present_year0 = cover[present_year0 == TRUE,]
-# write.csv(cover_present_year0, "cover_present_year0.csv")
+#write.csv(cover_present_year0, "~/Dropbox/DroughtMechanisms/data_processed/cover_present_year0.csv")
 
 #####################################################################################   
 ## Convert NAs to max_cover of 0  ######################################################     
