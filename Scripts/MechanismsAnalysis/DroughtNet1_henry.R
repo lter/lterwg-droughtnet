@@ -159,8 +159,6 @@ cover[,relative_sp_cover.plot := max_cover/totplotcover.yr.live]
 #####################################################################################   
 ## Convert NAs to max_cover of 0  ######################################################     
 #####################################################################################   
-
-# in some cases, no live species in plot and year, so getting NA since totplotcover.yr.live is zero. Set these to zero.
 cover[is.na(relative_sp_cover.plot),relative_sp_cover.plot:=0]
 
 ###################################################################################   
@@ -240,7 +238,7 @@ cover[is.na(rel_freq.space),rel_freq.space  := 0]
 ## Run this Code   if you want to Filter data to only species present in year 0 and save that dataset  #####
 #################################################################################################################################
 ##### Compute a convenience column that says whether a species was present in a plot in a site in the pre-treatment year
-cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot)]
+cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot, block)]
 
 cover_present_year0 = cover[present_year0 == TRUE,]
 #write.csv(cover_present_year0, "~/Dropbox/DroughtMechanisms/data_processed/cover_present_year0.csv")
@@ -290,9 +288,9 @@ for (i in 1:nrow(metrics_df)) {
 
 # Compute native, non-native, and unknown origin species richness by plot, site, year. Note filter to max_cover > 0 to 
 # consider only species that were actually present (filter to max_cover>0)
-cover[, sr_INT := length(unique(Taxon[local_provenance=="INT" & max_cover>0])), by = .(plot, site_code, year)]
-cover[, sr_NAT := length(unique(Taxon[local_provenance=="NAT" & max_cover>0])), by = .(plot, site_code, year)]
-cover[, sr_UNK := length(unique(Taxon[local_provenance=="UNK" & max_cover>0])), by = .(plot, site_code, year)]
+cover[, sr_INT := length(unique(Taxon[local_provenance=="INT" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_NAT := length(unique(Taxon[local_provenance=="NAT" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_UNK := length(unique(Taxon[local_provenance=="UNK" & max_cover>0])), by = .(newplotid, year)]
 
 ## to make a plot of number of introduced species over time at a site 
 cover[, sr_INT.site := length(unique(Taxon[local_provenance == "INT" & max_cover>0])), by = .(site_code, year)]
@@ -390,13 +388,12 @@ cover[, sr_CAM := length(unique(Taxon[ps_path =="CAM" & max_cover>0])), by = .(n
 ################################################################################################
 ## chec that  relative cover that is NA to 0 before computing (or do na remove when summing with  na.rm=T)
 summary(cover$relative_sp_cover.plot)
-table(cover$relative_sp_cover.plot)
+# table(cover$relative_sp_cover.plot)
 
 ###INVASIVE VS NATIVE ########
 ## Percent cover of introduced species (non-native to the site) per plot and year  ## 
 ## compute total cover of non-natives # local_provenance == INT
 cover[, INTcover := sum(relative_sp_cover.plot[local_provenance=="INT"], na.rm=T), by = .(newplotid, year)]
-head(cover)
 ## Compute Native species cover 
 cover[, Native_cover.yr := sum(relative_sp_cover.plot[local_provenance=="NAT"], na.rm=T), by = .(newplotid, year)]
 
@@ -411,12 +408,12 @@ cover[, GrassPercentcover.yr := sum(relative_sp_cover.plot[functional_group=="GR
 cover[, ForbPercentcover.yr := sum(relative_sp_cover.plot[functional_group=="FORB"],na.rm=T), by = .(newplotid, year)]
 cover[, WoodyPercentcover.yr := sum(relative_sp_cover.plot[functional_group=="WOODY"],na.rm=T), by = .(newplotid, year)]
 cover[, LegumePercentcover.yr := sum(relative_sp_cover.plot[functional_group=="LEGUME"],na.rm=T), by = .(newplotid, year)]
-# 
+
 # hist(cover$LegumePercentcover.yr)
 # plot(cover$LegumePercentcover.yr ~ cover$year)
 # lm(cover$LegumePercentcover.yr ~ as.numeric(cover$year))
 # abline(lm(cover$LegumePercentcover.yr ~ as.numeric(cover$year)))
-# 
+#
 # hist(cover$ForbPercentcover.yr)
 # plot(cover$ForbPercentcover.yr ~ cover$year)
 
@@ -427,9 +424,9 @@ sr.summaries = cover[, .(sr_Nfixer = length(unique(Taxon[N.fixer==1 & max_cover>
                      by = .(newplotid, year)]
 
 # what are the plots where there are 0 species that are NOT n-fixers?
-# hist(sr.summaries$sr_non.Nfixer)
-# hist(sr.summaries$sr_Nfixer)
-# table(sr.summaries$sr_non.Nfixer)
+  # hist(sr.summaries$sr_non.Nfixer)
+  # hist(sr.summaries$sr_Nfixer)
+  # table(sr.summaries$sr_non.Nfixer)
 
 # lag and change in N-fixers in a plot
 sr.summaries[order(year),
