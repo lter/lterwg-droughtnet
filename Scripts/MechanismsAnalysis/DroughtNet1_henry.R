@@ -134,39 +134,79 @@ cover = merge(cover, expanded.spp.recs, by=c("site_code", "year", "newplotid", "
 # make a total cover in a plot, site, year. This includes live cover only.
 cover[,totplotcover.yr.live := sum(max_cover, na.rm= T), by=.(newplotid, year)]
 
-#Make anrelative cover for each species in each plot and year
+#Make a relative cover for each species in each plot and year
 # based on TOTAL cover (including only live cover as we already filtered to the data table to live above).
 cover[,relative_sp_cover.plot := max_cover/totplotcover.yr.live]
 #***to check, run: sum(is.na(cover$relative_sp_cover.yr.live))
 
-# make a site-level relative abundance for each species and year. This requires
-#first summing the total cover per site and year and the total cover of each species in all plots at site 
-cover[, totsitecover.yr := sum(max_cover, na.rm= T), by=.(site_code, year)]
-cover[, tot_maxcover_site.yr  := sum(max_cover, na.rm= T), by=.(Taxon, site_code, year)]
-#then divide these two numbers: 
-cover[, relative_sp_cover_site  :=  tot_maxcover_site.yr/totsitecover.yr, by=.(Taxon, site_code, year)]
+# calculate site-level relative abundance 2 ways:
+# 1) pre-treatment relative abundance for each species, aggregated across all pre-treatment years
+# 2) post-treatment relative abundance for each species, separated by year and treatment group
 
-#create a variable for just year 0 
-cover[, relative_abundance_spp_site.yr0 := min(relative_abundance_spp_site.yr[n_treat_years==0]), by=.(Taxon, site_code)]
-cover[is.infinite(relative_abundance_spp_site.yr0),relative_abundance_spp_site.yr0 := NA]
+# calculate site-level relative abundance #1
+total_cover_site_pre <- cover %>%
+  filter(n_treat_years <= 0) %>%
+  aggregate(max_cover ~ site_code, data = ., FUN = sum) %>%
+  rename(total_cover = max_cover)
+sp_cover_site_pre <- cover %>%
+  filter(n_treat_years <= 0) %>%
+  aggregate(max_cover ~ site_code + Taxon, data = ., FUN = sum) %>%
+  left_join(total_cover_site_pre) %>%
+  mutate(relative_sp_cover_site_pre = max_cover / total_cover) %>%
+  select(-c(max_cover, total_cover))
 
-# if the species isn't present at a site in year_trt == 0, give the species a relative abundance of 0 in that year:
 
-### Next step --create a relative frequency in year 0 variable #####
-#total # of plots within a site, for pre-treatment year:
-# again we use the pre-treatment year because we calculate the metrics at the site level and want to avoid classifying species post treatment
-cover[, tot.num.plots := length(unique(plot[n_treat_years == 0])), by =.(site_code)]  #this will work because no records of max_cover = 0.
+# calculate site-level relative abundance #2
+total_cover_site_post <- cover %>%
+  filter(n_treat_years > 0) %>%
+  aggregate(max_cover ~ site_code + year + trt, data = ., FUN = sum) %>%
+  rename(total_cover = max_cover)
+sp_cover_site_post <- cover %>%
+  filter(n_treat_years > 0) %>%
+  aggregate(max_cover ~ site_code + year + trt + Taxon, data = ., FUN = sum) %>%
+  left_join(total_cover_site_post) %>%
+  mutate(relative_sp_cover_site_treatment = max_cover / total_cover) %>%
+  select(-c(max_cover, total_cover))
 
-#number of plots within a site, in the pre-treatment year, that a species occurred in:
-cover[, tot.num.plots.with.spp := length(unique(plot[n_treat_years== 0 & max_cover>0])), by =.(site_code, Taxon)]
 
-##Compute Relative Frequency in year 0.
-## Relative frequency = number of plots at a site in year 0 a species occurred / total number of plots at a site in year 0" 
-# If a site has no records for plots in a pre-treatment year (year_trt==0), rel_freq.space will be NA.
-# That's fine -- these sites will be filtered out later
-cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
-cover[is.na(rel_freq.space),rel_freq.space  := 0]
+# add site-level relative abundances to main dataframe
+cover <- cover %>%
+  left_join(sp_cover_site_pre) %>%
+  left_join(sp_cover_site_post)
+cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatment)] <- cover$relative_sp_cover_site_pre[is.na(cover$relative_sp_cover_site_treatment)]
 
+
+
+#########################################################################################
+# Laura's old code for calculating site-level relative abundance
+# # make a site-level relative abundance for each species and year. This requires
+# #first summing the total cover per site and year and the total cover of each species in all plots at site 
+# cover[, totsitecover.yr := sum(max_cover, na.rm= T), by=.(site_code, year)]
+# cover[, tot_maxcover_site.yr  := sum(max_cover, na.rm= T), by=.(Taxon, site_code, year)]
+# #then divide these two numbers: 
+# cover[, relative_sp_cover_site  :=  tot_maxcover_site.yr/totsitecover.yr, by=.(Taxon, site_code, year)]
+
+# #create a variable for just year 0 
+# cover[, relative_abundance_spp_site.yr0 := min(relative_abundance_spp_site.yr[n_treat_years==0]), by=.(Taxon, site_code)]
+# cover[is.infinite(relative_abundance_spp_site.yr0),relative_abundance_spp_site.yr0 := NA]
+# 
+# # if the species isn't present at a site in year_trt == 0, give the species a relative abundance of 0 in that year:
+# 
+# ### Next step --create a relative frequency in year 0 variable #####
+# #total # of plots within a site, for pre-treatment year:
+# # again we use the pre-treatment year because we calculate the metrics at the site level and want to avoid classifying species post treatment
+# cover[, tot.num.plots := length(unique(plot[n_treat_years == 0])), by =.(site_code)]  #this will work because no records of max_cover = 0.
+# 
+# #number of plots within a site, in the pre-treatment year, that a species occurred in:
+# cover[, tot.num.plots.with.spp := length(unique(plot[n_treat_years== 0 & max_cover>0])), by =.(site_code, Taxon)]
+# 
+# ##Compute Relative Frequency in year 0.
+# ## Relative frequency = number of plots at a site in year 0 a species occurred / total number of plots at a site in year 0" 
+# # If a site has no records for plots in a pre-treatment year (year_trt==0), rel_freq.space will be NA.
+# # That's fine -- these sites will be filtered out later
+# cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
+# cover[is.na(rel_freq.space),rel_freq.space  := 0]
+#########################################################################################
 
 ############################################################  
 ## Compute Species Richness and Evenness ##################  
