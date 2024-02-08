@@ -266,19 +266,34 @@ cover[, SR.site.allyears := length(unique(Taxon[max_cover>0])), by = .(site_code
 
 # REORDERING***
 #---------------------------------------------------------------------------------------#
-metrics_df <- cover %>%
-  select(site_code, year, block, plot) %>%
-  distinct() %>%
-  mutate(evenness = NA,
-         reordering = NA)
-
-for (i in 1:nrow(metrics_df)) {
-  filtered_dat <- cover %>%
-    filter(site_code == metrics_df$site_code[i]
-           & year == metrics_df$year[i]
-           & block == metrics_df$block[i]
-           & plot == metrics_df$plot[i])
+evenness <- function(vector) {
+  sigma_term <- sum(log(vector)/length(vector))
+  1-2/pi*atan(sum((log(vector) - sigma_term)^2))
 }
+# FROM CODYN PACKAGE SOURCE CODE ON GITHUB
+Evar <- function(x, S = length(x)) {
+  x1 <- x[x!=0]
+  lnx <- log(x1)
+  theta <- (S - 1) / S * var(lnx)
+  return(1 - 2 / pi * atan(theta))
+}
+
+evenness_df <- cover %>%
+  select(c(site_code, year, newplotid)) %>%
+  drop_na() %>%
+  distinct() %>%
+  mutate(evenness = NA)
+for (i in 1:nrow(evenness_df)) {
+  evenness_df$evenness[i] <- cover %>%
+    filter(site_code == evenness_df$site_code[i]
+           & year == evenness_df$year[i]
+           & newplotid == evenness_df$newplotid[i]) %>%
+    `$`(max_cover) %>%
+    na.omit() %>%
+    Evar()
+}
+cover <- cover %>%
+  left_join(evenness_df)
 
 ####################################################################################################
 ###  Changes in types of species by plot: Number of species ########################################
