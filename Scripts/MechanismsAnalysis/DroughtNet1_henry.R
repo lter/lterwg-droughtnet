@@ -21,12 +21,20 @@ library(data.table)
 library(fixest)
 library(viridis)
 require(ggplot2)
+require(tidyverse)
 
-cover <- fread("C:/Users/henry/Downloads/Cover_ppt_2023-11-27.csv")
-anpp <- fread("C:/Users/henry/Downloads/anpp_ppt_2023-11-03.csv")
-site <- fread("C:/Users/henry/Downloads/Site_Elev-Disturb.csv")
-climate <- fread("C:/Users/henry/Downloads/climate_mean_annual_by_site_v3.csv")
-  
+setwd("~/Dropbox/data_processed/")
+cover <- fread("Cover_ppt_2023-11-27.csv")
+anpp <- fread("anpp_ppt_2023-11-03.csv")
+site <- fread("Site_Elev-Disturb.csv")
+climate <- fread("climate/climate_mean_annual_by_site_v3.csv")
+
+#Henry files 
+# cover <- fread("C:/Users/henry/Downloads/Cover_ppt_2023-11-27.csv")
+# anpp <- fread("C:/Users/henry/Downloads/anpp_ppt_2023-11-03.csv")
+# site <- fread("C:/Users/henry/Downloads/Site_Elev-Disturb.csv")
+# climate <- fread("C:/Users/henry/Downloads/climate_mean_annual_by_site_v3.csv")
+#   
 head(cover)
 cover$X =  NULL
 cover$V1 =  NULL
@@ -50,7 +58,7 @@ cover = cover[max_cover > 0,]
 
 #Are there really some sites that have 7 years of pretreat data? Which?
 table(cover$n_treat_years)
-View(cover[which(cover$n_treat_years== "-6" ),]) # sgsdrt.us
+# View(cover[which(cover$n_treat_years== "-6" ),]) # sgsdrt.us
 
 ############################################################################################################
 ### Native vs Non-Native Variables #########################################################################
@@ -67,7 +75,7 @@ cover[local_provenance =="native", local_provenance:="NAT"]
 cover[local_provenance=="NULL", local_provenance:="UNK"] 
 
 # all are all of the unknowns are a single site or across sites? Check with this line:
-View(cover[which(cover$local_provenance == "UNK"),]) # the species of unknown origins are across different sites.
+# View(cover[which(cover$local_provenance == "UNK"),]) # the species of unknown origins are across different sites.
 
 ###################################################################################################
 #### Use to filter pre-treatment years or treated years ############################################
@@ -97,12 +105,12 @@ table(cover$subplot)
 
 # A     B     C     D     M     N     S 
 # 49576   275   326   298   545   534   543 
-View(cover[which(cover$subplot == "B" ),]) #rhijn.nl and  llara.au 
-View(cover[which(cover$subplot == "C" ),]) #rhijn.nl and  llara.au 
-View(cover[which(cover$subplot == "D" ),]) #rhijn.nl and  llara.au  
-View(cover[which(cover$subplot == "M" ),]) #cedartrait.us
-View(cover[which(cover$subplot == "N" ),]) #cedartrait.us
-View(cover[which(cover$subplot == "S" ),]) #cedartrait.us
+# View(cover[which(cover$subplot == "B" ),]) #rhijn.nl and  llara.au 
+# View(cover[which(cover$subplot == "C" ),]) #rhijn.nl and  llara.au 
+# View(cover[which(cover$subplot == "D" ),]) #rhijn.nl and  llara.au  
+# View(cover[which(cover$subplot == "M" ),]) #cedartrait.us
+# View(cover[which(cover$subplot == "N" ),]) #cedartrait.us
+# View(cover[which(cover$subplot == "S" ),]) #cedartrait.us
 
 ## check out block situation
 table(cover$block) 
@@ -155,7 +163,6 @@ sp_cover_site_pre <- cover %>%
   mutate(relative_sp_cover_site_pre = max_cover / total_cover) %>%
   select(-c(max_cover, total_cover))
 
-
 # calculate site-level relative abundance #2
 total_cover_site_post <- cover %>%
   filter(n_treat_years > 0) %>%
@@ -174,7 +181,6 @@ cover <- cover %>%
   left_join(sp_cover_site_pre) %>%
   left_join(sp_cover_site_post)
 cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatment)] <- cover$relative_sp_cover_site_pre[is.na(cover$relative_sp_cover_site_treatment)]
-
 
 
 #########################################################################################
@@ -206,63 +212,38 @@ cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatm
 # # That's fine -- these sites will be filtered out later
 # cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
 # cover[is.na(rel_freq.space),rel_freq.space  := 0]
-#########################################################################################
 
-############################################################  
-## Compute Species Richness and Evenness ##################  
-############################################################  
+##### Compute a convenience column that says whether a species was present in a plot in a site in the pre-treatment year
+cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot)]
+
+#################################################################################################################################
+## Run this Code   if you want to Filter data to only species present in year 0 and save that dataset  #####
+#################################################################################################################################
+cover_present_year0 = cover[present_year0 == TRUE,]
+# write.csv(cover_present_year0, "cover_present_year0.csv")
+
+##############################################################################    
+## Compute Species Richness  ######################################################     
+##############################################################################    
 # Species Richness
 cover[, sr_plot := length(unique(Taxon[max_cover>0])), by = .(newplotid, year)]
 cover[, sr_site := length(unique(Taxon[max_cover>0])), by = .(site_code, year)]
 
-ggplot(data = cover, aes(x=year, y=sr_site)) +
-  +     geom_line(aes(group=site_code))
+#create plot level change variable 
+cover[order(year), changesr_plot := sr_plot-shift(sr_plot), by =.(newplotid)]
+
+#create plot level lagged variable 
+cover[order(year), laggedsr_plot := shift(sr_plot), by =.(newplotid)]
 
 # Site-level richness ALL years
 cover[, SR.site.allyears := length(unique(Taxon[max_cover>0])), by = .(site_code)]
 
+####################################################################################
+### Other plot level community change metrics - HENRY TO DO **** #################
+####################################################################################
 # Evenness - HENRY
 
-
 # REORDERING***
-
-
-# changes in types of species by plot
-local_lifespan
-
-
-# Compute native, non-native, and unknown origin species richness by plot, site, year. Note filter to max_cover > 0 to 
-# consider only species that were actually present.
-cover[, sr_INT := length(unique(Taxon[local_provenance=="INT" & max_cover>0])), by = .(plot, site_code, year)]
-cover[, sr_NAT := length(unique(Taxon[local_provenance=="NAT" & max_cover>0])), by = .(plot, site_code, year)]
-cover[, sr_UNK := length(unique(Taxon[local_provenance=="UNK" & max_cover>0])), by = .(plot, site_code, year)]
-
-## to make a plot of number of introduced species over time at a site 
-cover[, sr_INT.site := length(unique(Taxon[local_provenance == "INT" & max_cover>0])), by = .(site_code, year)]
-
-
-#####
-##### Compute a convenience column that says whether a species was present in a plot in a site in the pre-treatment year
-cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot)]
-
-#compute the SR of species that were not present in year 0 for each plot and year but are present in a given year in that plot
-cover[, sr_NA := length(unique(Taxon[present_year0 == FALSE & max_cover>0])), by = .(plot, site_code, year)]
-
-#*** ultimately cut btwn these lines to clean code*****
-printNA <- table(cover$sr_NA, cover$site_code)
-# summary(cover$sr_NA.test)
-write.csv(printNA, "printNAbysite.csv")
-
-cover.NA.unique = unique(cover[, .(site_code, year,  site_name,  plot,  year_trt , trt,  sr_NA)])
-
-
-#################################################################################################################################
-## Run this Code (and all following code)  if you want to Filter data to only species present in year 0 and save that dataset  #####
-#################################################################################################################################
-cover_present_year0 = cover[present_year0 == TRUE,]
-# write.csv(cover_present_year0, "cover_present_year0May142021.csv")
-
-
 #---------------------------------------------------------------------------------------#
 metrics_df <- cover %>%
   select(site_code, year, block, plot) %>%
@@ -278,7 +259,67 @@ for (i in 1:nrow(metrics_df)) {
            & plot == metrics_df$plot[i])
 }
 
-#---------------------------------------------------------------------------------------#
+####################################################################################################
+###  Changes in types of species by plot: Number of species & % Cover ########################################
+################################################################################################
+# Compute native, non-native, and unknown origin species richness by plot, site, year. Note filter to max_cover > 0 to 
+# consider only species that were actually present (filter to max_cover>0)
+cover[, sr_INT := length(unique(Taxon[local_provenance=="INT" & max_cover>0])), by = .(plot, site_code, year)]
+cover[, sr_NAT := length(unique(Taxon[local_provenance=="NAT" & max_cover>0])), by = .(plot, site_code, year)]
+cover[, sr_UNK := length(unique(Taxon[local_provenance=="UNK" & max_cover>0])), by = .(plot, site_code, year)]
+
+## to make a plot of number of introduced species over time at a site 
+cover[, sr_INT.site := length(unique(Taxon[local_provenance == "INT" & max_cover>0])), by = .(site_code, year)]
+cover[, sr_NAT.site := length(unique(Taxon[local_provenance == "NAT" & max_cover>0])), by = .(site_code, year)]
+
+#**** Identify which species are not present in year 0 .... **** 
+#compute the SR of species that were not present in year 0 for each plot and year but are present in a given year in that plot
+cover[, sr_NA := length(unique(Taxon[present_year0 == FALSE & max_cover>0])), by = .(newplotid, year)]
+printNA <- table(cover$sr_NA, cover$site_code)
+write.csv(printNA, "~/Dropbox/printNAbysite_droughtnet.csv")
+cover.NA.unique = unique(cover[, .(site_code, year,  plot,  trt,  sr_NA)])
+
+#####
+# 
+
+# table(cover$local_lifespan)
+# ANNUAL      BIENNIAL INDETERMINATE          NULL     PERENNIAL           UNK 
+# 11574           381          1666          1303         37081            66 
+
+#Create an other group of other.. 
+# covert native to NAT 
+cover[local_lifespan =="NULL", local_lifespan:="OTHER"]
+cover[local_lifespan =="UNK", local_lifespan:="OTHER"]
+# cover[local_lifespan =="UNK", local_provenance:="OTHER"]
+
+#convert NULL to UNK to combine  #these NULLs are stored as a string in the data.table so can run this. Checked with:
+#cover[is.null(local_provenance),]
+
+
+# #table(cover$local_lifeform)
+# 
+# BRYOPHYTE    CACTUS  CLUBMOSS      FERN      FORB     FUNGI GRAMINOID     Grass     GRASS    LEGUME 
+# 755       422         4         7     25563         1      3372         4     13942      1771 
+# LICHEN      MOSS      NULL     SHRUB  SUBSHRUB SUCCULENT      TREE      VINE     WOODY 
+# 176       328       950      2635      1503       106       214       204       114
+
+#fix grass 
+cover[local_lifeform =="Grass", local_lifeform =="GRASS"]
+#combine Null and unk
+cover[functional_group =="UNK", functional_group =="NULL"]
+
+
+# consider only species that were actually present (filter to max_cover>0)!!!
+
+cover[, sr_ := length(unique(Taxon[local_lifespan == "ANNUAL" & local_provenance == "INT"])), by = .(newplotid, year)]
+
+
+
+
+
+
+
+
 
 ###################################################################################################################################################
 ####### Make Categorical Variables to Label Spp as Dominant, Subordinant, and Rare   - based on the relative abundance Quantiles per Site #########################################
