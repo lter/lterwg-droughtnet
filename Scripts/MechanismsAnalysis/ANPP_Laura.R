@@ -327,3 +327,10 @@ anpp[,.N, by=c("site_code", "newplotid", "n_treat_years")][N>1,]
 
 anpp[,.N, by=c("site_code", "plot", "n_treat_years")][N>1,]
 #Empty data.table (0 rows and 4 cols): site_code,plot,year_trt,N
+
+################################################################################
+## OUTPUT AND WRITE OUT #######################################################
+################################################################################
+## see which sites and years & write out the site and year list as a table: 
+tab =  table(anpp$site_code, anpp$year)
+write.csv(tab, "~/Dropbox/dnDatasetDescript-ControlPlotsSiteYearList.csv")
