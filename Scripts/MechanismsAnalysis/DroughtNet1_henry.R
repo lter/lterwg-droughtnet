@@ -1,6 +1,6 @@
 ## DroughtNet v1
-#Laura 
-#Feb 5 2024
+#Laura and Henry
+#Feb 8 2024
 
 #File paths to IDE data. 
 # •IDE dropbox
@@ -19,7 +19,7 @@
 # P50 (not in here)
 # Rooting Depth  (not in here)
 # % Annual spp 
-# rare forbs are lost
+# Rare forbs are lost
 
 #Close graphics and clear local memory
 graphics.off()
@@ -222,14 +222,18 @@ cover$relative_sp_cover_site_treatment[is.na(cover$relative_sp_cover_site_treatm
 # cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
 # cover[is.na(rel_freq.space),rel_freq.space  := 0]
 
-##### Compute a convenience column that says whether a species was present in a plot in a site in the pre-treatment year
-cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot)]
-
 #################################################################################################################################
 ## Run this Code   if you want to Filter data to only species present in year 0 and save that dataset  #####
 #################################################################################################################################
+##### Compute a convenience column that says whether a species was present in a plot in a site in the pre-treatment year
+cover[,present_year0:=max_cover[n_treat_years==0]>0, by=.(Taxon,site_code,plot)]
+
 cover_present_year0 = cover[present_year0 == TRUE,]
 # write.csv(cover_present_year0, "cover_present_year0.csv")
+
+#####################################################################################   
+## Convert NAs to max_cover of 0  ######################################################     
+#####################################################################################   
 
 ##############################################################################    
 ## Compute Species Richness  ######################################################     
@@ -292,7 +296,6 @@ write.csv(printNA, "~/Dropbox/printNAbysite_droughtnet.csv")
 cover.NA.unique = unique(cover[, .(site_code, year,  plot,  trt,  sr_NA)])
 
 ##### Lifespan, lifeform, functional group cleaning #########
-
 # table(cover$local_lifespan)
 # ANNUAL      BIENNIAL INDETERMINATE          NULL     PERENNIAL           UNK 
 # 11574           381          1666          1303         37081            66 
@@ -367,6 +370,13 @@ cover[, sr_forbs := length(unique(Taxon[functional_group=="FORB"])), by = .(newp
 cover[, sr_legume := length(unique(Taxon[functional_group=="LEGUME"])), by = .(newplotid, year)]
 # Non vascular
 cover[, sr_nonvascular := length(unique(Taxon[functional_group=="NONVASCULAR"])), by = .(newplotid, year)]
+
+## compute SR of C3, C4 and CAM ps pathways
+# consider only species that were actually present (filter to max_cover>0)
+cover[, sr_C3 := length(unique(Taxon[ps_path =="C3" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_C4:= length(unique(Taxon[ps_path =="C4" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_C3C4 := length(unique(Taxon[ps_path =="C3-C4 INTERMEDIATE" & max_cover>0])), by = .(newplotid, year)]
+cover[, sr_CAM := length(unique(Taxon[ps_path =="CAM" & max_cover>0])), by = .(newplotid, year)]
 
 ####################################################################################################
 ###  Changes in types of species by plot:  % Cover ########################################
