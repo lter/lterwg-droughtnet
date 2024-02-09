@@ -248,7 +248,7 @@ stargazer( reg,
            digits = 0, 
            intercept.bottom = FALSE)
 
-shrub/cov = cover[habitat.type == "Shrubland", ] 
+shrub.cov = cover[habitat.type == "Shrubland", ] 
 # reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
 # reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.anpp)
 
