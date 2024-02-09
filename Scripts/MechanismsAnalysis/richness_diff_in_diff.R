@@ -205,11 +205,11 @@ summary(reg)
 
 reg <- lm(GrassPercentcover.yr ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = cover)
 
-
-reg <- lm(mass ~ treat + exp + treat_exp:habitat.type, data = anpp)
-reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = anpp)
-reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = anpp)
-# reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = anpp)
+# 
+# reg <- lm(mass ~ treat + exp + treat_exp:habitat.type, data = anpp)
+# reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = anpp)
+# reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = anpp)
+# # reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = anpp)
 stargazer( reg, 
            #type = "html",
            type = "text",
@@ -227,11 +227,12 @@ stargazer( reg,
 
 grass.cover = cover[habitat.type == "Grassland", ] 
 
-reg <- lm( sr_woody ~ treat + exp + treat_exp, data = grass.cover)
+reg <- lm( sr_NAT ~ treat + exp + treat_exp, data = grass.cover)
 summary(reg)
 
-reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = grass.anpp)
+reg <- lm(sr_NAT ~ treat + exp + treat_exp:site_code, data = grass.cover)
 # reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = grass.anpp)
+
 stargazer( reg, 
            #type = "html",
            type = "text",
@@ -247,9 +248,9 @@ stargazer( reg,
            digits = 0, 
            intercept.bottom = FALSE)
 
-shrub.anpp = anpp[habitat.type == "Shrubland", ] 
-reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
-reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.anpp)
+shrub/cov = cover[habitat.type == "Shrubland", ] 
+# reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
+# reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.anpp)
 
 
 
