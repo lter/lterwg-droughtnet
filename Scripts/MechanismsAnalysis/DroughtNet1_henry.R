@@ -482,6 +482,8 @@ cover[, C4Cover := sum(relative_sp_cover.plot[ps_path== "C4"], na.rm=T), by = .(
 cover[, CAMCover := sum(relative_sp_cover.plot[ps_path== "CAM"], na.rm=T), by = .(newplotid, year)]
 cover[, C3C4INTERCover := sum(relative_sp_cover.plot[ps_path == "C3-C4 INTERMEDIATE"], na.rm=T), by = .(newplotid, year)]
 
+
+write.csv(cover, "~/Dropbox/DroughtMechanisms/processsed_cover_Feb92024.csv")
 #############################################################################################################################################################
 ####### Make Categorical Variables to Label Spp as Dominant, Subordinant, and Rare, based on the relative abundance Quantiles per Site PRETREAT #############
 #############################################################################################################################################################
