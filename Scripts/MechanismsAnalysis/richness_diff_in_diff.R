@@ -136,7 +136,7 @@ length(unique(cover$newplotid))
 length(unique(paste0(cover$newplotid, cover$year)))
 #[1] 2316
 
-coversummary = unique(cover[, .(habitat.type, site_code, year, trt, newplotid,  n_treat_years, drought.type, #site and year features 
+coversummary = unique(cover[, .(habitat.type, site_code, year, trt, newplotid,  n_treat_years, drought.type, extreme, #site and year features 
                                 sr_INT, sr_NAT, sr_UNK, sr_INT.site, 
                                 AnnualGrassCover, PerenGrassCover, WoodyCover, PerForbCover, AnnualForbCover, # combined cover groups
                                 AnnualPercentcover.yr, PerenPercentcover.yr, GrassPercentcover.yr, ForbPercentcover.yr,
@@ -224,11 +224,11 @@ reg <- lm( PerenGrassCover ~ treat + exp + treat_exp  + treat_exp:drought.type, 
 summary(reg)
 
 reg <- lm(PerForbCover~ treat + exp + treat_exp  + treat_exp:drought.type, data = cover)
-summary(reg)
-
 
 
 reg <- lm(GrassPercentcover.yr ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = cover)
+reg <- lm(GrassPercentcover.yr ~ treat + exp + treat_exp + treat_exp:extreme, data = cover)
+summary(reg)
 
 # 
 # reg <- lm(mass ~ treat + exp + treat_exp:habitat.type, data = anpp)
