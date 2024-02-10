@@ -22,6 +22,8 @@ length(unique(data.anpp$site_code)) #114
 
 prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
 
+Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")
+
 #create long-term average ANPP in controls
 anpp.mean <- data.anpp%>%
   subset(trt == "Control")%>%
@@ -1454,6 +1456,27 @@ data.anpp.summary%>%
   coord_flip()+
   theme_base()
 
+
+#Stitches plot for all years aggregated
+data.anpp.summary%>%
+  #subset( n_treat_years >= 1 & n_treat_years <= 4)%>% #this line probably isn't necessary
+  ddply(.(site_code, type), function(x) data.frame(
+    anpp_response = mean(x$anpp_response),
+    anpp_response.se = sd(x$anpp_response)/sqrt(length(x$n_treat_years))
+  ))%>%
+  dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
+  ggplot(  aes(site_code, anpp_response, color = type))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.se, ymax = anpp_response+anpp_response.se))+
+  scale_color_manual("Vegetation type", values = c("#D9782D", "#1E4D2B", "#C8C372" ))+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  ylim(-5.8, 5.8)+#this removes error bars from hoide.de and chilcas.ar. The values at those sites are nuts so I don't know what to do about it
+  ylab("Avg ANPP response")+
+  xlab("")+
+  
+  coord_flip()+
+  theme_base()
+
+
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_sitches-se.pdf",
   plot = last_plot(),
@@ -1469,21 +1492,25 @@ ggsave(
 
 
 
-
+tempdf <- data.anpp.summary%>%
+  ddply(.(site_code, type), function(x) data.frame(
+    anpp_response = mean(x$anpp_response),
+    anpp_response.se = sd(x$anpp_response)/sqrt(length(x$n_treat_years))
+  ))
 data.anpp.summary%>%
   ddply(c("site_code"), function(x)data.frame(
-    three_year_precip_reduction = mean(x$drtsev.1)
+    avg_precip_reduction = mean(x$drtsev.1, na.rm = TRUE)
   ))%>%
-  left_join(dplyr::select(subset(data.anpp.summary, n_treat_years == 3), site_code, anpp_response))%>%
+  left_join(dplyr::select(tempdf, site_code, anpp_response))%>%
+  left_join(dplyr::select(Site_Elev.Disturb, site_code, drought_trt))%>%
   dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
-  ggplot(  aes(site_code, three_year_precip_reduction, fill = three_year_precip_reduction))+
-  geom_bar(stat = "identity")+
+  ggplot(  aes(site_code, avg_precip_reduction))+
+  geom_bar(stat = "identity", fill = "dodgerblue")+
   geom_hline(yintercept = 0,linetype="dashed")+
-  ylim(-1, 1)+
+  geom_hpline(aes(x = site_code, y=as.numeric(drought_trt)/100))+
+  ylim(0, 1)+
   ylab("Precip reduction over 3 years")+
   xlab("")+
-  scale_fill_gradient(low = "goldenrod1", high = "red", na.value = NA)+
-  
   coord_flip()+
   theme_base()+ theme(legend.position = "none")
 
