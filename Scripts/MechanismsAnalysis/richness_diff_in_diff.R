@@ -98,7 +98,7 @@ show.plot(did_df, "yarradrt.au")
 #### Separate out types of drought  ###########################################################
 #####################################################################################
 
-#nominal vs extreme 
+#nominal vs extreme  as a categorical variable 
 drought_type_df <- cover %>%
   filter(trt == "Control") %>%
   select(c(site_code, year, ppt.1, map)) %>%
@@ -109,6 +109,18 @@ drought_type_df <- cover %>%
 ## create a single row for newplotid and year (vs a row per Taxon!)
 cover <- cover %>%
   left_join(drought_type_df)
+
+# Create extreme or not as a dummy variable 
+extreme_df <- cover %>%
+  filter(trt == "Control") %>%
+  select(c(site_code, year, ppt.1, map)) %>%
+  distinct() %>%
+  mutate(extreme = ifelse(ppt.1 > map, "0", "1")) %>%
+  select(-c(ppt.1, map))
+
+## create a single row for newplotid and year (vs a row per Taxon!)
+cover <- cover %>%
+  left_join(extreme_df)
 
 ################################################################################
 ### Prep Data for analysis ####################################################
@@ -130,10 +142,11 @@ coversummary = unique(cover[, .(habitat.type, site_code, year, trt, newplotid,  
                                 AnnualPercentcover.yr, PerenPercentcover.yr, GrassPercentcover.yr, ForbPercentcover.yr,
                                 INTcover, Native_cover.yr, sr_annual_forb, sr_per_forb, sr_annual_grass,
                                 sr_per_grass, sr_woody, sr_grass, sr_forbs, sr_legume, sr_nonvascular,
-                                sr_annual_INT, sr_per_INT, sr_annual_NAT, sr_per_NAT)]) # , na.rm = T
-nrow(coversummary)
+                                sr_annual_INT, sr_per_INT, sr_annual_NAT, sr_per_NAT, ppt.1, map)]) # , na.rm = T
+nrow(coversummary) #should be 2316 
 cover = coversummary
-
+#check if worked 
+nrow(cover)
 ##################################################################################################
 ### Make some dummy variables  #############################################################
 ##################################################################################################
@@ -161,8 +174,18 @@ cover$treat_exp = cover$exp*cover$treat
 #filter to only sites that have pre-treatment data
 #Find min value of treatment years; 0 = pre-treatment data
 cover[,min.trt.yr:=min(n_treat_years), by=.(site_code)]
-cover[,max.trt.yr:=max(n_treat_years), by=.(site_code)]
 cover = cover[min.trt.yr <= 0, ] 
+cover[,max.trt.yr:=max(n_treat_years), by=.(site_code)]
+
+#*** TALK TO TIM 
+table(cover$max.trt.yr)  # Is this right?? It say 4 and 5. Shouldnt some or most be 3?
+# 4   5 
+# 397  93 
+
+#**** table(cover$n_treat_years) # this seems wrong... 
+# -5  -4  -3  -2   0 0.5   1   2   3   4   5 
+# 40  40  40  40  56  40  58  57  60  45  14 
+
 
 #five sites are not repeated over years, and only have one year of data - from Meghan Avolio 
 # oneyr<-dat2 %>% 
@@ -181,14 +204,16 @@ cover = cover[habitat.type != "Forest understory" ,]
 #####################################################################################
 #dataset for extreme droughts only??? 
 
-
 reg <- lm(AnnualGrassCover ~ treat + exp + treat_exp + treat_exp:drought.type, data = cover)
 reg <- lm(AnnualGrassCover ~ treat + exp + treat_exp , data = cover)
+reg <- lm(AnnualGrassCover ~ treat + exp + treat_exp + treat_exp:extreme, data = cover)
 summary(reg)
 
 reg <- lm(sr_annual_INT ~ treat + exp + treat_exp  + treat_exp:drought.type, data = cover)
+reg <- lm(sr_annual_INT ~ treat + exp + treat_exp  + treat_exp:extreme, data = cover)
 summary(reg)
 
+reg <- lm(sr_annual_NAT ~ treat + exp + treat_exp  , data = cover)
 reg <- lm(sr_annual_NAT ~ treat + exp + treat_exp  + treat_exp:drought.type, data = cover)
 summary(reg)
 
