@@ -280,8 +280,9 @@ anpp = anpp[habitat.type != "Forest understory" ,]
 #   mutate(max=max(n_treat_years)) %>% 
 #   filter(max==1)
 
-reg <- lm(mass ~ treat + exp + treat_exp, data = anpp)
-reg <- lm(mass ~ treat + exp + treat_exp:habitat.type, data = anpp)
+reg <- lm(mass ~ treat + exp + treat_exp*extreme, data = anpp)
+summary(reg)
+reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:habitat.type:extreme, data = anpp)
 reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = anpp)
 reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = anpp)
 # reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = anpp)
@@ -303,6 +304,8 @@ stargazer( reg,
 grass.anpp = anpp[habitat.type == "Grassland", ] 
 
 reg <- lm(mass ~ treat + exp + treat_exp, data = grass.anpp)
+reg <- lm(mass ~ treat + exp + treat_exp*extreme, data = anpp) 
+summary(reg)
 reg <- lm(mass ~ treat + exp + treat_exp:site_code, data = grass.anpp)
 # reg <- lm(mass ~ treat:site_code + exp:site_code + treat_exp:site_code, data = grass.anpp)
 stargazer( reg, 
@@ -322,8 +325,12 @@ stargazer( reg,
 
 shrub.anpp = anpp[habitat.type == "Shrubland", ] 
 reg <- lm(mass ~ treat + exp + treat_exp, data = shrub.anpp)
-reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr, data = shrub.anpp)
+reg <- lm(mass ~ treat + exp + treat_exp*extreme, data = anpp)
 
+summary(reg)
+
+reg <- lm(mass ~ treat + exp + treat_exp + treat_exp:max.trt.yr:extreme, data = shrub.anpp)
+summary(reg)
 
 ######################################################################
 ### Drought Severity and Drought Classifications ########################
