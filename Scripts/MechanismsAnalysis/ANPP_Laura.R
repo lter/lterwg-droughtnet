@@ -230,6 +230,37 @@ show.plot(anpp, "morient.ar")
 show.plot(anpp, "sgsdrt.us")
 show.plot(anpp, "yarradrt.au")
 
+############################################################################
+#### Separate out types of drought  ###########################################################
+#####################################################################################
+
+#nominal vs extreme  as a categorical variable 
+drought_type_df <- anpp %>%
+  filter(trt == "Control") %>%
+  select(c(site_code, year, ppt.1, map)) %>%
+  distinct() %>%
+  mutate(drought.type = ifelse(ppt.1 > map, "nominal", "extreme")) %>%
+  select(-c(ppt.1, map))
+
+## create a single row for newplotid and year (vs a row per Taxon!)
+anpp <- anpp %>%
+  left_join(drought_type_df)
+
+# Create extreme or not as a dummy variable 
+extreme_df <- anpp %>%
+  filter(trt == "Control") %>%
+  select(c(site_code, year, ppt.1, map)) %>%
+  distinct() %>%
+  mutate(extreme = ifelse(ppt.1 > map, "0", "1")) %>%
+  select(-c(ppt.1, map))
+
+## create a single row for newplotid and year (vs a row per Taxon!)
+anpp <- anpp %>%
+  left_join(extreme_df)
+
+#check it worked
+head(anpp)
+
 #####################################################################################
 ## Diff-in-Diff ####################################################################
 #####################################################################################
