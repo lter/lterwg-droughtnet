@@ -251,12 +251,12 @@ cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", "year"))%>%
                     subset(trt == "Control"| trt == "Drought")%>%
                   left_join(cover_survey, by = "site_code")%>%
-                  left_join(site_map, by = "site_code")%>%
-                  subset(habitat.type=="Grassland"|habitat.type=="Shrubland")
+                  left_join(site_map, by = "site_code")#%>%
+                  #subset(habitat.type=="Grassland"|habitat.type=="Shrubland")
 
 
 
-write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-11-27.csv")
+write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-02-12.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))
