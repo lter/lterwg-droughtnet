@@ -166,6 +166,12 @@ data.anpp.summary%>%
   group_by(type)%>%
   tally()
 
+unique(subset(data.anpp.summary, n_treat_years == 4)$site_code)%>%
+  dplyr::select(site_code, type)%>%
+  unique()%>%
+  group_by(type)%>%
+  tally()
+
 
 tempsites <- data.anpp.summary%>%
   subset(type == "Annual" & site_code != "cobar.au")%>%
@@ -1857,6 +1863,27 @@ pairs(emmeans(mod, ~history))
 
 mod <- lme(anpp_response~historycont, random = ~1|ipcc_regions/site_code, data = alan)
 summary(mod)
+r.squaredGLMM(mod)
+
+x <- ggpredict(mod, c("historycont"))
+
+tempdf <- data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))
+
+  ggplot(data=tempdf, aes(x = history, avg))+
+  geom_pointrange(data=tempdf,aes(ymax = avg+se, ymin = avg-se))+
+  geom_hline(yintercept = 0)+
+    geom_abline(slope = -0.23659773, intercept = -0.04291775)+
+  geom_ribbon(data=x,aes(x=x, y= predicted,ymin=predicted-std.error,ymax=predicted+std.error), alpha =.25)+
+  geom_hline(yintercept = nominal.avg, color = "blue")+
+  geom_hline(yintercept = nominal.avg+nominal.se, color = "blue", linetype = "dashed")+
+  geom_hline(yintercept = nominal.avg-nominal.se, color = "blue", linetype = "dashed")+
+  geom_hline(yintercept = extreme.avg, color = "red")+
+  geom_hline(yintercept = extreme.avg+extreme.se, color = "red", linetype = "dashed")+
+  geom_hline(yintercept = extreme.avg-extreme.se, color = "red", linetype = "dashed")+
+  xlab("Number of consecutive years extreme drought")+
+  ylab("ANPP response")+
+  theme_base()
+
 
 
 ##Sites to ask for 4 years
