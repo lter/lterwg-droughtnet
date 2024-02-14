@@ -9,7 +9,7 @@ library(MuMIn)
 library(ggthemes)
 library(ggeffects)
 library(MASS)
-library(emmeans)
+#library(emmeans)
 library(cowplot)
 library(rsq)
 
@@ -1262,13 +1262,15 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   geom_smooth(aes(color = e.n),method = "lm")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+
+  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+ #need to change colors to extreme vs nominal
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
   theme_base()+
   theme(legend.position = "none")
 
-
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
+mod <- lme(anpp_response~drtsev.1*n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
+summary(mod)
 
 
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
@@ -1286,7 +1288,9 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   theme_base()+
   theme(legend.position = "none")
 
-length(unique(subset(data.anpp.summary, n_treat_years == 2)$site_code))
+
+
+
 
 
 
