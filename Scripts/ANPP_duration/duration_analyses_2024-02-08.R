@@ -122,8 +122,7 @@ subset(data.anpp2, PctAnnual != "NA")$site_code%>%
   unique()%>%
   length()
 
-subset(data.anpp2, is.na(PctAnnual == TRUE))$site_code%>%
-  unique()
+subset(data.anpp2, n_treat_yeras == 0.5)
 
 ##Create anpp_response and drought severity metrics
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
@@ -158,6 +157,7 @@ data.anpp.summary$type <- ifelse(data.anpp.summary$Ann_Per == "Annual" & is.na(d
 
 
 data.anpp.summary$type <-   plyr::revalue(data.anpp.summary$type, c(Grassland = "Herbaceous.Perennial", Shrubland = "Woody.Perennial"))
+
 
 #of sites by prevailing vegetation type
 data.anpp.summary%>%
