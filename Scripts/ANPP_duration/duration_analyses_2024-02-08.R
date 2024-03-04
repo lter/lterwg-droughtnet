@@ -1256,12 +1256,14 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   subset(Ann_Per == "Perennial")%>%
   ggplot( aes(drtsev.1, anpp_response))+
   facet_wrap(~n_treat_years)+
-  geom_point(aes(color = e.n),alpha = 0.8,#pch = 21,
+  geom_point(aes(shape = e.n),alpha = 0.8,#pch = 21,
              size=3)+
-  geom_smooth(aes(color = e.n),method = "lm")+
+  scale_shape_manual(values = c(19, 21))+
+  geom_smooth(aes(linetype = e.n),method = "lm", color = "black")+
+  scale_linetype_manual(values = c("solid","dashed"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  scale_color_manual( values = c("#E58601", "#46ACC8"))+ #need to change colors to extreme vs nominal
+  #scale_color_manual( values = c("#866475","#789ac0" ))+ #need to change colors to extreme vs nominal"#E58601", "#46ACC8"
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
   theme_base()+
@@ -1565,13 +1567,25 @@ data.anpp.year%>%
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Years of drought")+
   ylab("ANPP response")+
-  scale_color_manual("Prevailing veg type", values = c( "#1E4D2B", "#C8C372" ))+ #"#D9782D",
+  scale_color_manual("Prevailing veg type", values = c( "#1E4D2B", "#C8C372" ))+ #"#D9782D","#1E4D2B", "#C8C372""#1e3e22", "#a3680f" "#00b844","#f2c300"
   #coord_flip()+
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
-
-
+#inset annuals
+data.anpp.year%>%
+  subset(type == "Annual")%>%
+  
+  ggplot(aes(as.factor(n_treat_years), anpp_response))+
+  geom_pointrange(aes(ymin = anpp_response-anpp_response.error, ymax = anpp_response+anpp_response.error), position = position_dodge(width = 0.5), color = "#D9782D")+ # "#df0000"
+  #ylim(-1.2, 0.3)+
+  geom_hline(yintercept = 0,linetype="dashed")+
+  xlab("")+
+  ylab("")+
+#  scale_color_manual("Prevailing veg type", values = c("#00b844","#f2c300" ))+ #"#D9782D","#1E4D2B", "#C8C372""#1e3e22", "#a3680f" 
+  #coord_flip()+
+  theme_base()+
+  theme(axis.ticks.length=unit(-0.25, "cm"))
 
 
 
