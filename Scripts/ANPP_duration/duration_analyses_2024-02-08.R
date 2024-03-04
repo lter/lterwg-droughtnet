@@ -122,7 +122,6 @@ subset(data.anpp2, PctAnnual != "NA")$site_code%>%
   unique()%>%
   length()
 
-subset(data.anpp2, n_treat_yeras == 0.5)
 
 ##Create anpp_response and drought severity metrics
 data.anpp2$anpp_response <- log(data.anpp2$mass/data.anpp2$mean.mass)
@@ -1262,7 +1261,7 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   geom_smooth(aes(color = e.n),method = "lm")+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  scale_color_manual( values = c("#1E4D2B", "#C8C372"))+ #need to change colors to extreme vs nominal
+  scale_color_manual( values = c("#E58601", "#46ACC8"))+ #need to change colors to extreme vs nominal
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
   theme_base()+
@@ -1557,7 +1556,7 @@ data.anpp.year <- data.anpp.summary%>%
 
 data.anpp.year%>%
   # subset(e.n != "NA")%>%
-  #   subset(Ann_Per != "NA")%>%
+     subset(type != "Annual")%>%
   
   ggplot(aes(as.factor(n_treat_years), anpp_response, color = type #e.n
   ))+
@@ -1566,7 +1565,7 @@ data.anpp.year%>%
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Years of drought")+
   ylab("ANPP response")+
-  scale_color_manual("Prevailing veg type", values = c("#D9782D", "#1E4D2B", "#C8C372" ))+
+  scale_color_manual("Prevailing veg type", values = c( "#1E4D2B", "#C8C372" ))+ #"#D9782D",
   #coord_flip()+
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
