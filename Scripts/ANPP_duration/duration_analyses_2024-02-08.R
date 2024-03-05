@@ -1572,6 +1572,18 @@ data.anpp.year%>%
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_response-by-year-type-confidence.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 6,
+  height = 3,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 #inset annuals
 data.anpp.year%>%
   subset(type == "Annual")%>%
@@ -1587,6 +1599,18 @@ data.anpp.year%>%
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_response-by-year-type-confidence_annualsinset.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 6,
+  height = 3,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 
@@ -1613,18 +1637,7 @@ ggplot(confint(means),aes(as.factor(n_treat_years), emmean, color = type
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
 
-ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_response-by-year-type-confidence.pdf",
-  plot = last_plot(),
-  device = "pdf",
-  path = NULL,
-  scale = 1,
-  width = 6,
-  height = 3,
-  units = c("in"),
-  dpi = 600,
-  limitsize = TRUE
-)
+
 
 
 
