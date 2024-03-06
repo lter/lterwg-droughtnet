@@ -1269,9 +1269,24 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   theme_base()+
   theme(legend.position = "none")
 
+
+
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
 mod <- lme(anpp_response~drtsev.1*n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
 summary(mod)
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 8,
+  height = 7,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
@@ -1295,19 +1310,6 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
 
 
 
-
-ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3.pdf",
-  plot = last_plot(),
-  device = "pdf",
-  path = NULL,
-  scale = 1,
-  width = 8,
-  height = 4,
-  units = c("in"),
-  dpi = 600,
-  limitsize = TRUE
-)
 
 
 #inset separated by extreme and nominal
@@ -1605,7 +1607,7 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 6,
+  width = 3,
   height = 3,
   units = c("in"),
   dpi = 600,
@@ -1857,7 +1859,7 @@ extreme.se <- summary(mod)[[20]][2]
 data.frame(history = c("One", "Two", "Three", "Four"), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))%>%
   ggplot( aes(x = factor(history,level=c("One", "Two", "Three", "Four")), avg))+
   geom_pointrange(aes(ymax = avg+se, ymin = avg-se))+
-  geom_hline(yintercept = 0)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
   geom_hline(yintercept = nominal.avg, color = "blue")+
   geom_hline(yintercept = nominal.avg+nominal.se, color = "blue", linetype = "dashed")+
   geom_hline(yintercept = nominal.avg-nominal.se, color = "blue", linetype = "dashed")+
@@ -1867,6 +1869,22 @@ data.frame(history = c("One", "Two", "Three", "Four"), avg = c(one.avg, two.avg,
   xlab("# consecutive years extreme drought")+
   ylab("ANPP response")+
   theme_base()
+
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_consecutive-years.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 5,
+  height = 4.5,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
+
 
 
 nonconsecutive <- data.anpp.summary%>%
