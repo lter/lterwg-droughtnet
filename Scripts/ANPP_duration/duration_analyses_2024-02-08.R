@@ -107,8 +107,10 @@ data.anpp2 <- merge(data.anpp1, anpp.mean, by = c("site_code"))%>%
   subset(num.years == 4 | num.years == 3
   ) %>%#change here if using 4 years #reduces dataset to focal sites
   left_join(prop, by = c("site_code"))%>%
-  subset(site_code != "stubai.at")#stubai is not a year-round drought so shouldn't be compared against these other sites
-
+  subset(site_code != "stubai.at")%>%#stubai is not a year-round drought so shouldn't be compared against these other sites
+subset(site_code != "allmendo.ch" & site_code != "allmendb.ch" & site_code != "sclaudio.ar" & site_code != "torla.es") #allmendo, allmendb, and torla have first treatment dates in the 190s, sclaudio missed Y3 sampling (2020)
+  
+  
 data.anpp2$Ann_Per <- ifelse(data.anpp2$PctAnnual > 60, "Annual", 
                              ifelse(data.anpp2$PctAnnual <= 60, "Perennial",
                                     "NA"))
@@ -1947,5 +1949,19 @@ fouryears <- subset(data.anpp.summary, n_treat_years == 4)%>%
 temp <- left_join(threeyears, oneyears, by = "site_code")%>%
         subset(is.na(year.y) == TRUE)
 
+
+###
+
+data.anpp.summary%>%
+  dplyr::select(site_code, n_treat_years, e.n)%>%
+  pivot_wider(names_from = n_treat_years, values_from = e.n)%>%
+  pivot_longer(cols = c("1","2","3","4"), names_to = "n_treat_years", values_to = "e.n")%>%
+
+  ggplot(aes(n_treat_years, forcats::fct_rev(site_code), fill = e.n))+
+  geom_tile(colour = "black")+
+  scale_fill_manual(values = c( "#da7901" , "white"))+ #burnt sienna "#E97451"
+  ylab("")+
+  xlab("Treatment year")+
+  theme_bw()
 
 
