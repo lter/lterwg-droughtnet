@@ -780,13 +780,24 @@ ggplot(confint(means),aes(as.factor(n_treat_years), emmean, color = type
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Years of drought")+
   ylab("ANPP response")+
-  scale_color_manual("Prevailing veg type", values = c("#D9782D", "#1E4D2B", "#C8C372" ))+
+  scale_color_manual("Prevailing veg type", values = c("#04a3bd" ,  "#247d3f", "#f0be3d"))+ #"#D9782D", "#1E4D2B", "#C8C372" 
   #coord_flip()+
   theme_base()+
-  theme(axis.ticks.length=unit(-0.25, "cm"))
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 
-
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 4,
+  height = 4,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 
@@ -830,19 +841,7 @@ data.anpp.year%>%
 #emmeans(mod, list(pairwise ~ e.n), adjust = "tukey")
 #emmeans(mod, list(pairwise ~ n_treat_years*e.n), adjust = "tukey")
 
-#ggsave(
-#  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",
-#  plot = last_plot(),
-#  device = "pdf",
-#  path = NULL,
-#  scale = 1,
-#width = 3,
-#  width = 5,
-#  height = 3,
-#  units = c("in"),
-#  dpi = 600,
-#  limitsize = TRUE
-#)
+#
 
 mod <- lmer(anpp_response~as.factor(n_treat_years)*map + (1|site_code), data.anpp.summary)
 summary(mod)
@@ -1104,9 +1103,20 @@ data.anpp.summary%>%
   
   ggplot(aes(n_treat_years, forcats::fct_rev(site_code), fill = e.n))+
   geom_tile(colour = "black")+
-  scale_fill_manual(values = c( "#da7901" , "grey"))+ #burnt sienna "#E97451"
+  scale_fill_manual(values = c( "#da7901" , "white"), na.value = "grey")+ #burnt sienna "#E97451"
   ylab("")+
   xlab("Treatment year")+
   theme_bw()
 
-
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/EN_by_year_site.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 3,
+  height = 7,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
