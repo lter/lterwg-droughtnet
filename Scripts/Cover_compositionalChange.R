@@ -4,7 +4,7 @@
 ###May 4th, 2023, updating analyses with updated data. Are looking at change
 ###update Oct 11, 2023, updating datasets
 #####update Nov 28, 2023 updating dataset and deleting code i'm no longer using\
-###updating to include new dominance anlyses
+###Feb 2024 updating to include new dominance anlayses
 
 library(tidyverse)
 library(codyn)
@@ -12,7 +12,6 @@ library(lme4)
 library(lmerTest)
 library(vegan)
 library(data.table)
-library(sjPlot)
 library(gridExtra)
 
 #library(plyr)
@@ -40,6 +39,10 @@ dat2<-dat %>%
 dat3<-dat2 %>% 
   filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
 
+# sites<-dat3 %>% 
+# select(site_code) %>% 
+#   unique()
+# write.csv(sites, "community_comp\\sitelistMarhc2024.csv")
 
 # Calculating drought severity and site metrics -------------------------------------------
 
@@ -93,7 +96,7 @@ unique.ras = unique(cover[, .(site_code, Taxon, relative_abundance_spp_site.yr0,
 # 0.6 was dominant 
 unique.ras[, dci := (relative_abundance_spp_site.yr0 + rel_freq.space)/2]
 hist(unique.ras$dci)
-
+sc<-unique(dat3$site_code)
 dom_spp<-data.frame()
 
 for (i in 1:length(sc)){
@@ -217,7 +220,21 @@ deltarac3yrs<-deltaracs %>%
   left_join(deltadom) %>% 
   filter(n_treat_years<4& n_treat_years>0) 
 
-write.csv(deltarac3yrs, "CommunityData_DrtbyTime_forSAS_withdom.csv", row.names=F)
+uniquereps<-deltarac3yrs %>%
+  select(site_code, replicate) %>%
+  unique() %>%
+  group_by(site_code) %>%
+  mutate(rep=rank(replicate))
+
+# test<-uniquereps %>%
+#   group_by(site_code, rep) %>%
+#   summarize(n=length(rep))
+
+deltarac3yrs2<-deltarac3yrs %>%
+  left_join(uniquereps) %>%
+  mutate(rep2=paste(site_code, rep, sep=''))
+
+write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_withdom.csv", row.names=F)
 
 #####I am no longer doing these stats in R.
 
@@ -244,14 +261,13 @@ write.csv(deltarac3yrs, "CommunityData_DrtbyTime_forSAS_withdom.csv", row.names=
 
 #adjust P-values for treat effect
 #these values are now from SAS
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses'), pvalue=c(0.00001, 0.357,  0.214, 0.011, 0.00001)) %>%
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.00001, 0.357,  0.214, 0.011, 0.00001, 0.0008)) %>%
   mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
 
-#all not sig in SAS not doing this
-# pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.8539968, 0.158, 0.0166, 0.61738, 0.8137216)) %>% 
-#   mutate(padj=p.adjust(pvalue, method="BH"))
+pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.8805, 0.299, 0.0726, 0.834, 0.982, 0.007)) %>%
+  mutate(padj=p.adjust(pvalue, method="BH"))
 
-pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.013, 0.001, 0.001, 0.0001, 0.0001)) %>% 
+pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.013, 0.001, 0.001, 0.0001, 0.0001, 0.0005)) %>% 
   mutate(padj=p.adjust(pvalue, method="BH"))
 
 MeanCI<-deltarac3yrs %>%
@@ -372,7 +388,8 @@ RRRac_average<-deltaracs %>%
   left_join(site_types) %>% 
   left_join(precipcv, by="site_code") %>% 
   left_join(sitedomchange) %>% 
-  left_join(siterichness)
+  left_join(siterichness) %>% 
+  drop_na()
 
 length(unique(RRRac_average$site_code))
 
@@ -382,20 +399,30 @@ length(unique(RRRac_average$site_code))
 #library(MASS)
 
 
-mrich2<-stepAIC(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change"))
+mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change"))
+stepAIC(mrich2, direction="both")
+mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual, data=subset(RRRac_average, measure=="richness_change"))
 summary(mrich2)
+calc.rel
 
 meven2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change"))
+stepAIC(meven2)#basically says nothing
 summary(meven2)
 
 mrank2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change"))
+stepAIC(mrank2)
+mrank2<-lm(RR~MAP+cv_ppt_inter, data=subset(RRRac_average, measure=="rank_change"))
 summary(mrank2)
 
 
 mgain2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains"))
+stepAIC(mgain2)
+mgain2<-lm(RR~PctAnnual, data=subset(RRRac_average, measure=="gains"))
 summary(mgain2)
 
 mloss2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="losses"))
+stepAIC(mloss2)
+mloss2<-lm(RR~MAP+cv_ppt_inter+PctAnnual, data=subset(RRRac_average, measure=="losses"))
 summary(mloss2)
 calc.relimp(mloss2)
 
