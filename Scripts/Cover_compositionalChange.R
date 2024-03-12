@@ -3,7 +3,9 @@
 ###March 21, 2023. Working to include all communities for the difference analysis.
 ###May 4th, 2023, updating analyses with updated data. Are looking at change
 ###update Oct 11, 2023, updating datasets
-#####update Nov 28, 2023 updating dataset and deleting code i'm no longer using
+#####update Nov 28, 2023 updating dataset and deleting code i'm no longer using\
+###updating to include new dominance anlyses
+
 library(tidyverse)
 library(codyn)
 library(lme4)
@@ -34,9 +36,12 @@ dat2<-dat %>%
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
   filter(n_treat_years!=0.5&n_treat_years!=-1)
 
+#having problems with cdpt_drt.us and eea.br because they only have year 0 data. 
+dat3<-dat2 %>% 
+  filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
 
-# Calculating drought severity -------------------------------------------
 
+# Calculating drought severity and site metrics -------------------------------------------
 
 #getting drought severity
 drt<-dat2 %>% 
@@ -49,6 +54,58 @@ drt<-dat2 %>%
 site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Oct2023.csv")
 
 precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv")
+
+#site richness
+rich_0_site<-dat3 %>% 
+  filter(n_treat_years==0) %>% 
+  group_by(site_code, Taxon) %>% 
+  summarize(mcov=mean(max_cover))
+
+siterichness<-community_structure(df=rich_0_site, abundance.var = 'mcov', replicate.var = 'site_code') 
+
+
+# calculating dominant species
+cover <- as.data.table(dat3)[,totplotcover.yr.live := sum(max_cover, na.rm= T), by=.(site_code, year, block, plot, subplot)]
+cover[,relative_sp_cover.yr.live := max_cover/totplotcover.yr.live]
+#sum(is.na(cover$relative_sp_cover.yr.live))
+cover[, totsitecover.yr := sum(totplotcover.yr.live, na.rm= T), by=.(site_code, year)]
+cover[, tot_maxcover_site.yr  := sum(max_cover, na.rm= T), by=.(Taxon, site_code, year)]
+
+cover[is.na(tot_maxcover_site.yr),tot_maxcover_site.yr := 0]
+cover[is.na(totsitecover.yr),totsitecover.yr  := 0] #not necessary
+
+cover[, relative_abundance_spp_site.yr  :=  tot_maxcover_site.yr/totsitecover.yr, by=.(Taxon, site_code, year)]
+
+#create a variable for just year 0 
+cover[, relative_abundance_spp_site.yr0 := min(relative_abundance_spp_site.yr[n_treat_years==0]), by=.(Taxon, site_code)]
+cover[is.infinite(relative_abundance_spp_site.yr0),relative_abundance_spp_site.yr0 := NA]
+
+cover[, tot.num.plots := length(unique(replicate[n_treat_years == 0])), by =.(site_code)]
+cover[, tot.num.plots.with.spp := length(unique(replicate[n_treat_years == 0 & max_cover>0])), by =.(site_code, Taxon)]
+
+cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
+cover[is.na(rel_freq.space),rel_freq.space  := 0] #32520 NAs
+
+unique.ras = unique(cover[, .(site_code, Taxon, relative_abundance_spp_site.yr0, rel_freq.space)])
+
+# calculate DCI
+# relative abundance + relative frequency / 2
+# 0.6 was dominant 
+unique.ras[, dci := (relative_abundance_spp_site.yr0 + rel_freq.space)/2]
+hist(unique.ras$dci)
+
+dom_spp<-data.frame()
+
+for (i in 1:length(sc)){
+  
+  subset<-unique.ras%>%
+    filter(site_code==sc[i]) %>%
+    mutate(ranks = dense_rank(-dci)) %>%
+    filter(ranks == 1)
+  dom_spp <- rbind(dom_spp, subset)
+}
+
+#write.csv(dom_spp, "IDE_dominant_spp_by_DCI_yr0.csv")
 
 #write.csv(drt, "C:\\Users\\mavolio2\\Dropbox\\IDE_DroughtSeverity.csv", row.names=F)
 
@@ -99,16 +156,13 @@ oneyr<-dat2 %>%
 
 
 
-###looping through site for changes with pretreatmetn as a reference year
+###looping through site for changes with pre-treatment as a reference year
 
-#having problems with cdpt_drt.us and eea.br they only have year 0 data. 
-dat3<-dat2 %>% 
-  filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
 
 sc<-unique(dat3$site_code)
 
-deltamult<-data.frame()
 deltaracs<-data.frame()
+deltadom<-data.frame()
 
 for (i in 1:length(sc)){
   
@@ -126,16 +180,7 @@ for (i in 1:length(sc)){
     select(year, n_treat_years) %>% 
     unique() %>% 
     rename(year2=year)
-  
-  change_mult<-multivariate_change(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", treatment.var="trt", reference.time =  as.integer(pretrt)) %>% 
-    select(-year) %>% 
-    left_join(nyear) %>% 
-    rename(year=year2) %>% 
-    mutate(site_code=scode)
-  
-  deltamult<-deltamult %>% 
-    bind_rows(change_mult)
-  
+
   change_ranks<-RAC_change(df=subset, time.var="year", species.var = "Taxon", abundance.var = "max_cover", replicate.var="replicate", reference.time = as.integer(pretrt)) %>% 
     left_join(treats) %>% 
     left_join(nyear) %>% 
@@ -144,112 +189,35 @@ for (i in 1:length(sc)){
   
     deltaracs<-deltaracs %>% 
     bind_rows(change_ranks)
+  
+  domsp<-filter(dom_spp, site_code==sc[i])
+  domsp<-domsp$Taxon
+    
+  subset2<-subset %>% 
+    filter(Taxon %in% domsp)
+  
+  dom_abund<-abundance_change(df=subset2, time.var='year', species.var = 'Taxon', abundance.var = 'max_cover', replicate.var = 'replicate', reference.time = as.integer(pretrt)) %>% 
+    left_join(treats) %>% 
+    left_join(nyear) %>% 
+    select(-year) %>% 
+    rename(year=year2)
+  
+  deltadom<-deltadom %>%   
+    bind_rows(dom_abund)
+  
+  
 }
-
-##calcluaing bp change
-
-bp_yr0<-dat3 %>%
-    group_by(site_code, year, n_treat_years, trt, replicate) %>%
-    summarise(max=max(max_cover), sum=sum(max_cover)) %>%
-    mutate(bp=max/sum) %>%
-    ungroup() %>%
-    filter(n_treat_years==0) %>%
-    select(-max, -sum, -n_treat_years, -year) %>%
-    rename(bp0=bp)
-
-bp_change<-dat3 %>%
-    group_by(site_code, year, n_treat_years, trt, replicate) %>%
-    summarise(max=max(max_cover), sum=sum(max_cover)) %>%
-    mutate(bp=max/sum) %>%
-    filter(n_treat_years!=0) %>%
-    left_join(bp_yr0) %>%
-    mutate(value=bp-bp0) %>%
-    mutate(measure="Dominance") %>%
-  select(-sum, -max,-bp, -bp0)
-
-##looking at data a bit
-years<-deltamult %>% 
-  select(site_code, year, n_treat_years) %>% 
-  unique()
-
-#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. positive values means drought had higher values than control
-RRMult<-deltamult %>% 
-  pivot_longer(names_to="measure", values_to = "value", composition_change:dispersion_change) %>%
-  pivot_wider(names_from = "trt", values_from = "value") %>% 
-  mutate(RR=(Drought-Control)) %>% 
-  select(-Drought, -Control, n_treat_years)
-
-RRRac<-deltaracs %>% 
-  pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
-  bind_rows(bp_change) %>% 
-  group_by(site_code, year, n_treat_years, trt, measure) %>% 
-  summarise(value=mean(value)) %>% 
-  pivot_wider(names_from = "trt", values_from = "value") %>% 
-  mutate(RR=(Drought-Control)) %>% 
-  select(-Drought, -Control, n_treat_years)
-
-RRall<-RRRac%>% 
-  bind_rows(RRMult) %>% 
-  left_join(drt) %>% 
-  filter(n_treat_years<4)
-
-length(unique(RRall$site_code))
-
-# chgRacMeans<-chgRaclong%>% 
-#   group_by(site_code, year, trt, measure) %>% 
-#   summarize(mean=mean(abs(value))) %>% 
-#   pivot_wider(names_from="trt", values_from = "mean")
-
-# ChgCntlSD<-chgRaclong %>% 
-#   filter(trt=="Control") %>% 
-#   group_by(site_code, year, measure) %>% 
-#   summarize(cntSD=sd(value))
-
-
-# #boxplot
-# ggplot(data = subset(RRall, measure!="dispersion_change"), aes(x=measure, y=RR))+
-#   geom_boxplot(aes(group=measure))+
-#   scale_x_discrete(limits=c("richness_change", "evenness_change", "Dominance", 'rank_change', 'gains', 'losses', 'composition_change'), labels=c("Richness", "Evenness", "Dominance", "Ranks", "Gains", 'Losses', "Composition"))+
-#   geom_hline(yintercept = 0)+
-#   annotate("text", x=1, y=.5, label="*", size=8, color="red")+
-#   annotate("text", x=5, y=.6, label="*", size=8, color="red")+
-#   annotate("text", x=6, y=.5, label="*", size=8,color="red")+
-#   annotate("text", x=7, y=.5, label="*", size=8,color="red")+
-#   xlab("Measure of Community Change")+
-#   ylab("Drought-Control Difference")
-
 
 
 # doing stats on change ---------------------------------------------------
 
-#1) Are there differences from zero? No longer including this in the paper
-
-RRallstats<-RRall %>% 
-  group_by(measure) %>% 
-  summarize(pval=t.test(RR, mu=0, alternative="two.sided")$p.value) %>% 
-  mutate(padj=p.adjust(pval, method="BH"))
-
-
-#1A) are C-T rates of change different from one-another and do they differ over time
+#1) are C-T rates of change different from one-another and do they differ over time
 
 deltarac3yrs<-deltaracs %>% 
+  left_join(deltadom) %>% 
   filter(n_treat_years<4& n_treat_years>0) 
 
-# uniquereps<-deltarac3yrs %>% 
-#   select(site_code, replicate, n_treat_years) %>% 
-#   unique() %>% 
-#   group_by(site_code) %>% 
-#   mutate(rep=rank(replicate))
-# 
-# test<-uniquereps %>% 
-#   group_by(site_code, rep) %>% 
-#   summarize(n=length(rep))
-# 
-# deltarac3yrs2<-deltarac3yrs %>% 
-#   left_join(uniquereps) %>% 
-#   mutate()
-
-write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_newrep2.csv", row.names=F)
+write.csv(deltarac3yrs, "CommunityData_DrtbyTime_forSAS_withdom.csv", row.names=F)
 
 #####I am no longer doing these stats in R.
 
@@ -286,91 +254,79 @@ pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change
 pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.013, 0.001, 0.001, 0.0001, 0.0001)) %>% 
   mutate(padj=p.adjust(pvalue, method="BH"))
 
-meanCIdiff<-RRall %>% 
-  group_by(measure) %>% 
-  summarize(mean=mean(RR, na.rm=T), n=length(RR), sd=sd(RR, na.rm=T)) %>% 
-  mutate(se=sd/sqrt(n), CI=se*1.96)
-
-meanCIcomp<-deltamult %>%
-  group_by(trt) %>% 
-  summarize(mean=mean(composition_change, na.rm=T), n=length(composition_change), sd=sd(composition_change, na.rm=T)) %>% 
-  mutate(se=sd/sqrt(n), CI=se*1.96, measure="Composition_change")
-
-MeanCI<-deltaracs %>%
-  pivot_longer(richness_change:losses, names_to = "measure", values_to = "value") %>% 
+MeanCI<-deltarac3yrs %>%
+  select(site_code, replicate, year, trt, n_treat_years, richness_change, evenness_change, rank_change, gains, losses, change) %>% 
+  pivot_longer(richness_change:change, names_to = "measure", values_to = "value") %>% 
   group_by(trt, measure) %>% 
   summarize(mean=mean(value, na.rm=T), n=length(value), sd=sd(value, na.rm=T)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
-  bind_rows(meanCIcomp) %>% 
-  filter(measure!="dispersion_change"&measure!="Dominance"&measure!=
-           "Composition_change") %>% 
   mutate(n_treat_years=4)
 
 
-
-# #figure of CT differences
-# CTCompare<-
-#   ggplot(data=MeanCI, aes(x=trt, y=mean, color=trt, label=padj))+
-#   geom_point(size=4)+
-#   scale_color_manual(values=c("darkgreen", "darkorange"), name="")+
-#   geom_errorbar(aes(ymin=mean-CI, ymax=mean+CI, width=0.2))+
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x =element_blank(), legend.position = c(0.8,0.3))+
-#   facet_wrap(~measure2, scales='free', labeller = labeller(measure2=labs), ncol=3)+
-#   ylab("Change from Pre-Treatment")+
-#   xlab("")
-# CTCompare
-# 
-# ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTdiff.jpg", CTCompare, units = "in", width=6, height=3.5)
-
-
-### Supplemental Figure 1: Magnitude of effects over time ----
+### Figure 1: Magnitude of effects over time ----
 # Pivot and get summary stats
-deltaracs_long_by_year <-deltaracs %>% 
-  pivot_longer(richness_change:losses, names_to = "measure", values_to = "value") %>% 
-  filter(n_treat_years < 4&n_treat_years>0) %>%
+deltaracs_long_by_year <-deltarac3yrs %>%
+  select(site_code, replicate, year, trt, n_treat_years, richness_change, evenness_change, rank_change, gains, losses, change) %>% 
+  pivot_longer(richness_change:change, names_to = "measure", values_to = "value") %>% 
   group_by(n_treat_years, trt, measure) %>% 
   summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
             n = length(value)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
   bind_rows(MeanCI)
 
-deltaracs_long_by_year$measure <- factor(deltaracs_long_by_year$measure, # Reordering group factor levels
+deltaracs_long_by_year$measure <- factor(deltaracs_long_by_year$measure,
                                          levels = c("gains",
                                                     "losses",
                                                     "richness_change",
                                                     "evenness_change",
-                                                    "rank_change"))
-labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Reordering')
+                                                    "rank_change", 
+                                                    'change'))
+labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Reordering', change="Dom. Abund. Chg.")
 
-SuppFig1 <- ggplot(data = deltaracs_long_by_year, aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+Fig2 <- ggplot(data = deltaracs_long_by_year, aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange")) + 
   facet_wrap(~measure, scales = "free_y", nrow = 2, labeller = labeller(measure=labs)) +
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
                 width = 0, size = 1, position = position_dodge(width = 0.3)) +
   labs(y = "Change from pre-treatment", x = "Years of treatment", color = "Treatment")+
-  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), legend.position = c(0.8,0.3))+
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), legend.position = "top")+
   geom_vline(xintercept = 3.5)+
   scale_x_discrete(labels=c('1', '2', '3', 'Overall'))
 
-SuppFig1
+Fig2
 
-#grid.arrange(CTdiff_measures, CTCompare)
-
-#ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\CTchange.jpg", plot=CTCompare, units = "in", width=6.5, height=5)
+#ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig2.jpg", plot=Fig2, units = "in", width=6.5, height=5)
 
 
-ggplot(data = subset(deltarac3yrs), aes(x=n_treat_years, y=losses, color=trt))+
-  geom_point(size=4)+
-  scale_color_manual(values=c("darkgreen", "darkorange"))+
-  geom_smooth(method = "lm")
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position ='none', axis.title = element_blank())
+#doing responses. Because all outputs are bound between 0 and 1. We are just doing T-C. negative value means drought had lower values than control. positive values means drought had higher values than control
+
+#2) does the severity of the drought affect the magnitude of drought responsiveness
+RRRac<-deltaracs %>% 
+  pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
+  group_by(site_code, year, n_treat_years, trt, measure) %>% 
+  summarise(value=mean(value)) %>% 
+  pivot_wider(names_from = "trt", values_from = "value") %>% 
+  mutate(RR=(Drought-Control)) %>% 
+  select(-Drought, -Control, n_treat_years)
+
+RRall<-RRRac%>% 
+  left_join(drt) %>% 
+  filter(n_treat_years<4)
+
+length(unique(RRall$site_code))
 
 ###
+##dom change by site. 4 sites get dropped here bc the dom sp was only found in the pretreatment year
+sitedomchange<-deltadom %>% 
+  group_by(site_code) %>% 
+  summarise(deltaabund=mean(change, rm.na=T))
+
 RR2<-RRall %>%
   left_join(site_types) %>% 
   #na.omit() %>% 
-  left_join(precipcv, by="site_code")
+  left_join(precipcv, by="site_code") %>% 
+  left_join(siterichness)
 
 length(unique(RR2$site_code))
 
@@ -404,11 +360,9 @@ str(RR2)
 # pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.06577, 0.09861, 0.4597, 0.4289, 0.04373)) %>% 
 #   mutate(padj=p.adjust(pvalue, method="BH"))
 
-###looking at regional drivers
-
+###looking at regional drivers. take the average change measure for each site averaging overall years
 RRRac_average<-deltaracs %>% 
   pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
-  bind_rows(bp_change) %>% 
   group_by(site_code, year, n_treat_years, trt, measure) %>% 
   summarise(value=mean(value)) %>% 
   group_by(site_code, trt, measure) %>% 
@@ -416,54 +370,35 @@ RRRac_average<-deltaracs %>%
   pivot_wider(names_from = "trt", values_from = "value") %>% 
   mutate(RR=(Drought-Control)) %>% 
   left_join(site_types) %>% 
-  left_join(precipcv, by="site_code")
+  left_join(precipcv, by="site_code") %>% 
+  left_join(sitedomchange) %>% 
+  left_join(siterichness)
 
 length(unique(RRRac_average$site_code))
 
 
 #load importance package here to not interfere with other code
 #library(relaimpo)
+#library(MASS)
 
-##these results are pretty different. I wonder if the MAP I'm using is different or the cv_precip_inter
-# test<-RRRac_average %>% 
-#   filter(site_code!='docker.au')
 
-mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="richness_change"))
+mrich2<-stepAIC(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change"))
 summary(mrich2)
 
-meven2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="evenness_change"))
+meven2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change"))
 summary(meven2)
 
-mrank2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="rank_change"))
+mrank2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change"))
 summary(mrank2)
 
 
-mgain2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="gains"))
+mgain2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains"))
 summary(mgain2)
 
-mloss2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass, data=subset(RRRac_average, measure=="losses"))
+mloss2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="losses"))
 summary(mloss2)
 calc.relimp(mloss2)
 
-# p.rich.map<-ggplot(data=subset(RRRac_average, measure=="richness_change"), aes(x=MAP, y=RR))+
-#   geom_point()+
-#   geom_smooth(method="lm", color="black")+
-#   ggtitle('Species Richness')+
-#   ylab("Drought-Control\nDifferences")+
-#   xlab("MAP")+
-#   geom_hline(yintercept = 0)+
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-# p.rich.map
-# 
-# p.rich.ann<-ggplot(data=subset(RRRac_average, measure=="richness_change"), aes(x=PctAnnual, y=RR))+
-#   geom_point()+
-#   geom_smooth(method="lm", color="black")+
-#   #ggtitle('Species Richness')+
-#   ylab("Drought-Control\nDifferences")+
-#   xlab("% Annuals")+
-#   geom_hline(yintercept = 0)+
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-# p.rich.ann
 
 p.loss.map<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=MAP, y=RR))+
   geom_point()+
@@ -485,9 +420,9 @@ p.loss.ann<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=PctAnnua
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 p.loss.ann
 
-Plots<-grid.arrange(p.loss.map, p.loss.ann)
+Fig3<-grid.arrange(p.loss.map, p.loss.ann)
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=Plots, units="in", width=3, height=4.5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=Fig3, units="in", width=3, height=4.5)
 
 # Pairs plots of values in multiple regressions ---------------------------
 ###pairs
@@ -524,16 +459,7 @@ library(gridExtra)
 world <- ne_countries(scale = "medium", returnclass = "sf")
 class(world)
 
-# Calculate richness in year 0
-rich_0 <- dat %>%
-  filter(n_treat_years == 0) %>%
-  group_by(site_code) %>%
-  distinct(Taxon) %>%
-  summarise(rich = n())
-RR2_rich <- merge(RR2, rich_0, by = "site_code")
-RR2_rich <- RR2_rich %>%
-  group_by(site_code) %>%
-  distinct(trt, .keep_all = TRUE)
+
 
 latlong<-read.csv("Site_Elev-Disturb.csv")
 sites<-drt1yr %>% 
@@ -581,32 +507,35 @@ map
 #         panel.background = element_rect(fill = "aliceblue"), legend.position = "none") + 
 #   coord_sf(ylim = c(-80, 80), expand = FALSE)
 
+sitemap<-dat3 %>% 
+  select(site_code, map) %>% 
+  unique()
 
 # Make histograms of covariates
 hist1 <- ggplot() +
-  geom_histogram(data = RR2_rich, binwidth = 100, mapping = aes(x = map), fill = "darkblue", color = "antiquewhite") +
+  geom_histogram(data = sitemap, binwidth = 10, mapping = aes(x = map/10), fill = "darkblue", color = "antiquewhite") +
   theme_bw(base_size = 12) +
   ylim(0, 20) +
-  labs(x = "MAP (mm)", y = "Site Count")
+  labs(x = "MAP (cm)", y = "Site Count")
 hist1
 
 hist2 <- ggplot() +
-  geom_histogram(data = RR2_rich, binwidth = 5, mapping = aes(x = rich), fill = "darkgreen", color = "antiquewhite") +
+  geom_histogram(data = siterichness, binwidth = 5, mapping = aes(x = richness), fill = "darkgreen", color = "antiquewhite") +
   theme_bw(base_size = 12) +
   ylim(0, 20) +
-  labs(x = "Sp. Richness", y = "")
+  labs(x = "Richness", y = "")
 hist2
 
 hist3 <- ggplot() +
-  geom_histogram(data = RR2_rich, binwidth = 10, mapping = aes(x = PctGrass), fill = "brown", color = "antiquewhite") +
+  geom_histogram(data = site_types, binwidth = 10, mapping = aes(x = PctAnnual), fill = "brown", color = "antiquewhite") +
   theme_bw(base_size = 12) +
   ylim(0, 20) +
-  labs(x = "% Grass", y = "")
+  labs(x = "Annuals (percent)", y = "")
 hist3
 
 # Combine into one figure
-Fig1<- grid.arrange(map, hist1, hist2, hist3, nrow = 3, 
-             layout_matrix = rbind(c(1,1,1), c(1,1,1), c(2,3,4)))
+Fig1<- grid.arrange(map, hist1, hist2, hist3, nrow = 2, 
+             layout_matrix = rbind(c(1,1, 1), c(1,1,1), c(2,3,4)))
 
 Fig1
 
@@ -827,3 +756,15 @@ rich2<-pivot_wider(rich, names_from=n_treat_years, names_prefix = "y", values_fr
 
 mean(rich2$mean)
 se<-sd(rich2$mean)/sqrt(55)
+
+
+#stuff for an appendix
+# Calculate plot richness in year 0
+rich_0 <- dat3 %>%
+  filter(n_treat_years == 0) %>% 
+  mutate(rep=paste(site_code, replicate, sep='::'))
+
+plotrichness<-community_structure(df=rich_0, abundance.var = 'max_cover', replicate.var = 'rep') %>% 
+  separate(rep, into=c('site_code', 'replicate'), sep='::') %>% 
+  group_by(site_code) %>% 
+  summarize(mrich=mean(richness))
