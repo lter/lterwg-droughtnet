@@ -14,8 +14,6 @@ library(vegan)
 library(data.table)
 library(gridExtra)
 
-#library(plyr)
-
 theme_set(theme_bw(12))
 
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
@@ -234,7 +232,7 @@ deltarac3yrs2<-deltarac3yrs %>%
   left_join(uniquereps) %>%
   mutate(rep2=paste(site_code, rep, sep=''))
 
-write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_withdom.csv", row.names=F)
+#write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_withdom.csv", row.names=F)
 
 #####I am no longer doing these stats in R.
 
@@ -395,7 +393,7 @@ length(unique(RRRac_average$site_code))
 
 
 #load importance package here to not interfere with other code
-#library(relaimpo)
+#c
 #library(MASS)
 
 
@@ -403,17 +401,19 @@ mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subs
 stepAIC(mrich2, direction="both")
 mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual, data=subset(RRRac_average, measure=="richness_change"))
 summary(mrich2)
-calc.rel
+calc.relimp(mrich2)
 
 meven2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change"))
-stepAIC(meven2)#basically says nothing
+stepAIC(meven2, direction='both')#basically says nothing
+meven2<-lm(RR~cv_ppt_inter, data=subset(RRRac_average, measure=="evenness_change"))
 summary(meven2)
+calc.relimp(meven2)
 
 mrank2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change"))
-stepAIC(mrank2)
+stepAIC(mrank2, direction='both')
 mrank2<-lm(RR~MAP+cv_ppt_inter, data=subset(RRRac_average, measure=="rank_change"))
 summary(mrank2)
-
+calc.relimp(mrank2)
 
 mgain2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains"))
 stepAIC(mgain2)
@@ -468,11 +468,22 @@ panel.cor <- function(x, y, cex.cor = 0.05, method = "pearson", ...) {
 }
 
 pairsplot<-RRRac_average %>% 
-  rename(MAP=map, PrecipCV=cv_ppt_inter)
-pair<-pairs(pairsplot[,6:9], lower.panel = panel.cor, cex.cor=1.5)
+  rename(PrecipCV=cv_ppt_inter, SiteRichness=richness, DomSpChange=deltaabund) %>% 
+  select(site_code, MAP, PrecipCV, PctAnnual, PctGrass, SiteRichness, DomSpChange) %>% 
+  unique()
+pair<-pairs(pairsplot[,2:7], lower.panel = panel.cor, cex.cor=1.5)
+
+comchangeplot<-RRRac_average %>% 
+  select(site_code, measure, RR, deltaabund) %>% 
+  pivot_wider(names_from = measure, values_from = RR, values_fill = NA) %>% 
+  rename(DomSpChange=deltaabund, SpGains=gains, SpLosses=losses, RichnessChg=richness_change, EvennessChg=evenness_change, ReOrdering=rank_change) %>% 
+  select(SpGains, SpLosses, RichnessChg, EvennessChg, ReOrdering, DomSpChange)
+pair2<-pairs(comchangeplot[,2:7], lower.panel = panel.cor, cex.cor=1.5)
 
 #this export isn't working. Probably b/c it isn't a ggolot. UGH.
 ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\pairs.jpg", plot=pair, units="in", width=3, height=3)
+
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\pairs_measures.jpg", plot=pair2, units="in", width=3, height=3)
 #### Figures -------
 
 ### Figure 1: Map of sites + covariate distribution ----
