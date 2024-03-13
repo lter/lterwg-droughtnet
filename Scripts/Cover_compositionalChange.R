@@ -386,14 +386,13 @@ RRRac_average<-deltaracs %>%
   left_join(site_types) %>% 
   left_join(precipcv, by="site_code") %>% 
   left_join(sitedomchange) %>% 
-  left_join(siterichness) %>% 
-  drop_na()
+  left_join(siterichness)
 
 length(unique(RRRac_average$site_code))
 
 
 #load importance package here to not interfere with other code
-#c
+#library(relaimp)
 #library(MASS)
 
 
