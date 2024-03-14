@@ -4,7 +4,7 @@
 ###May 4th, 2023, updating analyses with updated data. Are looking at change
 ###update Oct 11, 2023, updating datasets
 #####update Nov 28, 2023 updating dataset and deleting code i'm no longer using\
-###Feb 2024 updating to include new dominance anlayses
+###Feb 2024 updating to include new dominance analayses
 
 library(tidyverse)
 library(codyn)
@@ -131,29 +131,29 @@ for (i in 1:length(sc)){
 # Getting measures of change ----------------------------------------------
 
 
-#summarazing the data
-drt1yr<-dat2 %>% 
-  filter(n_treat_years==1) %>% 
-  select(site_code) %>% 
-  unique() %>% 
-  mutate(p=1)
-drt2yr<-dat2 %>% 
-  filter(n_treat_years==2) %>% 
-  select(site_code) %>% 
-  unique() %>% 
-  mutate(p2=1)
-drt3yr<-dat2 %>% 
-  filter(n_treat_years==3) %>% 
-  select(site_code) %>% 
-  unique()
-
-#five sites are not repeated over years, and only have one year of data.
-oneyr<-dat2 %>% 
-  select(site_code, n_treat_years) %>% 
-  unique() %>% 
-  group_by(site_code) %>% 
-  mutate(max=max(n_treat_years)) %>% 
-  filter(max==1)
+#summarizing the data
+# drt1yr<-dat2 %>% 
+#   filter(n_treat_years==1) %>% 
+#   select(site_code) %>% 
+#   unique() %>% 
+#   mutate(p=1)
+# drt2yr<-dat2 %>% 
+#   filter(n_treat_years==2) %>% 
+#   select(site_code) %>% 
+#   unique() %>% 
+#   mutate(p2=1)
+# drt3yr<-dat2 %>% 
+#   filter(n_treat_years==3) %>% 
+#   select(site_code) %>% 
+#   unique()
+# 
+# #five sites are not repeated over years, and only have one year of data.
+# oneyr<-dat2 %>% 
+#   select(site_code, n_treat_years) %>% 
+#   unique() %>% 
+#   group_by(site_code) %>% 
+#   mutate(max=max(n_treat_years)) %>% 
+#   filter(max==1)
 
 
 
@@ -340,11 +340,12 @@ RR2<-RRall %>%
   left_join(site_types) %>% 
   #na.omit() %>% 
   left_join(precipcv, by="site_code") %>% 
-  left_join(siterichness)
+  left_join(siterichness) %>% 
+  left_join(sitedomchange)
 
 length(unique(RR2$site_code))
 
-write.csv(RR2, 'communityData_DrtSeverity_forSAS.csv', row.names=F)
+write.csv(RR2, 'communityData_DrtSeverity_forSAS_withDom.csv', row.names=F)
 str(RR2)
 
 ####doing this is SAS now
@@ -386,7 +387,8 @@ RRRac_average<-deltaracs %>%
   left_join(site_types) %>% 
   left_join(precipcv, by="site_code") %>% 
   left_join(sitedomchange) %>% 
-  left_join(siterichness)
+  left_join(siterichness) %>% 
+  drop_na()
 
 length(unique(RRRac_average$site_code))
 
@@ -395,60 +397,63 @@ length(unique(RRRac_average$site_code))
 #library(relaimp)
 #library(MASS)
 
-
-mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change"))
-stepAIC(mrich2, direction="both")
-mrich2<-lm(RR~MAP+cv_ppt_inter+PctAnnual, data=subset(RRRac_average, measure=="richness_change"))
+mrich2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change")))
 summary(mrich2)
 calc.relimp(mrich2)
 
-meven2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change"))
-stepAIC(meven2, direction='both')#basically says nothing
-meven2<-lm(RR~cv_ppt_inter, data=subset(RRRac_average, measure=="evenness_change"))
+meven2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change")))
 summary(meven2)
 calc.relimp(meven2)
 
-mrank2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change"))
-stepAIC(mrank2, direction='both')
-mrank2<-lm(RR~MAP+cv_ppt_inter, data=subset(RRRac_average, measure=="rank_change"))
+mrank2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change")))
 summary(mrank2)
 calc.relimp(mrank2)
 
-mgain2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains"))
-stepAIC(mgain2)
-mgain2<-lm(RR~PctAnnual, data=subset(RRRac_average, measure=="gains"))
+mgain2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains")))
 summary(mgain2)
 
-mloss2<-lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="losses"))
-stepAIC(mloss2)
-mloss2<-lm(RR~MAP+cv_ppt_inter+PctAnnual, data=subset(RRRac_average, measure=="losses"))
+mloss2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="losses")))
 summary(mloss2)
 calc.relimp(mloss2)
 
-
-p.loss.map<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=MAP, y=RR))+
+toplotlm<-RRRac_average %>% 
+  filter(measure %in% c("losses", "richness_change")) %>% 
+  rename(PrecipCV=cv_ppt_inter) %>%
+  pivot_longer(cols=c('MAP', 'PctAnnual', 'PrecipCV'), names_to = 'ind', values_to = "indval") 
+plotlm<-ggplot(data=toplotlm, aes(x=indval, y=RR))+
   geom_point()+
-  geom_smooth(method="lm", color="black", alpha=0.1)+
-  #ggtitle('Species Losses')+
-  ylab("Drought-Control\nSp. Loss Differences")+
-  xlab("MAP")+
+  geom_smooth(data=subset(toplotlm, ind=='MAP'&measure=='losses'), method="lm", color="black", alpha=0.1)+
+  geom_smooth(data=subset(toplotlm, ind=='PctAnnual'&measure=='losses'),method="lm", color="black", alpha=0.1)+
+  geom_smooth(data=subset(toplotlm, ind=='PrecipCV'&measure=='losses'),method="lm", color="black", alpha=0.1)+
+  geom_smooth(data=subset(toplotlm, ind=='MAP'&measure=='richness_change'),method="lm", color="black", alpha=0.1)+
+  geom_smooth(data=subset(toplotlm, ind=='PctAnnual'&measure=='richness_change'),method="lm", color="black", alpha=0.1)+
+  ylab("Drought-Control Differences")+
+  xlab("")+
   geom_hline(yintercept = 0)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-p.loss.map
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  facet_grid(measure~ind, scales='free', labeller = labeller(measure=labs))
 
-p.loss.ann<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=PctAnnual, y=RR))+
-  geom_point()+
-  geom_smooth(method="lm", color="black", alpha=0.2)+
-  #ggtitle('Species Losses')+
-  ylab("Drought-Control\nSp. Loss Differences")+
-  xlab("% Annuals")+
-  geom_hline(yintercept = 0)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-p.loss.ann
+# p.loss.map<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=MAP, y=RR))+
+#   geom_point()+
+#   geom_smooth(method="lm", color="black", alpha=0.1)+
+#   #ggtitle('Species Losses')+
+#   ylab("Drought-Control\nSp. Loss Differences")+
+#   xlab("MAP")+
+#   geom_hline(yintercept = 0)+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+# p.loss.map
+# 
+# p.loss.ann<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=PctAnnual, y=RR))+
+#   geom_point()+
+#   geom_smooth(method="lm", color="black", alpha=0.2)+
+#   #ggtitle('Species Losses')+
+#   ylab("Drought-Control\nSp. Loss Differences")+
+#   xlab("% Annuals")+
+#   geom_hline(yintercept = 0)+
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+# p.loss.ann
 
-Fig3<-grid.arrange(p.loss.map, p.loss.ann)
-
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=Fig3, units="in", width=3, height=4.5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=plotlm, units="in", width=3, height=4.5)
 
 # Pairs plots of values in multiple regressions ---------------------------
 ###pairs
@@ -706,66 +711,6 @@ SuppFig2 <-ggplot(stitches_sites, aes(x = mean.x, y=reorder(site_code, -mean.y))
   theme_bw(base_size = 12)
 
 SuppFig2
-
-
-#####supplemental figure with number of species richness changes - I'm in a struggle bus over here.
-
-info<-dat3 %>% 
-  select(site_code, habitat.type, rep, trt) %>% 
-  unique()
-
-#getting last year of treatment data for each site
-trtyr<-dat3 %>% 
-  filter(n_treat_years<4) %>% 
-  group_by(site_code) %>% 
-  summarize(yr=max(n_treat_years))
-
-pretreat<-dat3 %>% 
-  filter(n_treat_years==0)
-
-maxtreat<-dat3 %>% 
-  left_join(trtyr) %>% 
-  filter(n_treat_years==yr)
-
-richpre<-community_structure(df = pretreat, abundance.var ="max_cover", replicate.var = "rep") %>% 
-  select(-Evar) %>% 
-  rename(pre_rich=richness)
-
-richtmax<-community_structure(df = maxtreat, abundance.var ="max_cover", replicate.var = "rep") %>% 
-  select(-Evar)
-
-richchange<-richpre %>% 
-  left_join(richtmax) %>% 
-  left_join(info) %>% 
-  drop_na() %>% 
-  mutate(richchange=richness-pre_rich) %>% 
-  group_by(site_code, trt, habitat.type) %>% 
-  summarize(RC=mean(richchange), sd=sd(richchange), n=length(richchange)) %>% 
-  mutate(se=sd/sqrt(n), CI=se*1.96)
-
-sorder<-richchange %>% 
-  filter(trt=='Drought') %>% 
-  arrange(RC) %>% 
-  ungroup() %>% 
-  mutate(order=rank(-RC)) %>% 
-  select(site_code, order)
-
-toplot<-richchange %>% 
-  left_join(sorder) %>% 
-  drop_na()
-
-stitcher<-ggplot(data=toplot, aes(x=reorder(site_code, order), y=RC, color=habitat.type))+
-  geom_point()+
-  geom_errorbar(aes(ymin=RC-CI, ymax=RC+CI, width=0.01))+
-  scale_color_manual(name='Type', values=c('green4', 'goldenrod'))+
-  geom_hline(yintercept = 0)+
-  coord_flip()+
-  xlab('Site')+
-  ylab('Change in Richness')+
-  facet_grid(~trt)
-stitcher
-
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\stitcher2.jpg", plot=stitcher, units="in", width=4.5, height=8)
 
 ##mean changes over time for both treatments
 meanchange<-richchange %>% 
