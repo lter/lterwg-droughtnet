@@ -198,8 +198,9 @@ traj_df <- stats_list %>%
   purrr::map_dfr(.f = dplyr::select, dplyr::everything()
                  ) %>%
   dplyr::mutate(analysis_period = "year 0 vs year 1"#, .before = dplyr::everything()
-                )
+                )%>%
+  subset(metric == "distance")
 
 
 # Exporting the trajectory summary statistics csv
-write.csv(traj_df, file = file.path(summary_stats_folder, "pre_vs_year_1_post_trajectory_summary.csv"), row.names = FALSE)
+write.csv(traj_df, file = "C:/Users/ohler/Dropbox/IDE/papers/Community-comp_change/pre_vs_year_1_post_trajectory_summary.csv", row.names = FALSE)
