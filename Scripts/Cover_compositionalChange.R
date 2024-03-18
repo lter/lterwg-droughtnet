@@ -37,9 +37,9 @@ dat2<-dat %>%
 dat3<-dat2 %>% 
   filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
 
-# sites<-dat3 %>% 
-# select(site_code) %>% 
-#   unique()
+sites<-dat3 %>%
+select(site_code) %>%
+  unique()
 # write.csv(sites, "community_comp\\sitelistMarhc2024.csv")
 
 # Calculating drought severity and site metrics -------------------------------------------
@@ -64,47 +64,124 @@ rich_0_site<-dat3 %>%
 
 siterichness<-community_structure(df=rich_0_site, abundance.var = 'mcov', replicate.var = 'site_code') 
 
+#meghan doing DCI
 
-# calculating dominant species
-cover <- as.data.table(dat3)[,totplotcover.yr.live := sum(max_cover, na.rm= T), by=.(site_code, year, block, plot, subplot)]
-cover[,relative_sp_cover.yr.live := max_cover/totplotcover.yr.live]
-#sum(is.na(cover$relative_sp_cover.yr.live))
-cover[, totsitecover.yr := sum(totplotcover.yr.live, na.rm= T), by=.(site_code, year)]
-cover[, tot_maxcover_site.yr  := sum(max_cover, na.rm= T), by=.(Taxon, site_code, year)]
-
-cover[is.na(tot_maxcover_site.yr),tot_maxcover_site.yr := 0]
-cover[is.na(totsitecover.yr),totsitecover.yr  := 0] #not necessary
-
-cover[, relative_abundance_spp_site.yr  :=  tot_maxcover_site.yr/totsitecover.yr, by=.(Taxon, site_code, year)]
-
-#create a variable for just year 0 
-cover[, relative_abundance_spp_site.yr0 := min(relative_abundance_spp_site.yr[n_treat_years==0]), by=.(Taxon, site_code)]
-cover[is.infinite(relative_abundance_spp_site.yr0),relative_abundance_spp_site.yr0 := NA]
-
-cover[, tot.num.plots := length(unique(replicate[n_treat_years == 0])), by =.(site_code)]
-cover[, tot.num.plots.with.spp := length(unique(replicate[n_treat_years == 0 & max_cover>0])), by =.(site_code, Taxon)]
-
-cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
-cover[is.na(rel_freq.space),rel_freq.space  := 0] #32520 NAs
-
-unique.ras = unique(cover[, .(site_code, Taxon, relative_abundance_spp_site.yr0, rel_freq.space)])
-
-# calculate DCI
-# relative abundance + relative frequency / 2
-# 0.6 was dominant 
-unique.ras[, dci := (relative_abundance_spp_site.yr0 + rel_freq.space)/2]
-hist(unique.ras$dci)
+## Need to add in zeros
 sc<-unique(dat3$site_code)
-dom_spp<-data.frame()
+
+datfilled<-data.frame()
 
 for (i in 1:length(sc)){
   
-  subset<-unique.ras%>%
-    filter(site_code==sc[i]) %>%
-    mutate(ranks = dense_rank(-dci)) %>%
-    filter(ranks == 1)
-  dom_spp <- rbind(dom_spp, subset)
+  subset<-dat3%>%
+    filter(site_code==sc[i])
+  
+  addzero<-subset %>% 
+    select(site_code, year, n_treat_years, trt, replicate, Taxon, max_cover)%>%
+    pivot_wider(names_from = "Taxon", values_from = "max_cover", values_fill=0)
+  
+  datfill<-addzero %>% 
+    pivot_longer(6:ncol(addzero), names_to = "Taxon", values_to = "max_cover")
+  
+  datfilled<-datfilled%>%
+    bind_rows(datfill)
 }
+
+###get relative cover of each species
+totcov<-datfilled %>%
+  ungroup() %>% 
+  filter(n_treat_years==0) %>% 
+  group_by(site_code, replicate) %>% 
+  summarise(totcov=sum(max_cover))
+
+relave<-datfilled%>%
+  filter(n_treat_years==0) %>% 
+  left_join(totcov) %>% 
+  mutate(relcov=max_cover/totcov) %>% 
+  group_by(site_code, Taxon) %>% 
+  summarize(mean=mean(relcov)) %>% 
+  filter(mean!=0)
+
+#to get relative frequency, determine number of control plots
+nplots<-datfilled%>%
+  filter(n_treat_years==0) %>% 
+  select(site_code, replicate)%>%
+  unique()%>%
+  group_by(site_code)%>%
+  summarize(totplots=length(replicate))
+
+#to get relative frequency, determine number of control plots a species is found in, merge in total number of plots and calculate relative frequency. By taking this from all dat there are no options for zero and thus all using n to calcualte length will work.
+relfreq<-datfilled%>%
+  filter(max_cover!=0, n_treat_years==0) %>% 
+  select(site_code, Taxon, replicate)%>%
+  unique()%>%
+  group_by(site_code, Taxon)%>%
+  summarize(nplots=length(replicate))%>%
+  left_join(nplots)%>%
+  mutate(freq=nplots/totplots)
+
+#calculate DCi
+DCi<-relave%>%
+  left_join(relfreq)%>%
+  mutate(DCi=(mean+freq)/2)%>%
+  group_by(site_code) %>% 
+  mutate(max=max(DCi)) %>% 
+  filter(DCi==max)
+
+# sc<-unique(dat3$site_code)
+# mdom_spp<-data.frame()
+# 
+# for (i in 1:length(sc)){
+#   
+#   subset<-unique.ras%>%
+#     filter(site_code==sc[i]) %>%
+#     mutate(ranks = dense_rank(-dci)) %>%
+#     filter(ranks == 1)
+#   dom_spp <- rbind(dom_spp, subset)
+# }
+
+
+
+# # calculating dominant species
+# cover <- as.data.table(dat3)[,totplotcover.yr.live := sum(max_cover, na.rm= T), by=.(site_code, year, block, plot, subplot)]
+# cover[,relative_sp_cover.yr.live := max_cover/totplotcover.yr.live]
+# #sum(is.na(cover$relative_sp_cover.yr.live))
+# cover[, totsitecover.yr := sum(totplotcover.yr.live, na.rm= T), by=.(site_code, year)]
+# cover[, tot_maxcover_site.yr  := sum(max_cover, na.rm= T), by=.(Taxon, site_code, year)]
+# 
+# cover[is.na(tot_maxcover_site.yr),tot_maxcover_site.yr := 0]
+# cover[is.na(totsitecover.yr),totsitecover.yr  := 0] #not necessary
+# 
+# cover[, relative_abundance_spp_site.yr  :=  tot_maxcover_site.yr/totsitecover.yr, by=.(Taxon, site_code, year)]
+# 
+# #create a variable for just year 0 
+# cover[, relative_abundance_spp_site.yr0 := min(relative_abundance_spp_site.yr[n_treat_years==0]), by=.(Taxon, site_code)]
+# cover[is.infinite(relative_abundance_spp_site.yr0),relative_abundance_spp_site.yr0 := NA]
+# 
+# cover[, tot.num.plots := length(unique(replicate[n_treat_years == 0])), by =.(site_code)]
+# cover[, tot.num.plots.with.spp := length(unique(replicate[n_treat_years == 0 & max_cover>0])), by =.(site_code, Taxon)]
+# 
+# cover[, rel_freq.space :=  tot.num.plots.with.spp/tot.num.plots]
+# cover[is.na(rel_freq.space),rel_freq.space  := 0] #32520 NAs
+# 
+# unique.ras = unique(cover[, .(site_code, Taxon, relative_abundance_spp_site.yr0, rel_freq.space)])
+# 
+# # calculate DCI
+# # relative abundance + relative frequency / 2
+# # 0.6 was dominant 
+# unique.ras[, dci := (relative_abundance_spp_site.yr0 + rel_freq.space)/2]
+# hist(unique.ras$dci)
+# sc<-unique(dat3$site_code)
+# dom_spp<-data.frame()
+# 
+# for (i in 1:length(sc)){
+#   
+#   subset<-unique.ras%>%
+#     filter(site_code==sc[i]) %>%
+#     mutate(ranks = dense_rank(-dci)) %>%
+#     filter(ranks == 1)
+#   dom_spp <- rbind(dom_spp, subset)
+# }
 
 #write.csv(dom_spp, "IDE_dominant_spp_by_DCI_yr0.csv")
 
@@ -160,14 +237,14 @@ for (i in 1:length(sc)){
 ###looping through site for changes with pre-treatment as a reference year
 
 
-sc<-unique(dat3$site_code)
+sc<-unique(datfilled$site_code)
 
 deltaracs<-data.frame()
 deltadom<-data.frame()
 
 for (i in 1:length(sc)){
-  
-  subset<-dat3%>%
+
+  subset<-datfilled%>%
     filter(site_code==sc[i])
   
   pretrt<-unique(filter(subset, n_treat_years==0)$year)
@@ -191,7 +268,7 @@ for (i in 1:length(sc)){
     deltaracs<-deltaracs %>% 
     bind_rows(change_ranks)
   
-  domsp<-filter(dom_spp, site_code==sc[i])
+  domsp<-filter(DCi, site_code==sc[i])
   domsp<-domsp$Taxon
     
   subset2<-subset %>% 
@@ -227,6 +304,7 @@ uniquereps<-deltarac3yrs %>%
 # test<-uniquereps %>%
 #   group_by(site_code, rep) %>%
 #   summarize(n=length(rep))
+
 
 deltarac3yrs2<-deltarac3yrs %>%
   left_join(uniquereps) %>%
@@ -378,23 +456,24 @@ str(RR2)
 ###looking at regional drivers. take the average change measure for each site averaging overall years
 RRRac_average<-deltaracs %>% 
   pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
+  filter(n_treat_years<4& n_treat_years>0) %>% 
   group_by(site_code, year, n_treat_years, trt, measure) %>% 
-  summarise(value=mean(value)) %>% 
+   summarise(value=mean(value, na.rm=T)) %>% 
   group_by(site_code, trt, measure) %>% 
-  summarise(value=mean(value)) %>% 
+  summarise(value=mean(value, na.rm=T)) %>% 
   pivot_wider(names_from = "trt", values_from = "value") %>% 
   mutate(RR=(Drought-Control)) %>% 
   left_join(site_types) %>% 
   left_join(precipcv, by="site_code") %>% 
   left_join(sitedomchange) %>% 
   left_join(siterichness) %>% 
-  drop_na()
+  dplyr::select(site_code, measure, RR, PctAnnual, PctGrass, MAP, cv_ppt_inter, deltaabund, richness)
 
 length(unique(RRRac_average$site_code))
 
 
 #load importance package here to not interfere with other code
-#library(relaimp)
+#library(relaimpo)
 #library(MASS)
 
 mrich2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change")))
@@ -403,7 +482,6 @@ calc.relimp(mrich2)
 
 meven2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change")))
 summary(meven2)
-calc.relimp(meven2)
 
 mrank2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change")))
 summary(mrank2)
@@ -412,26 +490,25 @@ calc.relimp(mrank2)
 mgain2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains")))
 summary(mgain2)
 
+
 mloss2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="losses")))
 summary(mloss2)
 calc.relimp(mloss2)
 
 toplotlm<-RRRac_average %>% 
   filter(measure %in% c("losses", "richness_change")) %>% 
-  rename(PrecipCV=cv_ppt_inter) %>%
-  pivot_longer(cols=c('MAP', 'PctAnnual', 'PrecipCV'), names_to = 'ind', values_to = "indval") 
-plotlm<-ggplot(data=toplotlm, aes(x=indval, y=RR))+
+  rename(DomSpChg=deltaabund) %>%
+  pivot_longer(cols=c('MAP', 'DomSpChg'), names_to = 'ind', values_to = "indval") 
+plotlm<-ggplot(data=subset(toplotlm, ind=="MAP"), aes(x=indval, y=RR))+
   geom_point()+
-  geom_smooth(data=subset(toplotlm, ind=='MAP'&measure=='losses'), method="lm", color="black", alpha=0.1)+
-  geom_smooth(data=subset(toplotlm, ind=='PctAnnual'&measure=='losses'),method="lm", color="black", alpha=0.1)+
-  geom_smooth(data=subset(toplotlm, ind=='PrecipCV'&measure=='losses'),method="lm", color="black", alpha=0.1)+
-  geom_smooth(data=subset(toplotlm, ind=='MAP'&measure=='richness_change'),method="lm", color="black", alpha=0.1)+
-  geom_smooth(data=subset(toplotlm, ind=='PctAnnual'&measure=='richness_change'),method="lm", color="black", alpha=0.1)+
+  geom_smooth(method="lm", color="black", alpha=0.1)+
   ylab("Drought-Control Differences")+
-  xlab("")+
+  xlab("MAP (mm)")+
   geom_hline(yintercept = 0)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  facet_grid(measure~ind, scales='free', labeller = labeller(measure=labs))
+  facet_wrap(~measure, scales='free', labeller = labeller(measure=labs))
+
+
 
 # p.loss.map<-ggplot(data=subset(RRRac_average, measure=="losses"), aes(x=MAP, y=RR))+
 #   geom_point()+
@@ -471,23 +548,47 @@ panel.cor <- function(x, y, cex.cor = 0.05, method = "pearson", ...) {
   options(warn = 0)                                             # Reset warning
 }
 
+
 pairsplot<-RRRac_average %>% 
   rename(PrecipCV=cv_ppt_inter, SiteRichness=richness, DomSpChange=deltaabund) %>% 
-  select(site_code, MAP, PrecipCV, PctAnnual, PctGrass, SiteRichness, DomSpChange) %>% 
+  dplyr::select(site_code, MAP, PrecipCV, PctAnnual, PctGrass, SiteRichness, DomSpChange) %>% 
   unique()
+
 pair<-pairs(pairsplot[,2:7], lower.panel = panel.cor, cex.cor=1.5)
+pair
 
 comchangeplot<-RRRac_average %>% 
-  select(site_code, measure, RR, deltaabund) %>% 
+  dplyr::select(site_code, measure, RR, deltaabund) %>% 
   pivot_wider(names_from = measure, values_from = RR, values_fill = NA) %>% 
   rename(DomSpChange=deltaabund, SpGains=gains, SpLosses=losses, RichnessChg=richness_change, EvennessChg=evenness_change, ReOrdering=rank_change) %>% 
-  select(SpGains, SpLosses, RichnessChg, EvennessChg, ReOrdering, DomSpChange)
+  dplyr::select(SpGains, SpLosses, RichnessChg, EvennessChg, ReOrdering, DomSpChange)
 pair2<-pairs(comchangeplot[,2:7], lower.panel = panel.cor, cex.cor=1.5)
 
 #this export isn't working. Probably b/c it isn't a ggolot. UGH.
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\pairs.jpg", plot=pair, units="in", width=3, height=3)
+# ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\pairs.jpg", plot=pair, units="in", width=3, height=3)
+# 
+# ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\pairs_measures.jpg", plot=pair2, units="in", width=3, height=3)
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\pairs_measures.jpg", plot=pair2, units="in", width=3, height=3)
+
+#table of trajectory analyes
+yr1<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\pre_vs_year_1_post_trajectory_summary.csv') %>% 
+  mutate(yr=1)
+yr2<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\pre_vs_year_2_post_trajectory_summary.csv') %>% 
+  mutate(yr=2)
+yr3<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\pre_vs_year_3_post_trajectory_summary.csv') %>% 
+  mutate(yr=3)
+
+fortable<-yr1 %>% 
+  bind_rows(yr2, yr3) %>% 
+  group_by(site) %>% 
+  mutate(max=max(yr)) %>% 
+  filter(yr==max) %>% 
+  ungroup() %>% 
+  mutate(padj=p.adjust(P_Value, method="BH")) %>% 
+  dplyr::select(site, analysis_period, diff, Z_Score, padj, analysis_period)
+
+write.csv(fortable, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper.csv', row.names = F)
+
 #### Figures -------
 
 ### Figure 1: Map of sites + covariate distribution ----
