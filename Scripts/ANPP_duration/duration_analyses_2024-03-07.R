@@ -14,7 +14,7 @@ library(rsq)
 
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2023-11-03.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2024-03-15.csv")%>% #anpp_ppt_2023-11-03.csv
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")%>%
   mutate(n_treat_years = ifelse(site_code == "allmendo.ch" & n_treat_days == 197, 1, n_treat_years))%>%
   mutate(n_treat_years = ifelse(site_code == "allmendb.ch" & n_treat_days == 197, 1, n_treat_years))%>%

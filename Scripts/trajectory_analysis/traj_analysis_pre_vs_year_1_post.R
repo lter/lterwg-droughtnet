@@ -29,7 +29,7 @@ trt_legend_list <- list()
 stats_list <- list()
 
 # Read in our data
-comp_raw <- read.csv(file.path("~", "Dropbox", "IDE", "data_processed", "cover_ppt_2023-05-05.csv"))
+comp_raw <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-11-27.csv")
 
 # Filter our data to 1 pre-treatment year
 comp_pre_treatment <- comp_raw %>%
@@ -55,6 +55,7 @@ comp_year_1 <- comp_raw %>%
   # Keep only year 1 post-treatment
   dplyr::filter(n_treat_years == 1)
 
+
 # Sites that have year 1 post-treatment data but not year 0 data
 bad_sites_A <- setdiff(x = unique(comp_year_1$site_code), y = unique(comp_pre_treatment$site_code))
 
@@ -68,7 +69,8 @@ all_comp <- bind_rows(comp_pre_treatment, comp_year_1)
 unique(all_comp$n_treat_years)
 
 # Make a list of "bad" sites that will break the loop
-bad_sites <- c(bad_sites_A, bad_sites_B, "chacra.ar", "hyide.de")
+bad_sites <- c(bad_sites_A, bad_sites_B,  "hyide.de","chacra.ar"
+               )
 
 # For the rest of the sites that work, we...
 for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
@@ -86,7 +88,7 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
                                x = Taxon)) %>%
     group_by(year, trt, block_plot_subplot, Taxon) %>% 
     
-    summarize(max_cover = mean(max_cover, na.rm = TRUE)) %>%
+    dplyr::summarize(max_cover = mean(max_cover, na.rm = TRUE)) %>%
     
     ungroup() %>%
     
@@ -158,12 +160,14 @@ for (a_site in names(fit_list)){
 dev.off()
 
 # Extract the trajectory analysis statistics for each site except lygraint.no, milparinka.au, sand.us
-for (a_site in setdiff(x = names(fit_list), y = c("lygraint.no","milparinka.au", "sand.us"))){
+for (a_site in setdiff(x = names(fit_list), y = c("biddulph.ca"#, "lygraint.no","milparinka.au", "sand.us"
+                                                  ))){
   site_stats <- stat_extract(mod_fit = fit_list[[a_site]])
   stats_list[[a_site]] <- site_stats
 }
 
-for (a_bad_site in c("lygraint.no","milparinka.au", "sand.us")){
+for (a_bad_site in c(#"lygraint.no","milparinka.au", "sand.us"
+  )){
   # Using stat_extract() on these sites gives an error so I will extract its magnitude distance statistics manually
   traj_summary_md <- tibble::as_tibble(as.list(summary(fit_list[[a_bad_site]], attribute = "MD")$x$PD$obs)) %>%
     # Now bring in remaining summary values
@@ -189,10 +193,14 @@ for (a_bad_site in c("lygraint.no","milparinka.au", "sand.us")){
 
 # Flatten the statistics for each site into one master dataframe
 traj_df <- stats_list %>%
-  purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>% 
-  purrr::map_dfr(.f = select, everything()) %>%
-  dplyr::mutate(analysis_period = "year 0 vs year 1", .before = everything())
+  purrr::imap(.f = ~mutate(.x, site = paste0(.y)#, .before = tidyselect::everything()
+                           )) %>% 
+  purrr::map_dfr(.f = dplyr::select, dplyr::everything()
+                 ) %>%
+  dplyr::mutate(analysis_period = "year 0 vs year 1"#, .before = dplyr::everything()
+                )%>%
+  subset(metric == "distance")
 
 
 # Exporting the trajectory summary statistics csv
-write.csv(traj_df, file = file.path(summary_stats_folder, "pre_vs_year_1_post_trajectory_summary.csv"), row.names = FALSE)
+write.csv(traj_df, file = "C:/Users/ohler/Dropbox/IDE/papers/Community-comp_change/pre_vs_year_1_post_trajectory_summary.csv", row.names = FALSE)
