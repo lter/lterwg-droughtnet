@@ -13,7 +13,8 @@ rm(list = ls())
 
 # detach pesky packages
 detach(package:plyr,unload=TRUE)
-
+detach(package:relaimpo, unload==T)
+detach(package:MASS, unload==T)
 # Load libraries 
 library(tidyverse) # data wrangling
 #library(codyn) # diversity indices
@@ -84,8 +85,8 @@ length(unique(datblip$site_code))
 #pretreat cover
 pretrt_cover<-dat2 %>% 
   filter(n_treat_years==0) %>% 
-  group_by(site_code, trt, block, plot, subplot, Taxon) %>% 
-  summarise(pretrt=mean(max_cover))
+  select(site_code, trt, block, plot, subplot, Taxon, max_cover) %>% 
+  rename(pretrt=max_cover)
 
 
 datblip2<-datblip %>% 
@@ -150,8 +151,8 @@ ggplot(data=plotlifeform, aes(x=pretrt, y=loss2, color=local_lifeform, linetype=
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   xlab("Pre-treatment Abundance")+
   ylab("Loss Probability")+
-  guides(linetype=guide_legend(override.aes = list(color='black')))+
-  scale_linetype_manual(name='Treatment', values=c(1,4))
+  #guides(linetype=guide_legend(override.aes = list(color='black')))+
+  scale_linetype_manual(name='Treatment', values=c(1,4), guide='none')
 LF.Loss
 
 loss_lifespan <- glmer(loss ~ trt*local_lifespan*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform!="Woody"))
@@ -169,8 +170,8 @@ LS.loss<-
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   xlab("Pre-treatment Abundance")+
   ylab("Loss Probability")+
-  guides(linetype=guide_legend(override.aes = list(color='black')))+
-  scale_linetype_manual(name='Treatment', values=c(1,4))
+  #guides(linetype=guide_legend(override.aes = list(color='black')))+
+  scale_linetype_manual(name='Treatment', values=c(1,4), guide='none')
 LS.loss
 
 loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datblip2, local_lifeform=="Forb"))
@@ -205,7 +206,7 @@ ps.Loss<-
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   xlab("Pre-treatment Abundance")+
   ylab("Loss Probability")+
-  guides(linetype=guide_legend(override.aes = list(color='black')))+
+  #guides(linetype=guide_legend(override.aes = list(color='black')))+
   scale_linetype_manual(name='Treatment', values=c(1,4))
 ps.Loss
 
