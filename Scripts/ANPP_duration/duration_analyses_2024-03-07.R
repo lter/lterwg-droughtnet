@@ -722,7 +722,7 @@ alan <- data.anpp.summary%>%
 
 alan$history <- ifelse(alan$historyroad == "extreme::extreme::extreme::extreme", "Four",
                        ifelse(alan$historyroad == "extreme::extreme::extreme::nominal" | alan$historyroad == "extreme::extreme::extreme::NA", "Three",
-                              ifelse(alan$historyroad == "extreme::extreme::nomnal::nominal" |alan$historyroad == "extreme::extreme::nominal::NA" |alan$historyroad == "extreme::extreme::NA::NA", "Two",
+                              ifelse(alan$historyroad == "extreme::extreme::nominal::nominal" |alan$historyroad == "extreme::extreme::nominal::NA" |alan$historyroad == "extreme::extreme::NA::NA", "Two",
                                      "One")))
 
 
@@ -869,4 +869,25 @@ ggplot(data=tempdf, aes(x = history, avg))+
   theme_base()
 
 
+
+###Nico's version
+
+
+
+alan%>%
+  ddply(.(n_treat_years, historyroad, history), function(x)data.frame(
+    anpp_response = mean(x$anpp_response),
+    anpp_response.se = sd(x$anpp_response)/sqrt(length(x$site_code)),
+    n = length(x$site_code)
+  ))%>%
+ggplot(aes(n_treat_years, anpp_response, color = history))+
+  geom_pointrange(aes(ymax = anpp_response+anpp_response.se, ymin = anpp_response-anpp_response.se),position=position_dodge(width=0.25))+
+  geom_hline(yintercept = 0)+
+  xlab("Treatment year")+
+  ylab("ANPP response")+
+  theme_base()+
+  guides(color=guide_legend(title="# consecitive extreme years"))
+
+mod <- lm(anpp_response~as.factor(n_treat_years)*history, data = alan)  
+summary(mod)
 
