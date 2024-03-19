@@ -310,7 +310,7 @@ deltarac3yrs2<-deltarac3yrs %>%
   left_join(uniquereps) %>%
   mutate(rep2=paste(site_code, rep, sep=''))
 
-#write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_withdom.csv", row.names=F)
+#write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_withdom2.csv", row.names=F)
 
 #####I am no longer doing these stats in R.
 
@@ -337,13 +337,13 @@ deltarac3yrs2<-deltarac3yrs %>%
 
 #adjust P-values for treat effect
 #these values are now from SAS
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.00001, 0.357,  0.214, 0.011, 0.00001, 0.0008)) %>%
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.00001, 0.357,  0.214, 0.011, 0.00001, 0.0066)) %>%
   mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
 
-pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.8805, 0.299, 0.0726, 0.834, 0.982, 0.007)) %>%
+pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.8805, 0.299, 0.0726, 0.834, 0.982, 0.0396)) %>%
   mutate(padj=p.adjust(pvalue, method="BH"))
 
-pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.013, 0.001, 0.001, 0.0001, 0.0001, 0.0005)) %>% 
+pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.013, 0.001, 0.001, 0.0001, 0.0001, 0.00001)) %>% 
   mutate(padj=p.adjust(pvalue, method="BH"))
 
 MeanCI<-deltarac3yrs %>%
@@ -585,7 +585,10 @@ fortable<-yr1 %>%
   filter(yr==max) %>% 
   ungroup() %>% 
   mutate(padj=p.adjust(P_Value, method="BH")) %>% 
-  dplyr::select(site, analysis_period, diff, Z_Score, padj, analysis_period)
+  dplyr::select(site, analysis_period, diff, Z_Score, padj, analysis_period) 
+
+missing<-sites %>% 
+  left_join(fortable, join_by('site_code'=="site"))
 
 write.csv(fortable, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper.csv', row.names = F)
 
