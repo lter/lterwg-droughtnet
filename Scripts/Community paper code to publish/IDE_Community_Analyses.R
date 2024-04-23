@@ -630,6 +630,33 @@ pair2<-pairs(comchangeplot[,2:7], lower.panel = panel.cor, cex.cor=1.5)
 # 
 # ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\pairs_measures.jpg", plot=pair2, units="in", width=3, height=3)
 
+###histogram for talk
+hist<-RRRac_average %>% 
+  select(site_code, PctAnnual, PctGrass, MAP, cv_ppt_inter, deltaabund, richness) %>% 
+  unique() %>% 
+  pivot_longer(PctAnnual:richness, names_to = 'attribute', values_to = 'value') %>% 
+  mutate(attribute2=factor(attribute, levels=c('PctAnnual', 'PctGrass', 'deltaabund', 'richness', 'MAP', 'cv_ppt_inter')))
+
+labs1=c(cv_ppt_inter="Inter. Precip. Vari.", deltaabund='Dom Sp. Abund. Chg.', MAP='Mean Annual Precip.', richness="Site Richness", PctAnnual='Pct. Annual Cover', PctGrass= 'Pct. Grass Cover')
+
+theme_set(theme_bw(24))
+ggplot(dat=hist, aes(x=value, fill=attribute2))+
+  geom_histogram(bins=10)+
+  scale_fill_manual(values=c( 'darkgreen',  'green3', 'lightgreen', 'gray','cornflowerblue','blue'))+
+  facet_wrap(~attribute2, scales='free', labeller = labeller(attribute2=labs1), ncol=6)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'none')+
+  xlab("")+
+  ylab("")
+
+drtsevhist<-RR2 %>% 
+  ungroup() %>% 
+  select(site_code, drtseverity) %>% 
+  unique()
+ggplot(dat=drtsevhist, aes(x=drtseverity))+
+  geom_histogram(bins=15)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  xlab("Drought Severity")+
+  ylab("")
 
 
 # Figure 1: Map of sites + covariate distribution -------------------------
