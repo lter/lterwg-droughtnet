@@ -836,25 +836,30 @@ meanchange<-richchange %>%
   mutate(se=s/sqrt(n))
 
 ####getting numbers for poster
-trt<-dat2 %>% 
+trt<-dat3 %>% 
   select(rep, trt) %>% 
   unique()
 
-rich<-community_structure(df = dat2, abundance.var ="max_cover", replicate.var = "rep", time.var = "n_treat_years") %>% 
-  select(-Evar) %>% 
-  filter(n_treat_years==0|n_treat_years==3)
+rich<-community_structure(df = dat3, abundance.var ="max_cover", replicate.var = "rep", time.var = "n_treat_years") %>% 
+  select(-Evar) 
 
-rich2<-pivot_wider(rich, names_from=n_treat_years, names_prefix = "y", values_from = richness) %>% 
-  mutate(sp_change=y3-y0) %>% 
-  na.omit() %>% 
+#figure out why there are NAs here
+rich2<-rich %>% 
+  separate(rep, into=c("site_code", "plot"), sep=";",remove=F) %>% 
+  group_by(site_code) %>% 
+  filter(n_treat_years<4) %>% 
+  mutate(max=max(n_treat_years)) %>% 
+  filter(n_treat_years==0|n_treat_years==max) %>% 
+  pivot_wider(names_from=n_treat_years, names_prefix = "y", values_from = richness) %>% 
+  mutate(sp_change=ifelse(is.na(y1)&is.na(y2), y3-y0, ifelse(is.na(y1)&is.na(y3), y2-y0, y1-y0))) %>% 
   left_join(trt) %>% 
-  separate(rep, into=c("site_code", "plot"), sep=";") %>% 
   group_by(site_code, trt) %>% 
-  summarise(mean=mean(sp_change)) %>% 
-  filter(trt!="Control")
+  summarise(mean=mean(sp_change, rm.na=T)) %>% 
+  filter(trt!="Control") %>% 
+  drop_na()
 
 mean(rich2$mean)
-se<-sd(rich2$mean)/sqrt(55)
+se<-sd(rich2$mean)/sqrt(76)
 
 
 #stuff for an appendix
