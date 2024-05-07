@@ -214,6 +214,10 @@ stepAIC(lmNull, scope = list(upper = lmFull,
 
 winning.mod <- lme(anpp_response ~ drtsev.1, random = ~1|ipcc_regions,method = "ML",data = tempdf)
 summary(winning.mod)
+
+
+
+
 r.squaredGLMM(winning.mod)
 
 
@@ -440,9 +444,9 @@ ggsave(
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   subset(Ann_Per == "Perennial")%>%
   ggplot( aes(drtsev.1, anpp_response, color = e.n, fill = e.n))+
-  facet_wrap(~n_treat_years)+
-  scale_color_manual(values = c("#da7901", "grey" ))+
-  scale_fill_manual(values = c("#da7901", "grey" ))+
+  facet_wrap(~n_treat_years, scales = 'free')+
+  scale_color_manual(values = c("#da7901", "grey48" ))+
+  scale_fill_manual(values = c("#da7901", "grey48" ))+
   geom_point(aes(),alpha = 0.8,#pch = 21,
              size=3)+
   #scale_shape_manual(values = c(19, 21))+
@@ -450,17 +454,45 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   #scale_linetype_manual(values = c("solid","dashed"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
+  xlim(-.12,1)+
+  ylim(-5.05,1)+
   #scale_color_manual( values = c("#866475","#789ac0" ))+ #need to change colors to extreme vs nominal"#E58601", "#46ACC8"
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",axis.ticks.length=unit(-0.25, "cm"))
 
 
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
 mod <- lme(anpp_response~drtsev.1*n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
 summary(mod)
+
+pairs(emtrends(mod, ~ n_treat_years | e.n, var = "n_treat_years"))
+
+
+
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 1)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 2)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 3)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 4)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3.pdf",
@@ -532,9 +564,9 @@ data.anpp.summary%>%
   left_join(dplyr::select(Site_Elev.Disturb, site_code, drought_trt))%>%
   dplyr::mutate(site_code = fct_reorder(site_code, desc(anpp_response)))%>%
   ggplot(  aes(site_code, avg_precip_reduction))+
-  geom_bar(stat = "identity", fill = "dodgerblue")+
+  geom_bar(stat = "identity", fill = "dodgerblue", linewidth = 0.98)+
   geom_hline(yintercept = 0,linetype="dashed")+
-#  geom_hline(aes(x = site_code, y=as.numeric(drought_trt)/100))+
+  geom_point(aes(x = site_code, y=as.numeric(drought_trt)/100), shape = 124, size = 2)+
   ylim(0, 1)+
   ylab("Precip reduction over 3 years")+
   xlab("")+
@@ -547,7 +579,7 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 4,
+  width = 3.5,
   height = 10,
   units = c("in"),
   dpi = 600,
@@ -566,7 +598,7 @@ data.anpp.summary%>%
   dplyr::mutate(site_code = fct_reorder(site_code, dplyr::desc(-anpp_response)))%>%
   ggplot(aes(n_treat_years, forcats::fct_rev(site_code), fill = e.n))+
   geom_tile(colour = "black")+
-  scale_fill_manual(values = c( "#da7901" , "white"), na.value = "grey")+ #burnt sienna "#E97451"
+  scale_fill_manual(values = c( "#da7901" , "grey48"), na.value = "white")+ #burnt sienna "#E97451"
   ylab("")+
   xlab("Treatment year")+
   theme_bw()
@@ -577,7 +609,7 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 3,
+  width = 3.5,
   height = 7,
   units = c("in"),
   dpi = 600,
@@ -813,7 +845,9 @@ data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.av
   geom_line(data=x,aes(x=x,y=predicted), alpha =.5)+
   xlab("# consecutive years extreme drought")+
   ylab("ANPP response")+
-  theme_base()
+  ylim(-2,0.25)+
+  theme_base()+
+  theme(axis.ticks.length=unit(-0.25, "cm"))
 
 
 ggsave(
