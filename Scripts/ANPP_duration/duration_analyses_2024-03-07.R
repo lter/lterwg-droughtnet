@@ -455,7 +455,7 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlim(-.12,1)+
-  ylim(-5.05,1)+
+  ylim(-5.05,1.2)+
   #scale_color_manual( values = c("#866475","#789ac0" ))+ #need to change colors to extreme vs nominal"#E58601", "#46ACC8"
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("ANPP response")+
@@ -476,22 +476,26 @@ pairs(emtrends(mod, ~ n_treat_years | e.n, var = "n_treat_years"))
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 1)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 2)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 3)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 4)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
 
 
 ggsave(
@@ -656,7 +660,7 @@ ggplot(confint(means),aes(as.factor(n_treat_years), emmean, color = type
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Years of drought")+
   ylab("ANPP response")+
-  scale_color_manual("Prevailing veg type", values = c("#04a3bd" ,  "#247d3f", "#f0be3d"))+ #"#D9782D", "#1E4D2B", "#C8C372" 
+  scale_color_manual("Prevailing veg type", values = c("#04a3bd" , "#247d3f","#f0be3d"))+ #"#D9782D", "#1E4D2B", "#C8C372" 
   #coord_flip()+
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
@@ -832,7 +836,7 @@ x <- ggpredict(mod, c("historycont"))
 
 data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))%>%
   ggplot( aes(x = history, avg))+
-  geom_pointrange(aes(ymax = avg+se, ymin = avg-se))+
+  geom_pointrange(aes(ymax = avg+se, ymin = avg-se), color = "#DA7901")+
   geom_hline(yintercept = 0, linetype = "dashed")+
 #  geom_hline(yintercept = nominal.avg, color = "blue")+
 #  geom_hline(yintercept = nominal.avg+nominal.se, color = "blue", linetype = "dashed")+
@@ -841,8 +845,8 @@ data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.av
 #  geom_hline(yintercept = extreme.avg+extreme.se, color = "red", linetype = "dashed")+
 #  geom_hline(yintercept = extreme.avg-extreme.se, color = "red", linetype = "dashed")+
   #geom_smooth(method = "lm", color = "black")+
-  geom_ribbon(data=x,aes(x=x,y=predicted, ymin=predicted-std.error,ymax=predicted+std.error), alpha =.25)+
-  geom_line(data=x,aes(x=x,y=predicted), alpha =.5)+
+  geom_ribbon(data=x,aes(x=x,y=predicted, ymin=predicted-std.error,ymax=predicted+std.error), alpha =.4, fill = "#DA7901")+
+  geom_line(data=x,aes(x=x,y=predicted), alpha =1, color = "#DA7901")+
   xlab("# consecutive years extreme drought")+
   ylab("ANPP response")+
   ylim(-2,0.25)+
