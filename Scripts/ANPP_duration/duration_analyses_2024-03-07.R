@@ -853,6 +853,11 @@ data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.av
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
+100 * (exp(one.avg) - 1) #percent reduction
+100 * (exp(two.avg) - 1) #percent reduction
+100 * (exp(three.avg) - 1) #percent reduction
+100 * (exp(four.avg) - 1) #percent reduction
+
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_consecutive-years.pdf",
