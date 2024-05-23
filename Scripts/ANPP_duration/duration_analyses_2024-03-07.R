@@ -11,7 +11,7 @@ library(ggeffects)
 library(MASS)
 library(cowplot)
 library(rsq)
-
+library(emmeans)
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2024-03-15.csv")%>% #anpp_ppt_2023-11-03.csv
@@ -463,6 +463,37 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   theme(legend.position = "none",axis.ticks.length=unit(-0.25, "cm"))
 
 
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
+mod <- lme(anpp_response~as.factor(n_treat_years)*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
+summary(mod)
+
+summary <- emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years")
+pairs(emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years"))
+
+data.frame(summary)%>%
+ggplot(aes(n_treat_years, emmean, color = e.n))+
+  geom_pointrange(aes(ymax = emmean+SE, ymin = emmean-SE), position = position_dodge(width = 0.3))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  xlim(.7,4.3)+
+  ylim(-1,.1)+
+  scale_color_manual(values = c("#da7901", "grey48" ))+
+  ylab("ANPP response")+
+  xlab("Treatment year")+
+  theme_base()+
+  theme(legend.position = "none",axis.ticks.length=unit(-0.25, "cm"))
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2_inset.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 2.5,
+  height = 2.5,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
 mod <- lme(anpp_response~drtsev.1*n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
