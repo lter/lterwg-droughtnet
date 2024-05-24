@@ -470,33 +470,44 @@ summary(mod)
 summary <- emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years")
 pairs(emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years"))
 
+mod <- lme(anpp_response~n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
+summary(mod)
+x <- ggpredict(mod, c("n_treat_years", "e.n"))
+
 data.frame(summary)%>%
-ggplot(aes(n_treat_years, emmean, color = e.n))+
-  geom_pointrange(aes(ymax = emmean+SE, ymin = emmean-SE), position = position_dodge(width = 0.3))+
-  geom_hline(yintercept = 0, linetype = "dashed")+
+ggplot(aes(n_treat_years, emmean, color = e.n, fill = e.n))+
+  geom_pointrange(aes(ymax = emmean+SE, ymin = emmean-SE, color = e.n)#, position = position_dodge(width = 0.3)
+                  )+
+  #geom_hline(yintercept = 0, linetype = "dashed")+
+  #xlim(.7,4.3)+
+  #ylim(-1,.1)+
+  #geom_ribbon(data=x,aes(x=x,y=predicted, ymin=predicted-std.error,ymax=predicted+std.error, color = group), alpha =.4)+
+  #geom_line(data=x,aes(x=x,y=predicted, color = group), alpha =1)+
+  geom_smooth(method = "lm", alpha = 0.4)+
   xlim(.7,4.3)+
-  ylim(-1,.1)+
+  ylim(-2,0)+
   scale_color_manual(values = c("#da7901", "grey48" ))+
+  scale_fill_manual(values = c("#da7901", "grey48" ))+
   ylab("ANPP response")+
   xlab("Treatment year")+
   theme_base()+
   theme(legend.position = "none",axis.ticks.length=unit(-0.25, "cm"))
 
 ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2_inset.pdf",
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_panelA.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
-  scale = 1,
-  width = 2.5,
-  height = 2.5,
+  scale = 1,  
+  width = 5,
+  height = 4.5,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
 )
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
-mod <- lme(anpp_response~drtsev.1*n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
+mod <- lme(anpp_response~n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
 summary(mod)
 
 pairs(emtrends(mod, ~ n_treat_years | e.n, var = "n_treat_years"))
@@ -868,7 +879,7 @@ x <- ggpredict(mod, c("historycont"))
 data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))%>%
   ggplot( aes(x = history, avg))+
   geom_pointrange(aes(ymax = avg+se, ymin = avg-se), color = "#DA7901")+
-  geom_hline(yintercept = 0, linetype = "dashed")+
+#  geom_hline(yintercept = 0, linetype = "dashed")+
 #  geom_hline(yintercept = nominal.avg, color = "blue")+
 #  geom_hline(yintercept = nominal.avg+nominal.se, color = "blue", linetype = "dashed")+
 #  geom_hline(yintercept = nominal.avg-nominal.se, color = "blue", linetype = "dashed")+
@@ -880,7 +891,7 @@ data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.av
   geom_line(data=x,aes(x=x,y=predicted), alpha =1, color = "#DA7901")+
   xlab("# consecutive years extreme drought")+
   ylab("ANPP response")+
-  ylim(-2,0.25)+
+  ylim(-2,0)+
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"))
 
@@ -891,7 +902,7 @@ data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.av
 
 
 ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_consecutive-years.pdf",
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_panelB.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
