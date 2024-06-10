@@ -509,9 +509,8 @@ ggsave(
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
 mod <- lme(anpp_response~n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
 summary(mod)
-
-pairs(emtrends(mod, ~ n_treat_years | e.n, var = "n_treat_years"))
-
+x <- emtrends(mod, ~ e.n, var = "n_treat_years")
+test(x)
 
 
 
