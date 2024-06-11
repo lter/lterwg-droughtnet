@@ -441,119 +441,6 @@ ggsave(
 # # 
 
 
-subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
-  subset(Ann_Per == "Perennial")%>%
-  ggplot( aes(drtsev.1, anpp_response, color = e.n, fill = e.n))+
-  facet_wrap(~n_treat_years, scales = 'free')+
-  scale_color_manual(values = c("#da7901", "grey48" ))+
-  scale_fill_manual(values = c("#da7901", "grey48" ))+
-  geom_point(aes(),alpha = 0.8,#pch = 21,
-             size=3)+
-  #scale_shape_manual(values = c(19, 21))+
-  geom_smooth(aes(),method = "lm")+
-  #scale_linetype_manual(values = c("solid","dashed"))+
-  geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_vline(xintercept = 0, linetype = "dashed")+
-  xlim(-.12,1)+
-  ylim(-5.05,1.2)+
-  #scale_color_manual( values = c("#866475","#789ac0" ))+ #need to change colors to extreme vs nominal"#E58601", "#46ACC8"
-  xlab("Drought severity (percent reduction of MAP)")+
-  ylab("ANPP response")+
-  theme_base()+
-  theme(legend.position = "none",axis.ticks.length=unit(-0.25, "cm"))
-
-
-tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
-mod <- lme(anpp_response~as.factor(n_treat_years)*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
-summary(mod)
-
-summary <- emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years")
-pairs(emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years"))
-
-mod <- lme(anpp_response~n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
-summary(mod)
-x <- ggpredict(mod, c("n_treat_years", "e.n"))
-
-data.frame(summary)%>%
-ggplot(aes(n_treat_years, emmean, color = e.n, fill = e.n))+
-  geom_pointrange(aes(ymax = emmean+SE, ymin = emmean-SE, color = e.n)#, position = position_dodge(width = 0.3)
-                  )+
-  #geom_hline(yintercept = 0, linetype = "dashed")+
-  #xlim(.7,4.3)+
-  #ylim(-1,.1)+
-  #geom_ribbon(data=x,aes(x=x,y=predicted, ymin=predicted-std.error,ymax=predicted+std.error, color = group), alpha =.4)+
-  #geom_line(data=x,aes(x=x,y=predicted, color = group), alpha =1)+
-  geom_smooth(method = "lm", alpha = 0.4)+
-  xlim(.7,4.3)+
-  ylim(-2,0)+
-  scale_color_manual(values = c("#da7901", "grey48" ))+
-  scale_fill_manual(values = c("#da7901", "grey48" ))+
-  ylab("ANPP response")+
-  xlab("Treatment year")+
-  theme_base()+
-  theme(legend.position = "none",axis.ticks.length=unit(-0.25, "cm"))
-
-ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_panelA.pdf",
-  plot = last_plot(),
-  device = "pdf",
-  path = NULL,
-  scale = 1,  
-  width = 5,
-  height = 4.5,
-  units = c("in"),
-  dpi = 600,
-  limitsize = TRUE
-)
-
-tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
-mod <- lme(anpp_response~n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
-summary(mod)
-x <- emtrends(mod, ~ e.n, var = "n_treat_years")
-test(x)
-
-
-
-tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 1)
-mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
-summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
-
-tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 2)
-mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
-summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
-
-tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 3)
-mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
-summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
-
-tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 4)
-mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
-summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
-
-
-ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3.pdf",
-  plot = last_plot(),
-  device = "pdf",
-  path = NULL,
-  scale = 1,
-  width = 8,
-  height = 7,
-  units = c("in"),
-  dpi = 600,
-  limitsize = TRUE
-)
-
-
-
 
 ###
 
@@ -634,34 +521,34 @@ ggsave(
 
 
 ###
-
-data.anpp.summary%>%
-  dplyr::select(site_code, n_treat_years, e.n)%>%
-  pivot_wider(names_from = n_treat_years, values_from = e.n)%>%
-  pivot_longer(cols = c("1","2","3","4"), names_to = "n_treat_years", values_to = "e.n")%>%
-  left_join(dplyr::select(tempdf, site_code, anpp_response))%>%
-  dplyr::mutate(site_code = fct_reorder(site_code, dplyr::desc(-anpp_response)))%>%
-  ggplot(aes(n_treat_years, forcats::fct_rev(site_code), fill = e.n))+
-  geom_tile(colour = "black")+
-  scale_fill_manual(values = c( "#da7901" , "grey48"), na.value = "white")+ #burnt sienna "#E97451"
-  ylab("")+
-  xlab("Treatment year")+
-  theme_bw()
-
-ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/EN_by_year_site.pdf",
-  plot = last_plot(),
-  device = "pdf",
-  path = NULL,
-  scale = 1,
-  width = 3.5,
-  height = 7,
-  units = c("in"),
-  dpi = 600,
-  limitsize = TRUE
-)
-
-
+# 
+# data.anpp.summary%>%
+#   dplyr::select(site_code, n_treat_years, e.n)%>%
+#   pivot_wider(names_from = n_treat_years, values_from = e.n)%>%
+#   pivot_longer(cols = c("1","2","3","4"), names_to = "n_treat_years", values_to = "e.n")%>%
+#   left_join(dplyr::select(tempdf, site_code, anpp_response))%>%
+#   dplyr::mutate(site_code = fct_reorder(site_code, dplyr::desc(-anpp_response)))%>%
+#   ggplot(aes(n_treat_years, forcats::fct_rev(site_code), fill = e.n))+
+#   geom_tile(colour = "black")+
+#   scale_fill_manual(values = c( "#da7901" , "grey48"), na.value = "white")+ #burnt sienna "#E97451"
+#   ylab("")+
+#   xlab("Treatment year")+
+#   theme_bw()
+# 
+# ggsave(
+#   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/EN_by_year_site.pdf",
+#   plot = last_plot(),
+#   device = "pdf",
+#   path = NULL,
+#   scale = 1,
+#   width = 3.5,
+#   height = 7,
+#   units = c("in"),
+#   dpi = 600,
+#   limitsize = TRUE
+# )
+# 
+# 
 
 
 
@@ -791,6 +678,44 @@ coef(am)
 
 #########
 
+
+subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
+  subset(Ann_Per == "Perennial")%>%
+  ggplot( aes(drtsev.1, anpp_response, color = e.n, fill = e.n))+
+  facet_wrap(~n_treat_years, scales = 'free')+
+  scale_color_manual(values = c("#da7901", "grey48" ))+
+  scale_fill_manual(values = c("#da7901", "grey48" ))+
+  geom_point(aes(),alpha = 0.8,#pch = 21,
+             size=3)+
+  #scale_shape_manual(values = c(19, 21))+
+  geom_smooth(aes(),method = "lm")+
+  #scale_linetype_manual(values = c("solid","dashed"))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  xlim(-.12,1)+
+  ylim(-5.05,1.2)+
+  #scale_color_manual( values = c("#866475","#789ac0" ))+ #need to change colors to extreme vs nominal"#E58601", "#46ACC8"
+  xlab("Drought severity (percent reduction of MAP)")+
+  ylab("ANPP response")+
+  theme_base()+
+  theme(legend.position = "none",axis.ticks.length=unit(-0.25, "cm"))
+
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,
+  width = 8,
+  height = 7,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
+
+
 ##Alan's version
 alan <- data.anpp.summary%>%
   subset(Ann_Per == "Perennial")%>%
@@ -916,62 +841,136 @@ ggsave(
 
 
 
-nonconsecutive <- data.anpp.summary%>%
-  subset(Ann_Per == "Perennial")%>%
-  unite(historyroad, c("e.n", "prev_e.n", "prev_e.n2", "prev_e.n3"), sep = "::")%>%
-  subset(historyroad == "extreme::extreme::nominal::extreme" | historyroad == "extreme::nominal::extreme::extreme" |historyroad == "extreme::nominal::extreme::nominal" | historyroad == "extreme::nominal::extreme::NA")
-
-nonconsecutive$two_or_three <- ifelse(nonconsecutive$historyroad == "extreme::extreme::nominal::extreme" | nonconsecutive$historyroad == "extreme::nominal::extreme::extreme", "Three_nonconsecutive",
-                                      ifelse(
-                                        nonconsecutive$historyroad == "extreme::nominal::extreme::nominal" | nonconsecutive$historyroad == "extreme::nominal::extreme::NA", "Two_nonconsecutive",
-                                        NA
-                                      ))
-mean(subset(nonconsecutive, two_or_three == "Three_nonconsecutive")$anpp_response)
-sd(subset(nonconsecutive, two_or_three == "Three_nonconsecutive")$anpp_response)/5
-mean(subset(nonconsecutive, two_or_three == "Two_nonconsecutive")$anpp_response)
-sd(subset(nonconsecutive, two_or_three == "Two_nonconsecutive")$anpp_response)/5
-
-
-
-
-
-tempdf <- data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))
-
-ggplot(data=tempdf, aes(x = history, avg))+
-  geom_pointrange(data=tempdf,aes(ymax = avg+se, ymin = avg-se))+
-  geom_hline(yintercept = 0)+
-  geom_abline(slope = -0.23659773, intercept = -0.04291775)+
-  geom_ribbon(data=x,aes(x=x, y= predicted,ymin=predicted-std.error,ymax=predicted+std.error), alpha =.25)+
-  geom_hline(yintercept = nominal.avg, color = "blue")+
-  geom_hline(yintercept = nominal.avg+nominal.se, color = "blue", linetype = "dashed")+
-  geom_hline(yintercept = nominal.avg-nominal.se, color = "blue", linetype = "dashed")+
-  geom_hline(yintercept = extreme.avg, color = "red")+
-  geom_hline(yintercept = extreme.avg+extreme.se, color = "red", linetype = "dashed")+
-  geom_hline(yintercept = extreme.avg-extreme.se, color = "red", linetype = "dashed")+
-  xlab("Number of consecutive years extreme drought")+
-  ylab("ANPP response")+
-  theme_base()
-
-
-
-###Nico's version
-
-
-
-alan%>%
-  ddply(.(n_treat_years, historyroad, history), function(x)data.frame(
-    anpp_response = mean(x$anpp_response),
-    anpp_response.se = sd(x$anpp_response)/sqrt(length(x$site_code)),
-    n = length(x$site_code)
-  ))%>%
-ggplot(aes(n_treat_years, anpp_response, color = history))+
-  geom_pointrange(aes(ymax = anpp_response+anpp_response.se, ymin = anpp_response-anpp_response.se),position=position_dodge(width=0.25))+
-  geom_hline(yintercept = 0)+
-  xlab("Treatment year")+
-  ylab("ANPP response")+
-  theme_base()+
-  guides(color=guide_legend(title="# consecitive extreme years"))
-
-mod <- lm(anpp_response~as.factor(n_treat_years)*history, data = alan)  
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
+mod <- lme(anpp_response~as.factor(n_treat_years)*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
 summary(mod)
 
+summary <- emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years")
+pairs(emmeans(mod, ~ e.n | n_treat_years, var = "n_treat_years"))
+
+
+data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))%>%
+    ggplot( aes(x = history, avg))+
+    geom_pointrange(aes(ymax = avg+se, ymin = avg-se), color = "#DA7901")+
+  geom_pointrange(data = data.frame(summary),aes(n_treat_years, emmean, color = e.n, fill = e.n,ymax = emmean+SE, ymin = emmean-SE))+
+  scale_color_manual(values = c("#da7901", "grey48" ))+
+  scale_fill_manual(values = c("#da7901", "grey48" ))+
+  geom_smooth(data = data.frame(summary),aes(n_treat_years, emmean, color = e.n, fill = e.n),method = "lm", alpha = 0.4)+
+    geom_ribbon(data=x,aes(x=x,y=predicted, ymin=predicted-std.error,ymax=predicted+std.error), alpha =.4, fill = "#DA7901")+
+    geom_line(data=x,aes(x=x,y=predicted), alpha =1, color = "#DA7901")+
+    xlab("Treatment year and # consecutive years extreme drought")+
+    ylab("ANPP response")+
+    ylim(-2,0)+
+    theme_base()+
+    theme(axis.ticks.length=unit(-0.25, "cm"))
+  
+  
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig3_combined.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,  
+  width = 5,
+  height = 4.5,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE)
+mod <- lme(anpp_response~n_treat_years*e.n, random = ~1|ipcc_regions/site_code, data = tempdf)
+summary(mod)
+x <- emtrends(mod, ~ e.n, var = "n_treat_years")
+test(x)
+
+
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 1)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 2)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 3)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+
+tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 4)
+mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+
+
+
+# 
+# 
+# 
+# nonconsecutive <- data.anpp.summary%>%
+#   subset(Ann_Per == "Perennial")%>%
+#   unite(historyroad, c("e.n", "prev_e.n", "prev_e.n2", "prev_e.n3"), sep = "::")%>%
+#   subset(historyroad == "extreme::extreme::nominal::extreme" | historyroad == "extreme::nominal::extreme::extreme" |historyroad == "extreme::nominal::extreme::nominal" | historyroad == "extreme::nominal::extreme::NA")
+# 
+# nonconsecutive$two_or_three <- ifelse(nonconsecutive$historyroad == "extreme::extreme::nominal::extreme" | nonconsecutive$historyroad == "extreme::nominal::extreme::extreme", "Three_nonconsecutive",
+#                                       ifelse(
+#                                         nonconsecutive$historyroad == "extreme::nominal::extreme::nominal" | nonconsecutive$historyroad == "extreme::nominal::extreme::NA", "Two_nonconsecutive",
+#                                         NA
+#                                       ))
+# mean(subset(nonconsecutive, two_or_three == "Three_nonconsecutive")$anpp_response)
+# sd(subset(nonconsecutive, two_or_three == "Three_nonconsecutive")$anpp_response)/5
+# mean(subset(nonconsecutive, two_or_three == "Two_nonconsecutive")$anpp_response)
+# sd(subset(nonconsecutive, two_or_three == "Two_nonconsecutive")$anpp_response)/5
+# 
+# 
+# 
+# 
+# 
+# tempdf <- data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.avg), se = c(one.se, two.se, three.se, four.se))
+# 
+# ggplot(data=tempdf, aes(x = history, avg))+
+#   geom_pointrange(data=tempdf,aes(ymax = avg+se, ymin = avg-se))+
+#   geom_hline(yintercept = 0)+
+#   geom_abline(slope = -0.23659773, intercept = -0.04291775)+
+#   geom_ribbon(data=x,aes(x=x, y= predicted,ymin=predicted-std.error,ymax=predicted+std.error), alpha =.25)+
+#   geom_hline(yintercept = nominal.avg, color = "blue")+
+#   geom_hline(yintercept = nominal.avg+nominal.se, color = "blue", linetype = "dashed")+
+#   geom_hline(yintercept = nominal.avg-nominal.se, color = "blue", linetype = "dashed")+
+#   geom_hline(yintercept = extreme.avg, color = "red")+
+#   geom_hline(yintercept = extreme.avg+extreme.se, color = "red", linetype = "dashed")+
+#   geom_hline(yintercept = extreme.avg-extreme.se, color = "red", linetype = "dashed")+
+#   xlab("Number of consecutive years extreme drought")+
+#   ylab("ANPP response")+
+#   theme_base()
+# 
+# 
+# 
+# ###Nico's version
+# 
+# 
+# 
+# alan%>%
+#   ddply(.(n_treat_years, historyroad, history), function(x)data.frame(
+#     anpp_response = mean(x$anpp_response),
+#     anpp_response.se = sd(x$anpp_response)/sqrt(length(x$site_code)),
+#     n = length(x$site_code)
+#   ))%>%
+# ggplot(aes(n_treat_years, anpp_response, color = history))+
+#   geom_pointrange(aes(ymax = anpp_response+anpp_response.se, ymin = anpp_response-anpp_response.se),position=position_dodge(width=0.25))+
+#   geom_hline(yintercept = 0)+
+#   xlab("Treatment year")+
+#   ylab("ANPP response")+
+#   theme_base()+
+#   guides(color=guide_legend(title="# consecitive extreme years"))
+# 
+# mod <- lm(anpp_response~as.factor(n_treat_years)*history, data = alan)  
+# summary(mod)
+# 
