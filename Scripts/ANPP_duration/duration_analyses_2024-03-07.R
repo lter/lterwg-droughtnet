@@ -853,12 +853,12 @@ data.frame(history = c(1, 2, 3, 4), avg = c(one.avg, two.avg, three.avg, four.av
     ggplot( aes(x = history, avg))+
     geom_pointrange(aes(ymax = avg+se, ymin = avg-se), color = "#DA7901")+
   geom_pointrange(data = data.frame(summary),aes(n_treat_years, emmean, color = e.n, fill = e.n,ymax = emmean+SE, ymin = emmean-SE))+
-  scale_color_manual(values = c("#da7901", "grey48" ))+
-  scale_fill_manual(values = c("#da7901", "grey48" ))+
+  scale_color_manual(values = c("#e8ae66", "grey48" ))+ #normal orange is #da7901
+  scale_fill_manual(values = c("#e8ae66", "grey48" ))+
   geom_smooth(data = data.frame(summary),aes(n_treat_years, emmean, color = e.n, fill = e.n),method = "lm", alpha = 0.4)+
-    geom_ribbon(data=x,aes(x=x,y=predicted, ymin=predicted-std.error,ymax=predicted+std.error), alpha =.4, fill = "#DA7901")+
-    geom_line(data=x,aes(x=x,y=predicted), alpha =1, color = "#DA7901")+
-    xlab("Treatment year and # consecutive years extreme drought")+
+    geom_ribbon(data=x,aes(x=x,y=predicted, ymin=predicted-std.error,ymax=predicted+std.error), alpha =.4, fill = "#ae6000")+
+    geom_line(data=x,aes(x=x,y=predicted), alpha =1, color = "#ae6000")+
+    xlab("Years")+
     ylab("ANPP response")+
     ylim(-2,0)+
     theme_base()+
