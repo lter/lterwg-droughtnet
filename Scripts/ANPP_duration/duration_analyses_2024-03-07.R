@@ -624,13 +624,6 @@ data.anpp.year <- data.anpp.summary%>%
 
 #
 
-mod <- lmer(anpp_response~as.factor(n_treat_years)*map + (1|site_code), data.anpp.summary)
-summary(mod)
-anova(mod)
-
-mod <- lme(anpp_response~as.factor(n_treat_years) + (1|ipccsite_code), subset(data.anpp.summary, Ann_Per == "Perennial"))
-summary(mod)
-anova(mod)
 
 
 
@@ -735,12 +728,12 @@ ggplot(alan, aes(x = factor(history,level=c("One", "Two", "Three", "Four")), anp
 
 
 #all nominal avg
-mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "nominal"))
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "nominal" & Ann_Per == "Perennial"))
 nominal.avg <- summary(mod)[[20]][1]
 nominal.se <- summary(mod)[[20]][2]
 
 #all extreme avg
-mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "extreme"))
+mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "extreme" & Ann_Per == "Perennial"))
 summary(mod)
 extreme.avg <- summary(mod)[[20]][1]
 extreme.se <- summary(mod)[[20]][2]
