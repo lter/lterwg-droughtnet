@@ -725,7 +725,12 @@ ggplot(alan, aes(x = factor(history,level=c("One", "Two", "Three", "Four")), anp
   geom_point()+
   theme_base()
 
-
+alan$drtsev.ave <- (alan$drtsev.1 + alan$drtsev.2 + alan$drtsev.3 + alan$drtsev.4)/4
+x <- subset(alan, history == "Four")%>%
+  left_join(Site_Elev.Disturb, by = c("site_code", "ipcc_regions"))%>%
+  dplyr::select(site_code, drtsev.ave, ipcc_regions, map, ppt.1, anpp_response, latitud, longitud)
+  
+write.csv(x, "C:/Users/ohler/Dropbox/IDE/data_raw/fouryear_extreme_sites.csv")
 
 #all nominal avg
 mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, data = subset(data.anpp.summary, e.n == "nominal" & Ann_Per == "Perennial"))
