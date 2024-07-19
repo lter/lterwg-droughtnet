@@ -14,7 +14,7 @@ library(rsq)
 library(emmeans)
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2024-03-15.csv")%>% #anpp_ppt_2023-11-03.csv
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2024-07-18.csv")%>% #anpp_ppt_2023-11-03.csv
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland")%>%
   mutate(n_treat_years = ifelse(site_code == "allmendo.ch" & n_treat_days == 197, 1, n_treat_years))%>%
   mutate(n_treat_years = ifelse(site_code == "allmendb.ch" & n_treat_days == 197, 1, n_treat_years))%>%
@@ -121,7 +121,7 @@ data.anpp2$Ann_Per <- ifelse(data.anpp2$PctAnnual > 60, "Annual",
 data.anpp2$Ann_Per <- ifelse(is.na(data.anpp2$Ann_Per) == TRUE, "Perennial", data.anpp2$Ann_Per) #morient.ar, b=nyngan.au, riomayo.ar, stubai.at, and syferkuil.za don't have cover data, but based on biomass and site info data that they submitted we can say that they are all perennial grassland.
 
 
-length(unique(data.anpp2$site_code)) #70
+length(unique(data.anpp2$site_code)) #74
 
 subset(data.anpp2, PctAnnual != "NA")$site_code%>%
   unique()%>%
@@ -466,7 +466,7 @@ data.anpp.summary%>%
   theme_base()
 
 
-
+length(unique(data.anpp.summary$site_code))#norm.cn, teshio.jp, freiburg.de
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_sitches-se.pdf",

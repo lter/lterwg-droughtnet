@@ -121,8 +121,8 @@ subset(rep_year != "nyngan.au_2019_1_8_A")%>% #major outlier. Tim made decision 
   subset(site_code != "qdtsouth.cl")%>%#Doesn't report ANPP
   subset(site_code != "neudamm.na")%>%#Doesn't report ANPP, also no weather info
   subset(site_code != "ebro.es")%>%#ANPP outside range for biome
-  #subset(site_code != "ethadb.au")%>%#ANPP outside range for biome
-  #subset(site_code != "ethadn.au")%>%#ANPP outside range for biome
+  subset(site_code != "ethadb.au")%>%#ANPP outside range for biome
+  subset(site_code != "ethadn.au")%>%#ANPP outside range for biome
   unite(site_trt, c("site_code", "trt"), remove =FALSE)%>%
   subset(site_trt != "garraf.es_Drought")%>% #Did not follow protocols: Not using for drought plots, only using control plots for this site
   subset(site_trt != "brandjberg.dk_Drought")%>%#Did not follow protocols: Not using for drought plots, only using control plots for this site
@@ -143,6 +143,6 @@ anpp_ppt.end <- data.all%>%
 
 
 
-write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/Meghan_anpp_ppt_2024-07-18.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2024-07-18.csv")
 
 
