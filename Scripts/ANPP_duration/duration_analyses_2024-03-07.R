@@ -255,6 +255,21 @@ seasonality <- read.csv("C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\climate
 
 ##Create planeled figure for supplements (and some stats to go along with them)
 #YEAR 1
+mult_reg <- data.anpp.summary%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  left_join(sandsite, by = "site_code")%>%
+  left_join(ai, by = "site_code")%>%
+  left_join(cv1, by = "site_code")%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  left_join(seasonality, by = "site_code")
+  #subset(richness >= 0)
+
+library("PerformanceAnalytics")
+
+mod <- lmer(anpp_response~drtsev.1 + (1|ipcc_regions), data = mult_reg)
+summary(mod)
+
+
 a <- data.anpp.summary%>%
   #left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
@@ -268,7 +283,7 @@ a <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "1"&Ann_Per == "Perennial"))
 summary(mod)
@@ -287,7 +302,7 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -313,7 +328,7 @@ c <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -338,7 +353,7 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -363,7 +378,7 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -380,14 +395,14 @@ f <- data.anpp.summary%>%
   ggplot(aes(richness, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  geom_smooth(method = "lm", se = TRUE)+
+  geom_smooth(method = "lm", se = TRUE, color = "black")+
   xlab("Richness")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -412,7 +427,7 @@ g <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -436,7 +451,7 @@ h <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -448,8 +463,31 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
+i <- data.anpp.summary%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  ggplot(aes(drtsev.1, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+  geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("Drought severity")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
 
-plot_grid(a, c, d, g,b, e, f,h, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'))
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~drtsev.1,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+
+
+plot_grid(i, h, a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y1.pdf",
@@ -457,8 +495,8 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 10,
-  height = 9,
+  width = 15,
+  height = 6,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
@@ -467,20 +505,41 @@ ggsave(
 
 ###
 #YEAR 2
+mult_reg <- data.anpp.summary%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  left_join(sandsite, by = "site_code")%>%
+  left_join(ai, by = "site_code")%>%
+  left_join(cv1, by = "site_code")%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  left_join(seasonality, by = "site_code")#%>%
+  #subset(richness > 0)
+
+dplyr::select(mult_reg,drtsev.1,drtsev.2,map,AI,cv_ppt_inter,seasonality_index,sand_mean,percent_graminoid,richness)%>%
+  chart.Correlation( histogram=TRUE, pch=19)
+
+
+mod <- lmer(anpp_response~drtsev.1+#drtsev.2+map+#AI+
+              #cv_ppt_inter+
+              #seasonality_index+sand_mean+percent_graminoid+richness + 
+            (1|ipcc_regions), data = mult_reg)
+summary(mod)
+
+
+
 a <- data.anpp.summary%>%
   #left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
   ggplot(aes(map, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  #geom_smooth(method = "lm", se = TRUE, color = "black")+ #not significant when controlling for multiple comparisons
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #not significant when controlling for multiple comparisons
   xlab("MAP")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+#1E4D2B", "#C8C372"
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "2"&Ann_Per == "Perennial"))
 summary(mod)
@@ -499,7 +558,7 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -525,7 +584,7 @@ c <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -550,7 +609,7 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -575,7 +634,7 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -599,7 +658,7 @@ f <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -617,14 +676,14 @@ g <- data.anpp.summary%>%
   ggplot(aes(seasonality_index, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-#  geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  geom_smooth(method = "lm",  se = TRUE, color = "black", linetype = "dashed")+
   xlab("Seasonality")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -648,7 +707,7 @@ h <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -660,8 +719,30 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
+i <- data.anpp.summary%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  ggplot(aes(drtsev.1, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+  geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("Drought severity")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
 
-plot_grid(a, c, d, g,b, e, f,h, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'))
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~drtsev.1,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+
+plot_grid(i,h,a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y2.pdf",
@@ -669,8 +750,8 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 10,
-  height = 9,
+  width = 15,
+  height = 6,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
@@ -680,6 +761,25 @@ ggsave(
 
 
 #YEAR 3
+mult_reg <- data.anpp.summary%>%
+  subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
+  left_join(sandsite, by = "site_code")%>%
+  left_join(ai, by = "site_code")%>%
+  left_join(cv1, by = "site_code")%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  left_join(seasonality, by = "site_code")
+
+mod <- lmer(anpp_response~drtsev.1+#drtsev.2+map+#AI+
+              #cv_ppt_inter+
+              #seasonality_index+sand_mean+percent_graminoid+richness + 
+              (1|ipcc_regions), data = mult_reg)
+summary(mod)
+
+
+mod <- lmer(anpp_response~drtsev.1+drtsev.2+map+AI+cv_ppt_inter+seasonality_index+sand_mean+percent_graminoid+richness + (1|ipcc_regions), data = mult_reg)
+summary(mod)
+
+
 a <- data.anpp.summary%>%
   #left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
@@ -693,7 +793,7 @@ a <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "3"&Ann_Per == "Perennial"))
 summary(mod)
@@ -712,7 +812,7 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -731,14 +831,14 @@ c <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   xlim(0,2)+
-  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
+  geom_smooth(method = "lm", se = TRUE, color = "black")+ 
   xlab("Aridity index")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -763,7 +863,7 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -788,7 +888,7 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -812,7 +912,7 @@ f <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -830,14 +930,14 @@ g <- data.anpp.summary%>%
   ggplot(aes(seasonality_index, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  geom_smooth(method = "lm",  se = TRUE, color = "black", linetype = "dashed")+
   xlab("Seasonality")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -861,7 +961,7 @@ h <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -873,8 +973,31 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
+i <- data.anpp.summary%>%
+  subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
+  ggplot(aes(drtsev.1, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+  geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("Drought severity")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
 
-plot_grid(a, c, d, g,b, e, f,h, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'))
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~drtsev.1,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+
+
+plot_grid(i,h,a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y3.pdf",
@@ -882,8 +1005,8 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 10,
-  height = 9,
+  width = 15,
+  height = 6,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
@@ -891,20 +1014,34 @@ ggsave(
 
 # # 
 #YEAR 4
+mult_reg <- data.anpp.summary%>%
+  subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
+  left_join(sandsite, by = "site_code")%>%
+  left_join(ai, by = "site_code")%>%
+  left_join(cv1, by = "site_code")%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  left_join(seasonality, by = "site_code")
+
+
+mod <- lmer(anpp_response~drtsev.1#+drtsev.2+map+AI+cv_ppt_inter+seasonality_index+sand_mean+percent_graminoid+richness 
+            + (1|ipcc_regions), data = mult_reg)
+summary(mod)
+
+
 a <- data.anpp.summary%>%
   #left_join(history.df, by = "site_code")%>%
   subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
   ggplot(aes(map, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-#  geom_smooth(method = "lm", se = TRUE, color = "black")+
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+
   xlab("MAP")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+#1E4D2B", "#C8C372"
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "4"&Ann_Per == "Perennial"))
 summary(mod)
@@ -923,7 +1060,7 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -949,7 +1086,7 @@ c <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -974,7 +1111,7 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -999,7 +1136,7 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -1016,14 +1153,14 @@ f <- data.anpp.summary%>%
   ggplot(aes(richness, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  #geom_smooth(method = "lm", se = TRUE)+
+  geom_smooth(method = "lm", se = TRUE, color = "black")+
   xlab("Richness")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -1048,7 +1185,7 @@ g <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -1060,23 +1197,21 @@ summary(mod)
 r.squaredGLMM(mod)
 
 h <- data.anpp.summary%>%
-  left_join(seasonality, by = "site_code")%>%
-  subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
+   subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
   ggplot(aes(drtsev.2, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-#  geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  geom_smooth(method = "lm",  se = TRUE, color = "black")+
   xlab("Previous year's drought severity")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",text = element_text(size = 12))
 
 tempdf <- data.anpp.summary%>%
-  left_join(seasonality, by = "site_code")%>%
-  dplyr::select(anpp_response, drtsev.2, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+    dplyr::select(anpp_response, drtsev.2, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
   subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
   filter(complete.cases(.))
 mod <- lme(anpp_response~drtsev.2,random = ~1|ipcc_regions, data = tempdf)
@@ -1084,8 +1219,29 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
+i <- data.anpp.summary%>%
+  subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
+  ggplot(aes(drtsev.1, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+  geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("Drought severity")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
 
-plot_grid(a, c, d, g,b, e, f,h, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'))
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
+  filter(complete.cases(.))
+mod <- lme(anpp_response~drtsev.1,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+plot_grid(i, h,a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y4.pdf",
@@ -1093,8 +1249,8 @@ ggsave(
   device = "pdf",
   path = NULL,
   scale = 1,
-  width = 10,
-  height = 9,
+  width = 15,
+  height = 6,
   units = c("in"),
   dpi = 600,
   limitsize = TRUE
