@@ -1393,7 +1393,8 @@ summary(mod)
 library(emmeans)
 means <- emmeans(mod, ~n_treat_years*type)
 emmeans(mod, list(pairwise ~ type), adjust = "tukey")
-emmeans(mod, list(pairwise ~ n_treat_years*type), adjust = "tukey")
+x <- emmeans(mod, list(pairwise ~ n_treat_years*type), adjust = "tukey")$`pairwise differences of n_treat_years, type`
+write.csv(x, "C:/Users/ohler/Dropbox/IDE_Duration_ms/fig1c_table.csv")
 confint(means)
 
 
@@ -1702,34 +1703,47 @@ mod <- lme(anpp_response~n_treat_years*e.n, random = ~1|ipcc_regions/site_code, 
 summary(mod) #for interaction
 x <- emtrends(mod, ~ e.n, var = "n_treat_years") #for main effects
 test(x)
+summary(pairs(emtrends(mod, ~e.n | n_treat_years, var="n_treat_years")))
 
 
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 1)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+one.main <- test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+one.contrast <- summary(pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1")))%>%
+  dplyr::rename(e.n = "contrast", drtsev.1.trend = "estimate")#ExN contrast
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 2)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+two.main <- test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+two.contrast <- summary(pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1")))%>%
+  dplyr::rename(e.n = "contrast", drtsev.1.trend = "estimate")#ExN contrast
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 3)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+three.main <- test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+three.contrast <- summary(pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1")))%>%
+  dplyr::rename(e.n = "contrast", drtsev.1.trend = "estimate")#ExN contrast
 
 tempdf <- subset(data.anpp.summary, Ann_Per == "Perennial" & is.na(drtsev.1) == FALSE & n_treat_years == 4)
 mod <- lme(anpp_response~drtsev.1*e.n, random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
-test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
-pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#ExN contrast
+four.main <- test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))#each variable separately
+four.contrast <- summary(pairs(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1")))%>%
+  dplyr::rename(e.n = "contrast", drtsev.1.trend = "estimate")#ExN contrast
 
+x <- rbind(one.main, one.contrast)%>%
+  rbind(two.main)%>%
+  rbind(two.contrast)%>%
+  rbind(three.main)%>%
+  rbind(three.contrast)%>%
+  rbind(four.main)%>%
+  rbind(four.contrast)
 
+write.csv(x, "C:/Users/ohler/Dropbox/IDE_Duration_ms/fig2_statstable.csv")
 
 # 
 # 
