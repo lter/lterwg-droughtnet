@@ -123,9 +123,8 @@ data.anpp2$Ann_Per <- ifelse(is.na(data.anpp2$Ann_Per) == TRUE, "Perennial", dat
 
 length(unique(data.anpp2$site_code)) #74
 
-subset(data.anpp2, PctAnnual != "NA")$site_code%>%
-  unique()%>%
-  length()
+mean(subset(data.anpp.summary, n_treat_years == 1)$n_treat_days)
+
 
 
 ##Create anpp_response and drought severity metrics
@@ -165,11 +164,11 @@ data.anpp.summary$type <-   plyr::revalue(data.anpp.summary$type, c(Grassland = 
 
 #of sites by prevailing vegetation type
 data.anpp.summary%>%
-  dplyr::select(site_code, type)%>%
+  dplyr::select(site_code, type, map)%>%
   unique()%>%
-  #write.csv("C:/Users/ohler/Downloads/IDE_duration_sites.csv")
-  group_by(type)%>%
-  tally()
+  write.csv("C:/Users/ohler/Downloads/IDE_duration_sites.csv")
+#  group_by(type)%>%
+#  tally()
 
 
 tempsites <- data.anpp.summary%>%
