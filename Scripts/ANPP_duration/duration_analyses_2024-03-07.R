@@ -123,7 +123,7 @@ data.anpp2$Ann_Per <- ifelse(is.na(data.anpp2$Ann_Per) == TRUE, "Perennial", dat
 
 length(unique(data.anpp2$site_code)) #74
 
-mean(subset(data.anpp.summary, n_treat_years == 1)$n_treat_days)
+#mean(subset(data.anpp.summary, n_treat_years == 1)$n_treat_days)
 
 
 
@@ -170,6 +170,33 @@ data.anpp.summary%>%
 #  group_by(type)%>%
 #  tally()
 
+#table site info
+
+table_S6 <- data.anpp.summary%>%
+  ddply(c("site_code", "type"), function(x)data.frame(
+    avg_precip_reduction = mean(x$drtsev.1, na.rm = TRUE)
+  ))%>%
+  left_join(Site_Elev.Disturb, by = "site_code")%>%
+  dplyr::mutate(target.reduction = as.numeric(drought_trt)/100)%>%
+  dplyr::select(site_name, site_code, country, continent, type, latitud, longitud, precip, temp, target.reduction, avg_precip_reduction)
+  
+write.csv(table_S6, "C:/Users/ohler/Dropbox/IDE_Duration_ms/site_table.csv" )
+ # ddply(.(site_code, type), function(x) data.frame(
+#    anpp_response = mean(x$anpp_response),
+#  ))%>%
+  
+
+  
+
+
+  tempdf <- data.anpp.summary%>%
+    ddply(.(site_code, type), function(x) data.frame(
+      anpp_response = mean(x$anpp_response),
+      anpp_response.se = sd(x$anpp_response)/sqrt(length(x$n_treat_years))
+    ))
+  as.numeric(drought_trt)/100)
+  
+  
 
 tempsites <- data.anpp.summary%>%
   subset(type == "Annual" & site_code != "cobar.au")%>%
