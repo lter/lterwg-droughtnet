@@ -309,7 +309,8 @@ a <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "1"&Ann_Per == "Perennial"))
 summary(mod)
@@ -328,7 +329,8 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -354,7 +356,8 @@ c <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -379,7 +382,8 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -404,7 +408,8 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -428,7 +433,8 @@ f <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -453,7 +459,8 @@ g <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -477,7 +484,8 @@ h <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -501,7 +509,8 @@ i <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -525,7 +534,8 @@ j <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -590,7 +600,8 @@ a <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "2"&Ann_Per == "Perennial"))
 summary(mod)
@@ -609,7 +620,8 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -635,7 +647,8 @@ c <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -660,7 +673,8 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -685,7 +699,8 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -709,7 +724,8 @@ f <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -734,7 +750,8 @@ g <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -758,7 +775,8 @@ h <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -782,7 +800,8 @@ i <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -807,7 +826,8 @@ j <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -869,7 +889,8 @@ a <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "3"&Ann_Per == "Perennial"))
 summary(mod)
@@ -888,7 +909,8 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -914,7 +936,8 @@ c <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -939,7 +962,8 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -964,7 +988,8 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -988,7 +1013,8 @@ f <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -1013,7 +1039,8 @@ g <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -1037,7 +1064,8 @@ h <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -1061,7 +1089,8 @@ i <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -1085,7 +1114,8 @@ j <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -1140,7 +1170,8 @@ a <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 mod <- lme(anpp_response~map, random = ~1|ipcc_regions, data = subset(data.anpp.summary, n_treat_years == "4"&Ann_Per == "Perennial"))
 summary(mod)
@@ -1159,7 +1190,8 @@ b <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(sandsite, by = "site_code")%>%
@@ -1185,7 +1217,8 @@ c <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(ai, by = "site_code")%>%
@@ -1210,7 +1243,8 @@ d <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
@@ -1235,7 +1269,8 @@ e <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -1259,7 +1294,8 @@ f <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(graminoid_richness, by = "site_code")%>%
@@ -1284,7 +1320,8 @@ g <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   left_join(seasonality, by = "site_code")%>%
@@ -1307,7 +1344,8 @@ h <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
     dplyr::select(anpp_response, drtsev.2, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -1330,7 +1368,8 @@ i <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
@@ -1354,7 +1393,9 @@ j <- data.anpp.summary%>%
   geom_hline(yintercept = 0, linetype = "dashed")+ 
   ylim(-3.5, 0.75)+
   theme_base()+
-  theme(legend.position = "none",text = element_text(size = 12))
+  theme(legend.position = "none",text = element_text(size = 12))+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")+
+  theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
 tempdf <- data.anpp.summary%>%
   dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
