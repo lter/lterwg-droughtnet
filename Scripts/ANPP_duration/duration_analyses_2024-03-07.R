@@ -194,7 +194,7 @@ write.csv(table_S6, "C:/Users/ohler/Dropbox/IDE_Duration_ms/site_table.csv" )
       anpp_response = mean(x$anpp_response),
       anpp_response.se = sd(x$anpp_response)/sqrt(length(x$n_treat_years))
     ))
-  as.numeric(drought_trt)/100)
+  #as.numeric(drought_trt)/100)
   
   
 
@@ -512,8 +512,33 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
+j <- data.anpp.summary%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = "site_code")%>%
+  ggplot(aes(temp, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+ # geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("MAT")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
 
-plot_grid(i, h, a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "1"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = c("site_code", "ipcc_regions"))
+mod <- lme(anpp_response~temp,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+
+
+
+plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y1.pdf",
@@ -768,7 +793,32 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
-plot_grid(i,h,a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+
+j <- data.anpp.summary%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = "site_code")%>%
+  ggplot(aes(temp, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+  #geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("MAT")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
+
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "2"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = c("site_code", "ipcc_regions"))
+mod <- lme(anpp_response~temp,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+
+plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y2.pdf",
@@ -1022,8 +1072,31 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
+j <- data.anpp.summary%>%
+  subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = "site_code")%>%
+  ggplot(aes(temp, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+  #geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("MAT")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
 
-plot_grid(i,h,a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "3"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = c("site_code", "ipcc_regions"))
+mod <- lme(anpp_response~temp,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+
+plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y3.pdf",
@@ -1267,7 +1340,33 @@ mod <- lme(anpp_response~drtsev.1,random = ~1|ipcc_regions, data = tempdf)
 summary(mod)
 r.squaredGLMM(mod)
 
-plot_grid(i, h,a, c, d, g,b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+
+j <- data.anpp.summary%>%
+  subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = "site_code")%>%
+  ggplot(aes(temp, anpp_response))+
+  geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
+  )+
+  #geom_smooth(method = "lm",  se = TRUE, color = "black")+
+  xlab("MAT")+
+  ylab("Productivity response")+
+  scale_color_manual( values = c("#da7901" , "grey48" ))+
+  geom_hline(yintercept = 0, linetype = "dashed")+ 
+  ylim(-3.5, 0.75)+
+  theme_base()+
+  theme(legend.position = "none",text = element_text(size = 12))
+
+tempdf <- data.anpp.summary%>%
+  dplyr::select(anpp_response, drtsev.1, n_treat_years, site_code, Ann_Per, ipcc_regions)%>%
+  subset(n_treat_years == "4"&Ann_Per == "Perennial")%>%
+  left_join(Site_Elev.Disturb, by = c("site_code", "ipcc_regions"))
+mod <- lme(anpp_response~temp,random = ~1|ipcc_regions, data = tempdf)
+summary(mod)
+r.squaredGLMM(mod)
+
+
+
+plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y4.pdf",
