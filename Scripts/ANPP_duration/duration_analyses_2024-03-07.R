@@ -180,7 +180,7 @@ table_S6 <- data.anpp.summary%>%
   dplyr::mutate(target.reduction = as.numeric(drought_trt)/100)%>%
   dplyr::select(site_name, site_code, country, continent, type, latitud, longitud, precip, temp, target.reduction, avg_precip_reduction)
   
-write.csv(table_S6, "C:/Users/ohler/Dropbox/IDE_Duration_ms/site_table.csv" )
+#write.csv(table_S6, "C:/Users/ohler/Dropbox/IDE_Duration_ms/site_table.csv" )
  # ddply(.(site_code, type), function(x) data.frame(
 #    anpp_response = mean(x$anpp_response),
 #  ))%>%
@@ -1975,3 +1975,18 @@ write.csv(x, "C:/Users/ohler/Dropbox/IDE_Duration_ms/fig2_statstable.csv")
 # 
 
 unique(data.anpp.summary$site_code)
+
+
+
+
+##########Full data table
+data_table <- data.anpp.summary%>%
+  left_join(dplyr::select(Site_Elev.Disturb, site_code, temp), by = "site_code")%>%
+  left_join(sandsite, by = "site_code")%>%
+  left_join(ai, by = "site_code")%>%
+  left_join(cv1, by = "site_code")%>%
+  left_join(graminoid_richness, by = "site_code")%>%
+  left_join(seasonality, by = "site_code")%>%
+  dplyr::select(site_code, n_treat_years, anpp_response, type, e.n, drtsev.1,  map, temp,   sand_mean, AI, cv_ppt_inter, percent_graminoid, richness)
+
+write.csv(data_table, "C:/Users/ohler/Dropbox/IDE_Duration_ms/data_table.csv")
