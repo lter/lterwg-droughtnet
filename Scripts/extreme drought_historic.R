@@ -57,13 +57,20 @@ sev_full <- rbind(sev, sev_ide) %>%
   dplyr::mutate(n_treat_years = replace_na(n_treat_years, "historic"))
 #revalue(as.factor(sev_full$n_treat_years), c("NA"="historic"))
 
-ggplot(sev_full, aes(Precipitation, biomass))+
+sev_full%>%
+    subset(n_treat_years != "0")%>%
+ggplot( aes(Precipitation, biomass))+
   geom_point(aes(color = trt, shape = n_treat_years), size = 3)+
-  scale_shape_manual(values = c(48, 49, 50, 51, 52, 16) )+
-  geom_smooth(method = "lm", se = FALSE)+
+  scale_shape_manual(values = c( 49, 50, 51, 52, 16) )+
+  scale_color_manual(values = c("#179F00","#FF5E1F","#7F7F7F"))+
+  geom_smooth(data = subset(sev_full, n_treat_years == "historic"),aes(Precipitation, biomass),method = "lm", se = FALSE, color = "black")+
+  ylim(0,235)+
   theme_classic()
 
-
+#ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/sev_extreme.pdf",
+#       device = "pdf",
+#       width = 6,
+#        height = 4)
 
 
 
@@ -92,7 +99,7 @@ sgs_precip <- sgs_precip%>%
               dplyr::summarize(Precipitation = sum(daily.tot))
 
 sgs_ambient <- left_join(sgs_biomass, sgs_precip, by = "year")
-sgs_ambient$n_treat_years <- 0
+sgs_ambient$n_treat_years <- "historic"
 sgs_ambient$trt <- "historic"
 
 
@@ -113,15 +120,26 @@ sgs_full <- rbind(sgs_ambient, sgs_ide)# %>%
 
 #sgs_full$n_treat_years <- ifelse()
 
-sgs_full$n_treat_years <- plyr::revalue(sgs_full$n_treat_years, c("-6" = "0","-5"="0","-4"="0","-3"="0","-2"="0"))
+#sgs_full$n_treat_years <- plyr::revalue(sgs_full$n_treat_years, c("-6" = "0","-5"="0","-4"="0","-3"="0","-2"="0"))
 
-ggplot(sgs_full, aes(Precipitation, biomass))+
+
+sgs_full%>%
+  subset(n_treat_years != "-6" & n_treat_years != "-5" & n_treat_years != "-4" &
+           n_treat_years != "-3" &
+           n_treat_years != "-2" &
+           n_treat_years != "-1" &
+           n_treat_years != "0" )%>%
+ggplot( aes(Precipitation, biomass))+
   geom_point(aes(color = trt, shape = n_treat_years), size = 3)+
-  scale_shape_manual(values = c(16, 49, 50, 51, 52, 53) )+
-  scale_color_manual(values = c("ForestGreen","Red","grey4"))+
-  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  scale_shape_manual(values = c(49, 50, 51, 52, 53, 16) )+
+  scale_color_manual(values = c("#179F00","#FF5E1F","#7F7F7F"))+
+  geom_smooth(data = subset(sgs_full, n_treat_years == "historic"),method = "lm", se = FALSE, color = "black")+
   theme_classic()
 
+#ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/sgs_extreme.pdf",
+#       device = "pdf",
+#       width = 6,
+#        height = 4)
 
 
 
