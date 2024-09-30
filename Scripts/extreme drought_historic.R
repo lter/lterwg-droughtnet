@@ -1,6 +1,7 @@
 library(tidyverse)
 library(plyr)
 library(ggthemes)
+library(lubridate)
 
 
 #load IDE data
@@ -68,6 +69,58 @@ ggplot(sev_full, aes(Precipitation, biomass))+
 
 #load SGS data
 
+sgs_biomass <- read.csv("C:/Users/ohler/Downloads/Summary1_SGS_ANPP.csv")%>%
+              subset(Site == "RIDGE")%>%
+              group_by(Year, Transect)%>%
+              dplyr::summarize(anpp = mean(anpp_sum))%>%
+              group_by(Year)%>%
+              dplyr::summarise(biomass = mean(anpp))%>%
+              dplyr::rename(year = Year)
+
+
+sgs_precip <- read.csv("C:/Users/ohler/Downloads/FULL_precip.csv")%>%
+              subset(Site == "SGS")%>%
+              subset(amb_drought != "drought")
+
+sgs_precip$DATE <- mdy(sgs_precip$DATE)
+sgs_precip$year <- year(sgs_precip$DATE)
+
+sgs_precip <- sgs_precip%>%
+              group_by(year, DATE)%>%
+              dplyr::summarize(daily.tot = mean(daily.tot))%>%
+              group_by(year)%>%
+              dplyr::summarize(Precipitation = sum(daily.tot))
+
+sgs_ambient <- left_join(sgs_biomass, sgs_precip, by = "year")
+sgs_ambient$n_treat_years <- 0
+sgs_ambient$trt <- "historic"
+
+
+sgs_ide <- ide_biomass%>%
+  subset(site_code == "sgsdrt.us")%>%
+  ddply(.(site_code, block, plot, subplot, year, n_treat_years, trt, ppt.1), function(x)data.frame(
+    biomass = sum(x$mass)
+  ))%>%
+  ddply(.(year, n_treat_years, trt, ppt.1), function(x)data.frame(
+    biomass = mean(x$biomass)
+  ))%>%
+  dplyr::rename(Precipitation = "ppt.1")
+sgs_ide$n_treat_years <- as.character(sgs_ide$n_treat_years)
+
+
+sgs_full <- rbind(sgs_ambient, sgs_ide)# %>%
+  #dplyr::mutate(n_treat_years = as.character(n_treat_years))
+
+#sgs_full$n_treat_years <- ifelse()
+
+sgs_full$n_treat_years <- plyr::revalue(sgs_full$n_treat_years, c("-6" = "0","-5"="0","-4"="0","-3"="0","-2"="0"))
+
+ggplot(sgs_full, aes(Precipitation, biomass))+
+  geom_point(aes(color = trt, shape = n_treat_years), size = 3)+
+  scale_shape_manual(values = c(16, 49, 50, 51, 52, 53) )+
+  scale_color_manual(values = c("ForestGreen","Red","grey4"))+
+  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  theme_classic()
 
 
 
