@@ -23,6 +23,8 @@ sev_met <- read.csv("C:/Users/ohler/Downloads/Sevilleta_LTER_Hourly_Meteorologic
   ))%>%
   dplyr::rename(year = "Year")
 
+sev_precip_perc <- quantile(sev_met$Precipitation, probs = c(0.025,0.975))
+
 
 sev_biomass <- read.csv("C:/Users/ohler/Documents/EDGE/sev331_quadrat_plant_species_biomass_2024-05-16.csv")%>%
   subset(site == "core_black" & season == "fall")%>%
@@ -32,6 +34,8 @@ sev_biomass <- read.csv("C:/Users/ohler/Documents/EDGE/sev331_quadrat_plant_spec
   ddply(.(site, year), function(x)data.frame(
     biomass = mean(x$biomass)
   ))
+sev_biomass_perc <- quantile(sev_biomass$biomass, probs = c(0.025,0.975))
+
 
 sev_ide <- ide_biomass%>%
             subset(site_code == "sevblack.us")%>%
@@ -60,11 +64,17 @@ sev_full <- rbind(sev, sev_ide) %>%
 sev_full%>%
     subset(n_treat_years != "0")%>%
 ggplot( aes(Precipitation, biomass))+
-  geom_point(aes(color = trt, shape = n_treat_years), size = 3)+
-  scale_shape_manual(values = c( 49, 50, 51, 52, 16) )+
+  geom_hline(aes(yintercept = sev_biomass_perc[1]), linetype = "dashed")+
+  geom_hline(aes(yintercept = sev_biomass_perc[2]), linetype = "dashed")+
+  geom_vline(aes(xintercept = sev_precip_perc[1]), linetype = "dashed")+
+  geom_vline(aes(xintercept = sev_precip_perc[2]), linetype = "dashed")+
+  geom_point(aes(color = trt,# shape = n_treat_years
+                 ), size = 3)+
+ # scale_shape_manual(values = c( 49, 50, 51, 52, 16) )+
   scale_color_manual(values = c("#179F00","#FF5E1F","#7F7F7F"))+
   geom_smooth(data = subset(sev_full, n_treat_years == "historic"),aes(Precipitation, biomass),method = "lm", se = FALSE, color = "black")+
   ylim(0,235)+
+  geom_text(aes(label=ifelse(n_treat_years != "historic",n_treat_years,'')),hjust=0,vjust=0)+
   theme_classic()
 
 #ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/sev_extreme.pdf",
@@ -77,12 +87,13 @@ ggplot( aes(Precipitation, biomass))+
 #load SGS data
 
 sgs_biomass <- read.csv("C:/Users/ohler/Downloads/Summary1_SGS_ANPP.csv")%>%
-              subset(Site == "RIDGE")%>%
+              subset(Site == "SWALE")%>%
               group_by(Year, Transect)%>%
               dplyr::summarize(anpp = mean(anpp_sum))%>%
               group_by(Year)%>%
               dplyr::summarise(biomass = mean(anpp))%>%
               dplyr::rename(year = Year)
+sgs_biomass_perc <- quantile(sgs_biomass$biomass, probs = c(0.025,0.975))
 
 
 sgs_precip <- read.csv("C:/Users/ohler/Downloads/FULL_precip.csv")%>%
@@ -97,6 +108,7 @@ sgs_precip <- sgs_precip%>%
               dplyr::summarize(daily.tot = mean(daily.tot))%>%
               group_by(year)%>%
               dplyr::summarize(Precipitation = sum(daily.tot))
+sgs_precip_perc <- quantile(sgs_precip$Precipitation, probs = c(0.025,0.975))
 
 sgs_ambient <- left_join(sgs_biomass, sgs_precip, by = "year")
 sgs_ambient$n_treat_years <- "historic"
@@ -120,7 +132,7 @@ sgs_full <- rbind(sgs_ambient, sgs_ide)# %>%
 
 #sgs_full$n_treat_years <- ifelse()
 
-#sgs_full$n_treat_years <- plyr::revalue(sgs_full$n_treat_years, c("-6" = "0","-5"="0","-4"="0","-3"="0","-2"="0"))
+sgs_full$n_treat_years <- plyr::revalue(sgs_full$n_treat_years, c("0.5" = "1","1"="2","2"="3","3"="4","4"="5"))
 
 
 sgs_full%>%
@@ -130,15 +142,21 @@ sgs_full%>%
            n_treat_years != "-1" &
            n_treat_years != "0" )%>%
 ggplot( aes(Precipitation, biomass))+
-  geom_point(aes(color = trt, shape = n_treat_years), size = 3)+
-  scale_shape_manual(values = c(49, 50, 51, 52, 53, 16) )+
+  geom_hline(aes(yintercept = sgs_biomass_perc[1]), linetype = "dashed")+
+  geom_hline(aes(yintercept = sgs_biomass_perc[2]), linetype = "dashed")+
+  geom_vline(aes(xintercept = sgs_precip_perc[1]), linetype = "dashed")+
+  geom_vline(aes(xintercept = sgs_precip_perc[2]), linetype = "dashed")+
+  geom_point(aes(color = trt#, shape = n_treat_years
+                 ), size = 3)+
+  #scale_shape_manual(values = c(49, 50, 51, 52, 53, 16) )+
   scale_color_manual(values = c("#179F00","#FF5E1F","#7F7F7F"))+
   geom_smooth(data = subset(sgs_full, n_treat_years == "historic"),method = "lm", se = FALSE, color = "black")+
+  geom_text(aes(label=ifelse(n_treat_years != "historic",n_treat_years,'')),hjust=0,vjust=0)+
   theme_classic()
 
-#ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/sgs_extreme.pdf",
+#ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/sgs_extreme_swale.pdf",
 #       device = "pdf",
-#       width = 6,
+#     width = 6,
 #        height = 4)
 
 
