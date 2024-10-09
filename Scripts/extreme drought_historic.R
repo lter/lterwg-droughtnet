@@ -166,7 +166,8 @@ ggplot( aes(Precipitation, biomass))+
 #load konza data
 knz_biomass <- read.csv("C:/Users/ohler/Downloads/KonzaANPP.csv")%>%
               subset(FRI == "Unburned" & Topography == "Upland")%>%
-              subset(FuncGroup != "PrYDead" & FuncGroup != "CuYDead" & FuncGroup != "Woody")%>%
+              subset(FuncGroup != "PrYDead" #& FuncGroup != "CuYDead" 
+                     & FuncGroup != "Woody")%>%
               dplyr::group_by(Year, Transect, Plot)%>%
               dplyr::summarise(ANPP = sum(ANPP, na.rm = TRUE))%>%
               dplyr::group_by(Year, Transect)%>%
