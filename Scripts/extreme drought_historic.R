@@ -164,8 +164,12 @@ ggplot( aes(Precipitation, biomass))+
 
 
 #load konza data
+
+
+
 knz_biomass <- read.csv("C:/Users/ohler/Downloads/KonzaANPP.csv")%>%
-              subset(FRI == "Unburned" & Topography == "Upland")%>%
+              #subset(FRI == "Unburned" & Topography == "Upland")%>%
+              subset(FRI == "4" & Topography == "Lowland")%>%
               subset(FuncGroup != "PrYDead" #& FuncGroup != "CuYDead" 
                      & FuncGroup != "Woody")%>%
               dplyr::group_by(Year, Transect, Plot)%>%
@@ -220,9 +224,33 @@ knz_full%>%
   ylab("ANPP")+
   theme_classic()
 
-#ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/knz_extreme.pdf",
+#ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/knz_extreme_lowland4.pdf",
 #       device = "pdf",
 #     width = 6,
 #        height = 4)
 
+##knz RUE
+knz_rue <- read.csv("C:/Users/ohler/Downloads/KonzaANPP.csv")%>%
+  subset(FuncGroup != "PrYDead" & FuncGroup != "Woody")%>%
+  dplyr::group_by(Year, WaterShed, Topography, FRI, Transect, Plot)%>%
+  dplyr::summarise(ANPP = sum(ANPP, na.rm = TRUE))%>%
+  dplyr::group_by(Year, WaterShed, Topography, FRI, Transect)%>%
+  dplyr::summarise(ANPP = mean(ANPP, na.rm = TRUE))%>%
+  dplyr::group_by(Year, WaterShed, Topography, FRI)%>%
+  dplyr::summarise(ANPP = mean(ANPP, na.rm = TRUE))%>%
+  left_join( knz_precip, by = "Year")%>%
+  ddply(.(Year, WaterShed, Topography, FRI), function(x)data.frame(
+    RUE = x$ANPP/x$ppt
+  ))%>%
+  group_by(WaterShed, Topography, FRI)%>%
+  dplyr::summarize(RUE = mean(RUE, na.rm = TRUE))%>%
+  group_by(Topography, FRI)%>%
+  dplyr::summarize(RUE = mean(RUE, na.rm = TRUE))
 
+
+ide_rue <- knz_ide%>%
+  subset(trt == "Control")%>%
+  group_by(year)%>%
+  dplyr::summarize(RUE = biomass/Precipitation)
+mean(ide_rue$RUE)  
+  
