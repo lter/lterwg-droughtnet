@@ -161,5 +161,67 @@ ggplot( aes(Precipitation, biomass))+
 
 
 
+
+
 #load konza data
+knz_biomass <- read.csv("C:/Users/ohler/Downloads/KonzaANPP.csv")%>%
+              subset(FRI == "Unburned" & Topography == "Upland")%>%
+              subset(FuncGroup != "PrYDead" & FuncGroup != "CuYDead" & FuncGroup != "Woody")%>%
+              dplyr::group_by(Year, Transect, Plot)%>%
+              dplyr::summarise(ANPP = sum(ANPP, na.rm = TRUE))%>%
+              dplyr::group_by(Year, Transect)%>%
+              dplyr::summarise(ANPP = mean(ANPP, na.rm = TRUE))%>%
+              dplyr::group_by(Year)%>%
+              dplyr::summarise(ANPP = mean(ANPP, na.rm = TRUE))
+knz_biomass_perc <- quantile(knz_biomass$ANPP, probs = c(0.025,0.975))
+
+knz_precip <- read.csv("C:/Users/ohler/Downloads/KNZ_precip.csv")%>%
+              dplyr::group_by(Year)%>%
+              dplyr::summarise(ppt = sum(ppt))
+knz_precip_perc <- quantile(knz_precip$ppt, probs = c(0.025,0.975))
+
+knz_full <- left_join(knz_biomass, knz_precip, by = "Year")
+
+
+knz_ide <- ide_biomass%>%
+  subset(site_code == "konzadrt.us")%>%
+  ddply(.(site_code, block, plot, subplot, year, n_treat_years, trt, ppt.1), function(x)data.frame(
+    biomass = sum(x$mass)
+  ))%>%
+  ddply(.(year, n_treat_years, trt, ppt.1), function(x)data.frame(
+    biomass = mean(x$biomass)
+  ))%>%
+  dplyr::rename(Precipitation = "ppt.1")
+knz_ide$n_treat_years <- as.character(knz_ide$n_treat_years)
+
+
+
+knz_ide$n_treat_years <- plyr::revalue(knz_ide$n_treat_years, c("0.5" = "1","1"="2","2"="3","3"="4","4"="5"))
+
+
+knz_full%>%
+  #subset(  n_treat_years != "0" )%>%
+  ggplot( aes(ppt, ANPP))+
+  geom_hline(aes(yintercept = knz_biomass_perc[1]), linetype = "dashed")+
+  geom_hline(aes(yintercept = knz_biomass_perc[2]), linetype = "dashed")+
+  geom_vline(aes(xintercept = knz_precip_perc[1]), linetype = "dashed")+
+  geom_vline(aes(xintercept = knz_precip_perc[2]), linetype = "dashed")+
+  geom_point( size = 3,color ="#7F7F7F")+
+  geom_point(data = subset(knz_ide,n_treat_years != "0"), aes(x = Precipitation, y = biomass, color = trt#, shape = n_treat_years
+  ), size = 3)+
+  #scale_shape_manual(values = c(49, 50, 51, 52, 53, 16) )+
+  scale_color_manual(values = c("#179F00","#FF5E1F"))+
+  geom_smooth(method = "lm", se = FALSE, color = "black")+
+  geom_text(data = subset(knz_ide,n_treat_years != "0"),aes(x = Precipitation, y = biomass,label=n_treat_years),hjust=0,vjust=0)+
+  xlim(0,1350)+
+  ylim(0, 1250)+
+  xlab("Annual precipitation")+
+  ylab("ANPP")+
+  theme_classic()
+
+#ggsave("C:/Users/ohler/Dropbox/Tim Work/DroughtNet/knz_extreme.pdf",
+#       device = "pdf",
+#     width = 6,
+#        height = 4)
+
 
