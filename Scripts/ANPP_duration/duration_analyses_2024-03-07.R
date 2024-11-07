@@ -221,11 +221,11 @@ mod <- lme(anpp_response~1, random = ~1|ipcc_regions/site_code, method = "ML", d
 summary(mod)
 
 
-##Here we generate the stats and figure for Fig 2
+##Here we generate the stats with continuous drought severity
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-tempdf <-subset(data.anpp.summary, n_treat_years == 3& Ann_Per == "Perennial")
+tempdf <-subset(data.anpp.summary, n_treat_years == 2& Ann_Per == "Perennial")
 
-lmFull <- lme(anpp_response~drtsev.1 * drtsev.2 * drtsev.3, random = ~1|ipcc_regions,method = "ML", data=tempdf)
+lmFull <- lme(anpp_response~drtsev.1 * drtsev.2, random = ~1|ipcc_regions,method = "ML", data=tempdf)
 #lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|ipcc_regions), data=tempdf)
 
 
