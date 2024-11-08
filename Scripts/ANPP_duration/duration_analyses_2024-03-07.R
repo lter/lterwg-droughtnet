@@ -223,10 +223,10 @@ summary(mod)
 
 ##Here we generate the stats with continuous drought severity
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-tempdf <-subset(data.anpp.summary, n_treat_years == 2& Ann_Per == "Perennial")
+tempdf <-subset(data.anpp.summary, n_treat_years == 4& Ann_Per == "Perennial")
 
-lmFull <- lme(anpp_response~drtsev.1 * drtsev.2, random = ~1|ipcc_regions,method = "ML", data=tempdf)
-#lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|ipcc_regions), data=tempdf)
+#lmFull <- lme(anpp_response~drtsev.1 * drtsev.2, random = ~1|ipcc_regions,method = "ML", data=tempdf)
+lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + (1|ipcc_regions), data=tempdf)
 
 
 lmNull <- lme(anpp_response~1, random = ~1|ipcc_regions,method = "ML",  data = tempdf)
@@ -1657,20 +1657,22 @@ coef(am)
 
 subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
   subset(Ann_Per == "Perennial")%>%
-  ggplot( aes(drtsev.1, anpp_response, color = e.n, fill = e.n))+
+  ggplot( aes(drtsev.1, anpp_response))+
   facet_wrap(~n_treat_years, scales = 'free')+
-  scale_color_manual(values = c("#da7901", "grey48" ))+
-  scale_fill_manual(values = c("#da7901", "grey48" ))+
-  geom_point(aes(),alpha = 0.8,#pch = 21,
+  #scale_color_manual(values = c("#da7901", "grey48" ))+
+  #scale_fill_manual(values = c("#da7901", "grey48" ))+
+  #geom_point(aes( color = e.n, fill = e.n),alpha = 0.8,#pch = 21,
+  #           size=3)+
+  geom_point(aes( color = habitat.type),alpha = 0.8,#pch = 21,
              size=3)+
+  scale_color_manual("Vegetation type", values = c("#247d3f","#f0be3d" ))+
   #scale_shape_manual(values = c(19, 21))+
-  geom_smooth(aes(),method = "lm")+
+  geom_smooth(aes(),method = "lm", color = "black")+
   #scale_linetype_manual(values = c("solid","dashed"))+
   geom_hline(yintercept = 0, linetype = "dashed")+
   geom_vline(xintercept = 0, linetype = "dashed")+
   xlim(-.12,1)+
   ylim(-5.05,1.2)+
-  #scale_color_manual( values = c("#866475","#789ac0" ))+ #need to change colors to extreme vs nominal"#E58601", "#46ACC8"
   xlab("Drought severity (percent reduction of MAP)")+
   ylab("Productivity response")+
   theme_base()+
@@ -1678,7 +1680,7 @@ subset(data.anpp.summary,n_treat_years >=1 & n_treat_years <= 4)%>%
 
 
 ggsave(
-  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2.pdf",
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig2_revised_v1.pdf",
   plot = last_plot(),
   device = "pdf",
   path = NULL,
