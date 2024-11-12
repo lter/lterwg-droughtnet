@@ -548,7 +548,7 @@ r.squaredGLMM(mod)
 
 
 
-plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+plot_grid(i,h,a, c, j,d, b, e, f, g, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y1.pdf",
@@ -838,7 +838,7 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
-plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+plot_grid(i,h,a, c, j,d, b, e, f, g, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y2.pdf",
@@ -1126,7 +1126,7 @@ summary(mod)
 r.squaredGLMM(mod)
 
 
-plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+plot_grid(i,h,a, c, j,d, b, e, f, g, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y3.pdf",
@@ -1407,7 +1407,7 @@ r.squaredGLMM(mod)
 
 
 
-plot_grid(i,h,a, c, j,d, b, e, f, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), nrow = 2)
+plot_grid(i,h,a, c, j,d, b, e, f, g, labels = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'), nrow = 2)
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/covariate_supplemental_y4.pdf",
