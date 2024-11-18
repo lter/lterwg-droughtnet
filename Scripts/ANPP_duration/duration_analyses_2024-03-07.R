@@ -1992,3 +1992,43 @@ data_table <- data.anpp.summary%>%
   dplyr::select(site_code, n_treat_years, anpp_response, type, e.n, drtsev.1,  map, temp,   sand_mean, AI, cv_ppt_inter, percent_graminoid, richness)
 
 write.csv(data_table, "C:/Users/ohler/Dropbox/IDE_Duration_ms/data_table.csv")
+
+
+
+
+################################
+############Severity by extremity supplemental figure
+
+data.anpp.summary%>%
+  
+  ggplot(aes(factor(e.n,level=c( "extreme","nominal")), drtsev.1, fill = e.n))+
+  geom_boxplot()+
+  scale_fill_manual(values = c("#DA7901", "grey48" ))+
+  xlab("")+
+  ylab("Drought severity")+
+  coord_flip()+
+  theme_base()
+
+
+data.anpp.summary%>%
+  ggplot(aes(e.n, drtsev.1, fill = e.n))+
+  geom_violin()+
+  scale_fill_manual(values = c("#DA7901", "grey48" ))+
+  coord_flip()+
+  theme_base()
+
+
+data.anpp.summary%>%
+  ggplot(aes( drtsev.1, fill = e.n))+
+  geom_histogram()+
+  scale_fill_manual(values = c("#DA7901", "grey48" ))+
+  theme_base()
+
+
+
+
+
+
+
+
+
