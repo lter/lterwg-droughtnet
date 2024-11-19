@@ -2029,7 +2029,9 @@ data.anpp.summary%>%
 
 length(subset(data.anpp.summary, e.n == "extreme")$site_code)
 length(subset(data.anpp.summary, e.n == "nominal")$site_code)
-
+ddply(data.anpp.summary,.(e.n), function(x)data.frame(
+  severity = mean(x$drtsev.1)
+))
 
 
 
