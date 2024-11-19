@@ -223,10 +223,10 @@ summary(mod)
 
 ##Here we generate the stats with continuous drought severity
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
-tempdf <-subset(data.anpp.summary, n_treat_years == 4& Ann_Per == "Perennial")
+tempdf <-subset(data.anpp.summary, n_treat_years == 2& Ann_Per == "Perennial")
 
-#lmFull <- lme(anpp_response~drtsev.1 * drtsev.2, random = ~1|ipcc_regions,method = "ML", data=tempdf)
-lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 * drtsev.4 + (1|ipcc_regions), data=tempdf)
+lmFull <- lme(anpp_response~drtsev.1 * drtsev.2, random = ~1|ipcc_regions,method = "ML", data=tempdf)
+#lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|ipcc_regions), data=tempdf)
 
 
 lmNull <- lme(anpp_response~1, random = ~1|ipcc_regions,method = "ML",  data = tempdf)
@@ -2015,17 +2015,20 @@ data.anpp.summary%>%
   geom_violin()+
   scale_fill_manual(values = c("#DA7901", "grey48" ))+
   coord_flip()+
+  xlab("")+
+  ylab("Drought severity")+
   theme_base()
 
 
 data.anpp.summary%>%
   ggplot(aes( drtsev.1, fill = e.n))+
-  geom_histogram()+
+  geom_histogram(binwidth = 0.1)+
   scale_fill_manual(values = c("#DA7901", "grey48" ))+
+  xlab("Drought severity")+
   theme_base()
 
-
-
+length(subset(data.anpp.summary, e.n == "extreme")$site_code)
+length(subset(data.anpp.summary, e.n == "nominal")$site_code)
 
 
 
