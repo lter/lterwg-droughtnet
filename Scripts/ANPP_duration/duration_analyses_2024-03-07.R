@@ -2007,7 +2007,21 @@ data.anpp.summary%>%
   xlab("")+
   ylab("Drought severity")+
   coord_flip()+
-  theme_base()
+  theme_base()+
+  theme(legend.position = "none")
+
+ggsave(
+  "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/supp_severitybyextremity.pdf",
+  plot = last_plot(),
+  device = "pdf",
+  path = NULL,
+  scale = 1,  
+  width = 5,
+  height = 4.5,
+  units = c("in"),
+  dpi = 600,
+  limitsize = TRUE
+)
 
 
 data.anpp.summary%>%
@@ -2033,7 +2047,9 @@ ddply(data.anpp.summary,.(e.n), function(x)data.frame(
   severity = mean(x$drtsev.1)
 ))
 
+mod <- lme(drtsev.1~e.n, random = ~1|ipcc_regions/site_code, data = data.anpp.summary)
+summary(mod)
 
-
+four.main <- test(emtrends(mod, ~e.n | drtsev.1, var="drtsev.1"))
 
 
