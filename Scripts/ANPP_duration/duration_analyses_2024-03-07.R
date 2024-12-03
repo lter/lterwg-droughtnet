@@ -1563,10 +1563,16 @@ x <- emmeans(mod, list(pairwise ~ n_treat_years*type), adjust = "tukey")$`pairwi
 write.csv(x, "C:/Users/ohler/Dropbox/IDE_Duration_ms/fig1c_table.csv")
 confint(means)
 
+grand.mean <- data.anpp.summary%>%
+              ddply(.(n_treat_years), function(x) data.frame(
+                grand_mean = mean(x$anpp_response),
+                grand_se = sd(x$anpp_response, na.rm = TRUE)/sqrt(length(x$site_code))
+              ))
 
-ggplot(confint(means),aes(as.factor(n_treat_years), emmean, color = type
-))+
-  geom_pointrange(aes(ymin = lower.CL, ymax = upper.CL), position = position_dodge(width = 0.5))+
+ggplot(confint(means),aes(as.factor(n_treat_years), emmean))+
+  geom_pointrange(aes(ymin = lower.CL, ymax = upper.CL, color = type
+), position = position_dodge(width = 0.5))+
+  geom_pointrange(data = grand.mean, aes(x = n_treat_years-0.3, y = grand_mean, ymin = grand_mean-grand_se, ymax = grand_mean+grand_se))+
   #ylim(-1.2, 0.3)+
   geom_hline(yintercept = 0,linetype="dashed")+
   xlab("Years of drought")+
