@@ -39,9 +39,9 @@ dat2<-dat %>%
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
   filter(n_treat_years!=0.5&n_treat_years!=-1)
 
-#having problems with cdpt_drt.us and eea.br because they only have year 0 data. 
+#having problems with cdpt_drt.us, sherman.pa, eea.br because they only have year 0 data. 
 dat3<-dat2 %>% 
-  filter(site_code!="cdpt_drt.us"&site_code!="eea.br")
+  filter(site_code!="sherman.pa"&site_code!="eea.br")
 
 sites<-dat3 %>%
 select(site_code) %>%
@@ -49,46 +49,46 @@ select(site_code) %>%
 # write.csv(sites, "community_comp\\sitelistMarhc2024.csv")
 
 
-summarizing the data
-drt1yr<-dat2 %>%
+#summarizing the data
+drt1yr<-dat3 %>%
   filter(n_treat_years==1) %>%
   select(site_code) %>%
   unique() %>%
   mutate(p=1)
-drt2yr<-dat2 %>%
+drt2yr<-dat3 %>%
   filter(n_treat_years==2) %>%
   select(site_code) %>%
   unique() %>%
   mutate(p2=1)
-drt3yr<-dat2 %>%
+drt3yr<-dat3 %>%
   filter(n_treat_years==3) %>%
   select(site_code) %>%
   unique()
-drt4yr<-dat2 %>%
+drt4yr<-dat3 %>%
   filter(n_treat_years==4) %>%
   select(site_code) %>%
   unique()
 
 # #five sites are not repeated over years, and only have one year of data.
-# oneyr<-dat2 %>% 
-#   select(site_code, n_treat_years) %>% 
-#   unique() %>% 
-#   group_by(site_code) %>% 
-#   mutate(max=max(n_treat_years)) %>% 
+# oneyr<-dat2 %>%
+#   select(site_code, n_treat_years) %>%
+#   unique() %>%
+#   group_by(site_code) %>%
+#   mutate(max=max(n_treat_years)) %>%
 #   filter(max==1)
 
 
 # Calculating drought severity and reading in other site metrics -------------------------------------------
 
 #getting drought severity
-drt<-dat2 %>% 
+drt<-dat3 %>% 
   filter(trt=="Drought") %>% 
   select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>%   unique() %>% 
   mutate(drtseverity=(ppt.1-map)/map) %>% 
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4) %>% 
   filter(n_treat_years<5)
 
-site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Oct2023.csv")
+site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Dec24.csv")
 
 precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv")
 
@@ -224,11 +224,11 @@ for (i in 1:length(sc)){
 #Are C-T rates of change different from one-another and do they differ over time
 #Export data to SAS to run models
 
-deltarac3yrs<-deltaracs %>% 
+deltarac4yrs<-deltaracs %>% 
   left_join(deltadom) %>% 
-  filter(n_treat_years<4& n_treat_years>0) 
+  filter(n_treat_years<5& n_treat_years>0) 
 
-uniquereps<-deltarac3yrs %>%
+uniquereps<-deltarac4yrs %>%
   select(site_code, replicate) %>%
   unique() %>%
   group_by(site_code) %>%
@@ -238,11 +238,11 @@ uniquereps<-deltarac3yrs %>%
 #   group_by(site_code, rep) %>%
 #   summarize(n=length(rep))
 
-deltarac3yrs2<-deltarac3yrs %>%
+deltarac4yrs2<-deltarac3yrs %>%
   left_join(uniquereps) %>%
   mutate(rep2=paste(site_code, rep, sep=''))
 
-#write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_withdom2.csv", row.names=F)
+#write.csv(deltarac3yrs2, "CommunityData_DrtbyTime_forSAS_withdom2_Dec24.csv", row.names=F)
 
 #adjust P-values for treat effect
 #these values are from SAS
@@ -257,16 +257,16 @@ pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), p
 
 ### Figure 1: Magnitude of effects over time ----
 #Overall change averaged over all years
-MeanCI<-deltarac3yrs %>%
+MeanCI<-deltarac4yrs %>%
   select(site_code, replicate, year, trt, n_treat_years, richness_change, evenness_change, rank_change, gains, losses, change) %>% 
   pivot_longer(richness_change:change, names_to = "measure", values_to = "value") %>% 
   group_by(trt, measure) %>% 
   summarize(mean=mean(value, na.rm=T), n=length(value), sd=sd(value, na.rm=T)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
-  mutate(n_treat_years=4)
+  mutate(n_treat_years=5)
 
 # Change for each year of the experiment
-deltaracs_long_by_year <-deltarac3yrs %>%
+deltaracs_long_by_year <-deltarac4yrs %>%
   select(site_code, replicate, year, trt, n_treat_years, richness_change, evenness_change, rank_change, gains, losses, change) %>% 
   pivot_longer(richness_change:change, names_to = "measure", values_to = "value") %>% 
   group_by(n_treat_years, trt, measure) %>% 
@@ -292,8 +292,8 @@ Fig2 <- ggplot(data = deltaracs_long_by_year, aes(x=as.factor(n_treat_years), y=
                 width = 0, size = 1, position = position_dodge(width = 0.3)) +
   labs(y = "Change from pre-treatment", x = "Years of treatment", color = "Treatment")+
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), legend.position = "top")+
-  geom_vline(xintercept = 3.5)+
-  scale_x_discrete(labels=c('1', '2', '3', 'Overall'))
+  geom_vline(xintercept = 4.5)+
+  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))
 
 Fig2
 
@@ -315,7 +315,7 @@ RRRac<-deltaracs %>%
 
 RRall<-RRRac%>% 
   left_join(drt) %>% 
-  filter(n_treat_years<4)
+  filter(n_treat_years<5)
 
 length(unique(RRall$site_code))
 
@@ -334,7 +334,7 @@ RR2<-RRall %>%
 
 length(unique(RR2$site_code))
 
-write.csv(RR2, 'communityData_DrtSeverity_forSAS_withDom.csv', row.names=F)
+write.csv(RR2, 'communityData_DrtSeverity_forSAS_withDom_dec24.csv', row.names=F)
 str(RR2)
 
 ####doing this is SAS now
@@ -352,7 +352,7 @@ str(RR2)
 
 RRRac_average<-deltaracs %>% 
   pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
-  filter(n_treat_years<4& n_treat_years>0) %>% 
+  filter(n_treat_years<5& n_treat_years>0) %>% 
   group_by(site_code, year, n_treat_years, trt, measure) %>% 
    summarise(value=mean(value, na.rm=T)) %>% 
   group_by(site_code, trt, measure) %>% 
@@ -442,12 +442,14 @@ pretrt_cover<-dat3 %>%
   rename(pretrt=max_cover)
 
 ###determining loss, gain or persistence, we are only looking at losses.
+###I need to do this on a dataset by dataset period because some sites are missing years.
 datblip2<-datCat %>% 
   select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, n_treat_years, max_cover) %>% 
+  filter(n_treat_years<5& n_treat_years>-1) %>% 
   pivot_wider(names_from = n_treat_years, names_prefix = "y", values_from = max_cover, values_fill = 0) %>% 
-  mutate(outcome=ifelse(y0>0 & y1>0 & y2>0 & y3>0, "persist", 
-                        ifelse(y0>0&y1==0&y2==0&y3==0|y0>0&y1>0&y2==0&y3==0, "loss", 
-                               ifelse(y0==0&y1>0&y2>0&y3>0|y0==0&y1==0&y2>0&y3>0, "gain","blip")))) %>% 
+  mutate(outcome=ifelse(y0>0 & y1>0 & y2>0 & y3>0& y4>0, "persist", 
+                        ifelse(y0>0&y1==0&y2==0&y3==0&y4==0|y0>0&y1>0&y2==0&y3==0&y4==0|y0>0&y1>0&y2>0&y3==0&y4==0, "loss", 
+                        ifelse(y0==0&y1>0&y2>0&y3>0|y0==0&y1==0&y2>0&y3>0, "gain","blip")))) %>% 
   mutate(loss=ifelse(outcome=='loss', 1, 0),
          gain=ifelse(outcome=="gain", 1, 0),
          persist=ifelse(outcome=='persist', 1, 0)) %>% 
