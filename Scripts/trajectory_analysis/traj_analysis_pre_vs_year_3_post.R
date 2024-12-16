@@ -30,7 +30,7 @@ trt_legend_list <- list()
 stats_list <- list()
 
 # Read in our data
-comp_raw <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-11-27.csv")
+comp_raw <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-16.csv")
 
 # Filter our data to 1 pre-treatment year
 comp_pre_treatment <- comp_raw %>%

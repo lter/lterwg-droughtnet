@@ -29,7 +29,7 @@ trt_legend_list <- list()
 stats_list <- list()
 
 # Read in our data
-comp_raw <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2023-11-27.csv")
+comp_raw <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-16.csv")
 
 # Filter our data to 1 pre-treatment year
 comp_pre_treatment <- comp_raw %>%
@@ -64,14 +64,14 @@ bad_sites_B <- setdiff(x = unique(comp_pre_treatment$site_code), y = unique(comp
 
 # Combine both together
 all_comp <- bind_rows(comp_pre_treatment, comp_year_1)%>%
-  unite("site_code.plot", site_code, plot, remove = FALSE)%>%
-            subset(site_code.plot != "hyide.de_20" & site_code.plot!= "hyide.de_24")
+  unite("site_code.plot", site_code, plot, remove = FALSE)#%>%
+#            subset(site_code.plot != "hyide.de_20" & site_code.plot!= "hyide.de_24")
 #test <- all_comp[!(all_comp$site_code != "hyide.de" & all_comp$plot != "20" ) | !(all_comp$site_code != "hyide.de" & all_comp$plot != "24" ),]
 # Make sure its only 0 and 1
 unique(all_comp$n_treat_years)
 
 # Make a list of "bad" sites that will break the loop
-bad_sites <- c(bad_sites_A, bad_sites_B,  #"hyide.de",
+bad_sites <- c(bad_sites_A, bad_sites_B,  "hyide.de",
                "chacra.ar"
                )
 
