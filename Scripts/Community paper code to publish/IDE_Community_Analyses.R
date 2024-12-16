@@ -37,7 +37,7 @@ drop_no_pretrt<-dat %>%
 dat2<-dat %>% 
   right_join(drop_no_pretrt) %>% 
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
-  filter(n_treat_years!=0.5&n_treat_years!=-1)
+  filter(n_treat_years!=0.5&n_treat_years>-1)
 
 #having problems with cdpt_drt.us, sherman.pa, eea.br because they only have year 0 data. 
 dat3<-dat2 %>% 
@@ -226,7 +226,7 @@ for (i in 1:length(sc)){
 
 deltarac4yrs<-deltaracs %>% 
   left_join(deltadom) %>% 
-  filter(n_treat_years<5& n_treat_years>0) 
+  filter(n_treat_years<5) 
 
 uniquereps<-deltarac4yrs %>%
   select(site_code, replicate) %>%
@@ -440,6 +440,12 @@ pretrt_cover<-dat3 %>%
   filter(n_treat_years==0) %>% 
   select(site_code, trt, block, plot, subplot, Taxon, max_cover) %>% 
   rename(pretrt=max_cover)
+
+#what years of data do sites have?
+yrsdata<-datCat %>% 
+  select(site_code, n_treat_years)
+
+##do for 2, 3, and 4 year droughts seperately and then together.
 
 ###determining loss, gain or persistence, we are only looking at losses.
 ###I need to do this on a dataset by dataset period because some sites are missing years.
