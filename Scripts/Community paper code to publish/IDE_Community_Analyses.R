@@ -5,6 +5,7 @@
 ###update Oct 11, 2023, updating datasets
 #####update Nov 28, 2023 updating dataset and deleting code i'm no longer using\
 ###Feb 2024 updating to include new dominance analayses
+####Dec 2024, new data?
 
 library(tidyverse)
 library(codyn)
@@ -23,7 +24,7 @@ setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
 # reading in and getting data ---------------------------------------------
 
-dat<-read.csv("cover_ppt_2023-11-27.csv") %>% 
+dat<-read.csv("cover_ppt_2024-12-16.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="_"))
 
 #dropping datasets without pretreatment data
@@ -48,22 +49,26 @@ select(site_code) %>%
 # write.csv(sites, "community_comp\\sitelistMarhc2024.csv")
 
 
-#summarizing the data
-# drt1yr<-dat2 %>% 
-#   filter(n_treat_years==1) %>% 
-#   select(site_code) %>% 
-#   unique() %>% 
-#   mutate(p=1)
-# drt2yr<-dat2 %>% 
-#   filter(n_treat_years==2) %>% 
-#   select(site_code) %>% 
-#   unique() %>% 
-#   mutate(p2=1)
-# drt3yr<-dat2 %>% 
-#   filter(n_treat_years==3) %>% 
-#   select(site_code) %>% 
-#   unique()
-# 
+summarizing the data
+drt1yr<-dat2 %>%
+  filter(n_treat_years==1) %>%
+  select(site_code) %>%
+  unique() %>%
+  mutate(p=1)
+drt2yr<-dat2 %>%
+  filter(n_treat_years==2) %>%
+  select(site_code) %>%
+  unique() %>%
+  mutate(p2=1)
+drt3yr<-dat2 %>%
+  filter(n_treat_years==3) %>%
+  select(site_code) %>%
+  unique()
+drt4yr<-dat2 %>%
+  filter(n_treat_years==4) %>%
+  select(site_code) %>%
+  unique()
+
 # #five sites are not repeated over years, and only have one year of data.
 # oneyr<-dat2 %>% 
 #   select(site_code, n_treat_years) %>% 
@@ -81,7 +86,7 @@ drt<-dat2 %>%
   select(site_code, n_treat_years, trt, year, map, ppt.1, ppt.2, ppt.3, ppt.4) %>%   unique() %>% 
   mutate(drtseverity=(ppt.1-map)/map) %>% 
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4) %>% 
-  filter(n_treat_years<4)
+  filter(n_treat_years<5)
 
 site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Oct2023.csv")
 
