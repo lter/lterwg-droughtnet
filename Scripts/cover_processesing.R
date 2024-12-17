@@ -113,6 +113,8 @@ comb <- full_cover_v2%>%
   left_join(NutNet_funcgroup_C3C4, by = "Taxon")
 
 comb$ps_path <- ifelse(comb$ps_path == "NULL", comb$ps_path_nutnet, comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PHYLLOSTACHYS EDULIS", "C3", comb$ps_path)
+
 
 length(dplyr::filter(comb, is.na(ps_path))$ps_path) #27087 need ps path
 
@@ -153,6 +155,25 @@ length(subset(comb, N.fixer == "NULL")$N.fixer) #0 NULLS
 
 comb <- dplyr::select(comb, -c("functional_group_nutnet", "ps_path_nutnet"))
 
+
+####Gap fill from Meghan A's list
+
+avolio.traits <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/missingtraitdata_filled.csv")%>%
+  dplyr::rename(local_lifeform.avolio = local_lifeform, local_lifespan.avolio = local_lifespan, ps_path.avolio = ps_path, N.fixer.avolio = N.fixer)
+
+
+temp <- comb%>%
+        left_join(avolio.traits, by = c("site_code","Family","Taxon"))
+
+temp$local_lifeform <- ifelse(temp$local_lifeform == "NULL", temp$local_lifeform.avolio, temp$local_lifeform)
+temp$local_lifespan <- ifelse(temp$local_lifespan == "NULL", temp$local_lifespan.avolio, temp$local_lifespan)
+temp$ps_path <- ifelse(temp$ps_path == "NULL", temp$ps_path.avolio, temp$ps_path)
+temp$N.fixer <- ifelse(temp$N.fixer == "NULL", temp$N.fixer.avolio, temp$N.fixer)
+
+comb <- temp%>%
+  dplyr::select(-c("local_lifeform.avolio", "local_lifespan.avolio", "ps_path.avolio", "N.fixer.avolio"))
+
+
 #treatment_info <- read.csv("C:/Users/ohler/Downloads/full_biomass_test.csv")
 #treatment_info <- treatment_info[, c("site_code", "year", "n_treat_days", "block", "plot", "subplot")]
 #treatment_info <- unique(treatment_info)
@@ -169,6 +190,7 @@ ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"),
         function(x)data.frame(
          ppt.1 = x$ppt[x$biomass_date %in% max(x$biomass_date)]
         ))
+
 
 
 #read in precip data
@@ -256,7 +278,7 @@ cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", 
 
 
 
-write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-16.csv")
+write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-17.csv")
 
 
 length(unique(subset(cover_ppt_full, n_treat_years == 1)$site_code))
