@@ -72,7 +72,7 @@ unique(all_comp$n_treat_years)
 
 # Make a list of "bad" sites that will break the loop
 bad_sites <- c(bad_sites_A, bad_sites_B,  "hyide.de",
-               "chacra.ar"
+               "chacra.ar", "cmss.us"
                )
 
 # For the rest of the sites that work, we...
@@ -146,6 +146,7 @@ for (a_site in setdiff(x = unique(all_comp$site_code), y = bad_sites)){
 # Make a master pdf of all our trajectory plots
 pdf(file.path(trajectory_folder, "traj_plots_pre_vs_year_1_post.pdf"))
 par(mfrow = c(3,3))
+
 
 for (a_site in names(fit_list)){
 

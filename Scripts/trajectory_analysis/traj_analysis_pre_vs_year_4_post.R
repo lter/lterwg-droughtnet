@@ -191,8 +191,9 @@ for (a_bad_site in c("matador.ca")){
 traj_df <- stats_list %>%
   purrr::imap(.f = ~mutate(.x, site = paste0(.y), .before = everything())) %>% 
   purrr::map_dfr(.f = select, everything()) %>%
-  dplyr::mutate(analysis_period = "year 0 vs year 4", .before = everything())
+  dplyr::mutate(analysis_period = "year 0 vs year 4", .before = everything())%>%
+  subset(metric == "distance")
 
 
 # Exporting the trajectory summary statistics csv
-write.csv(traj_df, file = file.path(summary_stats_folder, "pre_vs_year_4_post_trajectory_summary.csv"), row.names = FALSE)
+write.csv(traj_df, file = "C:/Users/ohler/Dropbox/IDE/papers/Community-comp_change/pre_vs_year_4_post_trajectory_summary.csv", row.names = FALSE)
