@@ -225,8 +225,8 @@ summary(mod)
 #Backward model selection - skipping backward in favor of forward since backward likes the maximal model for some ungodly reason
 tempdf <-subset(data.anpp.summary, n_treat_years == 2& Ann_Per == "Perennial")
 
-lmFull <- lme(anpp_response~drtsev.1 * drtsev.2, random = ~1|ipcc_regions,method = "ML", data=tempdf)
-#lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|ipcc_regions), data=tempdf)
+#lmFull <- lme(anpp_response~drtsev.1 * drtsev.2, random = ~1|ipcc_regions,method = "ML", data=tempdf)
+lmFull <- lmer(anpp_response~drtsev.1 * drtsev.2 * drtsev.3 + (1|ipcc_regions), data=tempdf)
 
 
 lmNull <- lme(anpp_response~1, random = ~1|ipcc_regions,method = "ML",  data = tempdf)
@@ -248,7 +248,7 @@ summary(winning.mod)
 r.squaredGLMM(winning.mod)
 
 
-d<-dredge(lmFull)
+d<-dredge(lmFull, na.omit= "na.fail")
 sw(d)
 
 history.df <- data.anpp.summary%>% #need details about extreme vs nominanl just for figure
