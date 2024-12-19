@@ -146,244 +146,194 @@ comb$ps_path <- ifelse(comb$Taxon == "AUSTROSTIPA SP.(JILPANGER.AU)", "C3", comb
 comb$ps_path <- ifelse(comb$Taxon == "BETULA ALLEGHANIENSIS", "C3", comb$ps_path)
 comb$ps_path <- ifelse(comb$Taxon == "BETULA PAPYRIFERA", "C3", comb$ps_path)
 comb$ps_path <- ifelse(comb$Taxon == "BETULA PUBESCENS", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
-comb$ps_path <- ifelse(comb$Taxon == "", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "BLENNOSPORA DRUMMONDII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "BOECHERA HOLBOELLII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "BOERHAVIA GLABRATA", "C4", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "BRACHYCOME SP.(NYNGAN.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "BRACHYSCOME PERPUSILLA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CALYTRIX TETRAGONA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CONVOLVULUS SP.(JILPANGER.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CRASSULA SIEBERIANA", "CAM", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CRASSULA SP.(JILPANGER.AU)", "CAM", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DROSERA ABERRANS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DROSERA GLANDULIGERA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DROSERA HOOKERI", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GERANIUM SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GERANIUM SP.(JILPANGER.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GERANIUM SP.(NYNGAN.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GLYCINE SP. (llara.au)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GOODENIA BLACKIANA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HIBBERTIA SP.(JILPANGER.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HYALOSPERMA DEMISSUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HYALOSPERMA DEMISSUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LEPIDOSPERMA CARPHOIDES", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LEPIDOSPERMA CONGESTUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LOMANDRA COLLINA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LOMANDRA JUNCEA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LOMANDRA MICRANTHA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LOMANDRA NANA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MEDICAGO SP.(NYNGAN.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "OXALIS SP.(NYNGAN.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PIMELEA HUMILIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PLANTAGO CUNNINGHAMII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PLANTAGO MAJOR", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PODOSPERMA ANGUSTIFOLIUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PTILOTUS SP.(NYNGAN.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RANUNCULUS ROBERTSONII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RANUNCULUS SP.(NYNGAN.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SCHOENUS APOGON", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SCLEROLAENA BIRCHII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SCLEROLAENA QUINQUECUSPIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SIDA CUNNINGHAMII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SOLANUM ESURIALE", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SOLANUM HETERODOXUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SOLANUM NIGRUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "THYSANOTUS PATERSONII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "THYSANOTUS TUBEROSUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "TRIBULUS MICROCOCCUS", "C4", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "TRIFOLIUM sp.(jilpanger.au)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "VITTADINIA CERVICULARIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "WAHLENBERGIA GRACILENTA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "WAHLENBERGIA SP. (llara.au)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "WAHLENBERGIA STRICTA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "WURMBEA DIOICA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "FAGUS GRANDIFOLIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "FAGUS SYLVATICA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "FRAXINUS AMERICANA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PICEA ABIES", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PINUS STROBUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "POPULUS GRANDIDENTATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PRUNUS SEROTINA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "QUERCUS ALBA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "QUERCUS RUBRA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "QUERCUS VELUTINA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "ULMUS AMERICANA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "UNKNOWN FABACEAE SP.(NYNGAN.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "UNKNOWN POLEMONIACEAE SP.(OREAA.US)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "UNKNOWN POLEMONIACEAE SP.(OREAC.US)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CALADENIA CARNEA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CALADENIA TENTACULATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CAMISSONIOPSIS PALLIDA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CAREX BIGELOWII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CAREX DIGITATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CAREX FLAVA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CAREX SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CAREX SP.(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CARPINUS CAROLINIANA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CARYA OVATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "Centrolepis ARISTATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "Centrolepis POLYGYNA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "Centrolepis STRIGOSA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CHAMAESARACHA SORDIDA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CHAMAESCILLA CORYMBOSA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CHEILOSORIA TENUIFOLIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CHENOPODIUM POLYGONOIDES", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CHENOPODIUM ROBERTIANUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CHONDRILLA JUNCEA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CIRSIUM UNDULATUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CROTALARIA DURA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CRYPTANTHA BARBIGERA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CRYPTANTHA BARBIGERA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CRYPTANTHA MINIMA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "CYMOPTERUS MONTANUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DAUCUS PUSILLUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DEYEUXIA FLAVENS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DICHOPOGON STRICTUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DONTOSTEMON DENTATUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "ECHIUM PLANTAGINEUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "ERIGERON OCHROLEUCUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "EUPATORIUM COMPOSITIFOLIUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GEUM RIVALE", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GNEPHOSIS DRUMMONDII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GRINDELIA SQUARROSA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HELIANTHUS ANNUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HYDROCOTYLE FOVEOLATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HYDROCOTYLE SETULOSA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HYPOLAENA FASTIGIATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HYPOXIS ARGENTEA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "INDIGOFERA HEDYANTHA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "IPOMOEA COSTELLATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "IPOMOEA SIMPLEX", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "ISOLEPIS MARGINATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "IVA AXILLARIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "Lagenophora stipitata", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LAPPULA REDOWSKII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LATHYRUS APHACA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LEVENHOOKIA DUBIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MACHAERANTHERA TANACETIFOLIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MATTHIOLA PARVIFLORA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MELAMPYRUM PRATENSE", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MELAMPYRUM SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MICROSERIS SCAPIGERA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MICROTIS ARENARIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MILLOTIA MUELLERI", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MILLOTIA TENUIFOLIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MIRABILIS LINEARIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "MIRABILIS SP.", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "OENOTHERA ALBICAULIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "OSTRYA VIRGINIANA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "OXYTROPIS SERICEA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PELARGONIUM RODNEYANUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PENSTEMON ANGUSTIFOLIUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PETRORHAGIA NANTEUILII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PHEMERANTHUS PARVIFLORUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PORTULACA PILOSA", "C4", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PHLOX MULTIFLORA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "POLYGALA AMATYMBICA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "POLYGALA POLYGAMA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "POLYGALA SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "POTENTILLA CRANTZII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PTERYXIA HENDERSONII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PTILAGROSTIS DICHOTOMA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PYROLA MINOR", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "PYROLA SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RHODANTHE MOSCHATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "ROMULEA ROSEA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SAXIFRAGA OPPOSITIFOLIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SCORZONERA LACINIATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SEDUM LANCEOLATUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SELAGINELLA SELAGINOIDES", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SENECIO RHOMBOIDEUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SILOXERUS MULTIFLORUS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SILPHIUM COMPOSITUM", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SINAPIS ARVENSIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DICRANUM SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DICRANUM SP.(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DICRANUM SP.1(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "DICRANUM SP.2(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "GALIUM SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HIERACIUM SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HIERACIUM SP.1(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "HYPERICUM SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LUZULA SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "LUZULA SP.(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "POLYTRICHUM SP.(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RACOMITRIUM SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RACOMITRIUM SP.(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RHINANTHUS SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RHINANTHUS SP.(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RHYTIDIADELPHUS SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "RHYTIDIADELPHUS SP.(HAVER.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "VICIA SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "VIOLA CANINA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "VIOLA SP.(BUOYA.NO)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SUCCISA PRATENSIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "SOLENOGYNE DOMINII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "STIPA SP. (cedarsav.us)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "STYLOCHITON NATALENSIS", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "TETRAPTERON PALMERI", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "THELYMITRA SP.(JILPANGER.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "THESIUM NATALENSE", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "TRICORYNE TENELLA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "VITIS ROTUNDIFOLIA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "QUINETIA URVILLEI", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "ACAENA ECHINATA", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "OPHIOGLOSSUM SP.(JILPANGER.AU)", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "EUPHORBIA CURTISII", "C4", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "EUPHORBIA DAVIDII", "C3", comb$ps_path)
+comb$ps_path <- ifelse(comb$Taxon == "EUPHORBIA MELANADENIA", "C4", comb$ps_path)
 
-# ACAENA ECHINATA
-# 
-# BLENNOSPORA DRUMMONDII
-# BOECHERA HOLBOELLII
-# BOERHAVIA GLABRATA
-# BRACHYCOME SP.(NYNGAN.AU)
-# BRACHYSCOME PERPUSILLA
-# CALADENIA CARNEA
-# CALADENIA TENTACULATA
-# CALYTRIX TETRAGONA
-# CAMISSONIOPSIS PALLIDA
-# CAREX BIGELOWII
-# CAREX DIGITATA
-# CAREX FLAVA
-# CAREX SP.(BUOYA.NO)
-# CAREX SP.(HAVER.NO)
-# CARPINUS CAROLINIANA
-# CARYA OVATA
-# Centrolepis ARISTATA
-# Centrolepis POLYGYNA
-# Centrolepis STRIGOSA
-# CHAMAESARACHA SORDIDA
-# CHAMAESCILLA CORYMBOSA
-# CHEILOSORIA TENUIFOLIA
-# CHENOPODIUM POLYGONOIDES
-# CHENOPODIUM ROBERTIANUM
-# CHONDRILLA JUNCEA
-# CIRSIUM UNDULATUM
-# CLADONIA SP.(BUOYA.NO)
-# CLADONIA SP.(HAVER.NO)
-# CLADONIA SP.1(HAVER.NO)
-# CLADONIA SP.2(HAVER.NO)
-# CLADONIA STELLARIS
-# CONVOLVULUS SP.(JILPANGER.AU)
-# CRASSULA SIEBERIANA
-# CRASSULA SP.(JILPANGER.AU)
-# CROTALARIA DURA
-# CRYPTANTHA BARBIGERA
-# CRYPTANTHA BARBIGERA
-# CRYPTANTHA MINIMA
-# CYMOPTERUS MONTANUS
-# DAUCUS PUSILLUS
-# DEYEUXIA FLAVENS
-# DICHOPOGON STRICTUS
-# DICRANUM SP.(BUOYA.NO)
-# DICRANUM SP.(HAVER.NO)
-# DICRANUM SP.1(HAVER.NO)
-# DICRANUM SP.2(HAVER.NO)
-# DONTOSTEMON DENTATUS
-# DROSERA ABERRANS
-# DROSERA GLANDULIGERA
-# DROSERA HOOKERI
-# ECHIUM PLANTAGINEUM
-# ERIGERON OCHROLEUCUS
-# EUPATORIUM COMPOSITIFOLIUM
-# EUPHORBIA CURTISII
-# EUPHORBIA DAVIDII
-# EUPHORBIA MELANADENIA
-# EUPHORBIA SP.(NYNGAN.AU)
-# EUPHRASIA SP.(BUOYA.NO)
-# EUPHRASIA SP.(HAVER.NO)
-# FAGUS GRANDIFOLIA
-# FAGUS SYLVATICA
-# FRAXINUS AMERICANA
-# GALIUM SP.(BUOYA.NO)
-# GERANIUM SP.(BUOYA.NO)
-# GERANIUM SP.(JILPANGER.AU)
-# GERANIUM SP.(NYNGAN.AU)
-# GEUM RIVALE
-# GLYCINE SP. (llara.au)
-# GNEPHOSIS DRUMMONDII
-# GOODENIA BLACKIANA
-# GRINDELIA SQUARROSA
-# HELIANTHUS ANNUS
-# HIBBERTIA SP.(JILPANGER.AU)
-# HIERACIUM SP.(BUOYA.NO)
-# HIERACIUM SP.1(BUOYA.NO)
-# HYALOSPERMA DEMISSUM
-# HYDROCOTYLE FOVEOLATA
-# HYDROCOTYLE SETULOSA
-# HYPERICUM SP.(BUOYA.NO)
-# HYPOLAENA FASTIGIATA
-# HYPOXIS ARGENTEA
-# INDIGOFERA HEDYANTHA
-# IPOMOEA COSTELLATA
-# IPOMOEA SIMPLEX
-# ISOLEPIS MARGINATA
-# IVA AXILLARIS
-# Lagenophora stipitata
-# LAPPULA REDOWSKII
-# LATHYRUS APHACA
-# LEPIDOSPERMA CARPHOIDES
-# LEPIDOSPERMA CONGESTUM
-# LEVENHOOKIA DUBIA
-# LOMANDRA COLLINA
-# LOMANDRA JUNCEA
-# LOMANDRA MICRANTHA
-# LOMANDRA NANA
-# LUZULA SP.(BUOYA.NO)
-# LUZULA SP.(HAVER.NO)
-# MACHAERANTHERA TANACETIFOLIA
-# MATTHIOLA PARVIFLORA
-# MEDICAGO SP.(NYNGAN.AU)
-# MELAMPYRUM PRATENSE
-# MELAMPYRUM SP.(BUOYA.NO)
-# MICROSERIS SCAPIGERA
-# MICROTIS ARENARIA
-# MILLOTIA MUELLERI
-# MILLOTIA TENUIFOLIA
-# MIRABILIS LINEARIS
-# MIRABILIS SP.
-# OENOTHERA ALBICAULIS
-# OPHIOGLOSSUM SP.(JILPANGER.AU)
-# OSTRYA VIRGINIANA
-# OXALIS SP.(NYNGAN.AU)
-# OXYTROPIS SERICEA
-# PELARGONIUM RODNEYANUM
-# PENSTEMON ANGUSTIFOLIUS
-# PETRORHAGIA NANTEUILII
-# PHEMERANTHUS PARVIFLORUS
-# PHLOX MULTIFLORA
-# PICEA ABIES
-# PIMELEA HUMILIS
-# PINUS STROBUS
-# PLANTAGO CUNNINGHAMII
-# PLANTAGO MAJOR
-# PODOSPERMA ANGUSTIFOLIUM
-# POLYGALA AMATYMBICA
-# POLYGALA POLYGAMA
-# POLYGALA SP.(BUOYA.NO)
-# POLYTRICHUM SP.(HAVER.NO)
-# POPULUS GRANDIDENTATA
-# PORTULACA PILOSA
-# POTENTILLA CRANTZII
-# PRUNUS SEROTINA
-# PTERYXIA HENDERSONII
-# PTILAGROSTIS DICHOTOMA
-# PTILOTUS SP.(NYNGAN.AU)
-# PYROLA MINOR
-# PYROLA SP.(BUOYA.NO)
-# QUERCUS ALBA
-# QUERCUS RUBRA
-# QUERCUS VELUTINA
-# QUINETIA URVILLEI
-# RACOMITRIUM SP.(BUOYA.NO)
-# RACOMITRIUM SP.(HAVER.NO)
-# RANUNCULUS ROBERTSONII
-#RANUNCULUS SP.(NYNGAN.AU)
-#RHINANTHUS SP.(BUOYA.NO)
-#RHINANTHUS SP.(HAVER.NO)
-#RHODANTHE MOSCHATA
-#RHYTIDIADELPHUS SP.(BUOYA.NO)
-#RHYTIDIADELPHUS SP.(HAVER.NO)
-#ROMULEA ROSEA
-#SAXIFRAGA OPPOSITIFOLIA
-#SCHOENUS APOGON
-#SCLEROLAENA BIRCHII
-#SCLEROLAENA QUINQUECUSPIS
-#SCORZONERA LACINIATA
-#SEDUM LANCEOLATUM
-#SELAGINELLA SELAGINOIDES
-#SENECIO RHOMBOIDEUS
-#SIDA CUNNINGHAMII
-#SILOXERUS MULTIFLORUS
-#SILPHIUM COMPOSITUM
-#SINAPIS ARVENSIS
-#SOLANUM ESURIALE
-#SOLANUM HETERODOXUM
-#SOLANUM NIGRUM
-#SOLENOGYNE DOMINII
-#STIPA SP. (cedarsav.us)
-#STYLOCHITON NATALENSIS
-#SUCCISA PRATENSIS
-#SUCCISA PRATENSIS
-#TETRAPTERON PALMERI
-#THELYMITRA SP.(JILPANGER.AU)
-#THESIUM NATALENSE
-#THYSANOTUS PATERSONII
-#THYSANOTUS TUBEROSUS
-#TRIBULUS MICROCOCCUS
-#TRICORYNE TENELLA
-#TRIFOLIUM sp.(jilpanger.au)
-#ULMUS AMERICANA
-#UNKNOWN ASTERACEAE SP. (llara.au)
-#UNKNOWN ASTERACEAE SP.(CREDOM.AU)
-#UNKNOWN ASTERACEAE SP.(HARD.US)
-#UNKNOWN ASTERACEAE SP.(OREAC.US)
-#UNKNOWN ASTERACEAE SP.1(NYNGAN.AU)
-#UNKNOWN ASTERACEAE SP.2(MILPARINKA.AU)
-#UNKNOWN ASTERACEAE SP.8(NYNGAN.AU)
-#UNKNOWN FABACEAE SP.(NYNGAN.AU)
-#UNKNOWN GRASS SP. (llara.au)
-#UNKNOWN POACEAE SP.(JILPANGER.AU)
-#UNKNOWN POACEAE SP.(MATADOR.CA)
-#UNKNOWN POACEAE SP.(MILPARINKA.AU)
-#UNKNOWN POACEAE SP.(QUILPIE.AU)
-#UNKNOWN POACEAE SP.1(QUILPIE.AU)
-#UNKNOWN POACEAE SP.6(NYNGAN.AU)
-#UNKNOWN POACEAE SP3.(qdtsouth.cl)
-#UNKNOWN POLEMONIACEAE SP.(OREAA.US)
-#UNKNOWN POLEMONIACEAE SP.(OREAC.US)
-#VICIA SP.(BUOYA.NO)
-#VIOLA CANINA
-#VIOLA SP.(BUOYA.NO)
-#VITIS ROTUNDIFOLIA
-#VITTADINIA CERVICULARIS
-#WAHLENBERGIA GRACILENTA
-#WAHLENBERGIA SP. (llara.au)
-#WAHLENBERGIA STRICTA
-#WURMBEA DIOICA
-
-
+#
 
 
 
