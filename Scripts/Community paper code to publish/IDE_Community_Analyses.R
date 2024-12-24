@@ -24,7 +24,7 @@ setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
 # reading in and getting data ---------------------------------------------
 
-dat<-read.csv("cover_ppt_2024-12-17.csv") %>% 
+dat<-read.csv("cover_ppt_2024-12-19.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="_"))
 
 #dropping datasets without pretreatment data
@@ -39,9 +39,14 @@ dat2<-dat %>%
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
   filter(n_treat_years!=0.5&n_treat_years>-1)
 
-#having problems with cdpt_drt.us, sherman.pa, eea.br because they only have year 0 data. 
+
+#having problems with cdpt_drt.us, sherman.pa, eea.br because they only have year 0 data, kranz.de is a forest site with 50% cover of only 2 species for each year.
+#brokenh.au didn't collect drought treatment data in years 2 and 3 so drop those years
 dat3<-dat2 %>% 
-  filter(site_code!="sherman.pa"&site_code!="eea.br")
+  filter(site_code!="sherman.pa"&site_code!="eea.br"&site_code!='kranz.de') %>% 
+  mutate(drop=ifelse(site_code=="brokenh.au"&n_treat_years==2|site_code=='brokenh.au'&n_treat_years==3, 1, 0)) %>% 
+  filter(drop!=1) %>% 
+  select(-drop)
 
 sites<-dat3 %>%
 select(site_code) %>%
@@ -91,6 +96,7 @@ drt<-dat3 %>%
 site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Dec24.csv")
 
 precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv")
+
 
 #site richness
 rich_0_site<-dat3 %>% 
@@ -245,6 +251,8 @@ deltarac4yrs2<-deltarac4yrs %>%
   left_join(uniquereps) %>%
   mutate(rep2=paste(site_code, rep, sep=''))
 
+#there are NAs for change in abundnace of the dominant species. This occurs when the species was not in the plot in the pre-treatment year, and not in the plot in the treatment year, there is 0 change in abundance, but the speices just wasn't there, so really it is not applicable. Keep as NA
+
 unique(deltarac4yrs2$site_code)
 
 #write.csv(deltarac4yrs2, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_Dec24.csv", row.names=F)
@@ -337,7 +345,6 @@ RR2<-RRall %>%
   left_join(precipcv, by="site_code") %>% 
   left_join(siterichness) %>% 
   left_join(sitedomchange) %>% 
-  filter(site_code!="brokenh.au") %>% 
   na.omit()
 
 length(unique(RR2$site_code))
@@ -393,8 +400,7 @@ ggplot(data=subset(RR2, measure=="richness_change"&n_treat_years==2), aes(x=drts
 #get control treatment difference and join site descriptor variables
 
 RRRac_average<-deltaracs %>% 
-  pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>% 
-  filter(n_treat_years<5) %>% 
+  pivot_longer(names_to="measure", values_to = "value", richness_change:losses) %>%   filter(n_treat_years<5) %>% 
   group_by(site_code, year, n_treat_years, trt, measure) %>% 
    summarise(value=mean(value, na.rm=T)) %>% 
   group_by(site_code, trt, measure) %>% 
@@ -405,7 +411,7 @@ RRRac_average<-deltaracs %>%
   left_join(precipcv, by="site_code") %>% 
   left_join(sitedomchange) %>% 
   left_join(siterichness) %>% 
-  dplyr::select(site_code, measure, RR, PctAnnual, PctGrass, MAP, cv_ppt_inter, deltaabund, richness)
+  dplyr::select(site_code, measure, RR, PctAnnual, PctGrass, MAP, MAT, seasonality_index, cv_ppt_inter, deltaabund, richness)
 
 length(unique(RRRac_average$site_code))
 
@@ -414,23 +420,26 @@ length(unique(RRRac_average$site_code))
 #library(relaimpo)
 #library(MASS)
 
+rractest<-RRRac_average %>% 
+  na.omit()
+
 #stepwise multiple regression models
-mrich2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change")))
+mrich2<-stepAIC(lm(RR~MAP+MAT+cv_ppt_inter+seasonality_index+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="richness_change")))
 summary(mrich2)
 calc.relimp(mrich2)
 
-meven2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change")))
+meven2<-stepAIC(lm(RR~MAP+MAT+cv_ppt_inter+seasonality_index+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="evenness_change")))
 summary(meven2)
 
-mrank2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change")))
+mrank2<-stepAIC(lm(RR~MAP+MAT+cv_ppt_inter+seasonality_index+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="rank_change")))
 summary(mrank2)
 calc.relimp(mrank2)
 
-mgain2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains")))
+mgain2<-stepAIC(lm(RR~MAP+MAT+cv_ppt_inter+seasonality_index+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="gains")))
 summary(mgain2)
 
 
-mloss2<-stepAIC(lm(RR~MAP+cv_ppt_inter+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="losses")))
+mloss2<-stepAIC(lm(RR~MAP+MAT+cv_ppt_inter+seasonality_index+PctAnnual+PctGrass+richness+deltaabund, data=subset(RRRac_average, measure=="losses")))
 summary(mloss2)
 calc.relimp(mloss2)
 
@@ -462,25 +471,27 @@ ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\mu
 # Analysis of trait and abundance based losses ----------------------------
 
 ####Filling in missing data
-# MissingDat<-dat3%>% # 
-#   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
-#   filter(max_cover!=0&Family!="NULL") %>% 
-#   # standardizing lifeform and lifespan information
-#   mutate(local_lifeform = ifelse(local_lifeform %in% c("GRAMINOID","Grass", 'GRASS'),"Grass", 
-#   ifelse(local_lifeform%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",
-#  ifelse(local_lifeform %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR", 
-#   ifelse(local_lifeform %in% c("FORB", "LEGUME"), "Forb", local_lifeform)))),
-#   local_lifespan = ifelse(local_lifespan %in% c("BIENNIAL","PERENNIAL"), "Perennial",ifelse(local_lifespan == "UNK","NULL",local_lifespan))) %>% # local_lifeform consolidation
-#   filter(local_lifeform != "FERN") %>%
-#   #filter(local_lifeform != "SUCCULENT") %>%
-#   #filter(local_lifeform != "CACTUS"&local_lifeform!='NONVASCULAR') %>% 
-#   filter(local_lifeform == "NULL",
-#          local_lifespan == "NULL") %>% 
-#   dplyr::select(site_code, Family, Taxon, local_lifeform, local_lifespan, ps_path, N.fixer) %>%
-#   unique
+MissingDat<-dat3%>% #
+  mutate(rep=paste(site_code, replicate, sep=";")) %>%
+  filter(max_cover!=0&Family!="NULL") %>%
+  # standardizing lifeform and lifespan information
+  mutate(local_lifeform = ifelse(local_lifeform %in% c("GRAMINOID","Grass", 'GRASS'),"Grass",
+  ifelse(local_lifeform%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",
+ ifelse(local_lifeform %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR",
+  ifelse(local_lifeform %in% c("FORB", "LEGUME"), "Forb", local_lifeform)))),
+  local_lifespan = ifelse(local_lifespan %in% c("BIENNIAL","PERENNIAL"), "Perennial",ifelse(local_lifespan == "UNK","NULL",local_lifespan))) %>% # local_lifeform consolidation
+  filter(local_lifeform != "FERN") %>%
+  #filter(local_lifeform != "SUCCULENT") %>%
+  #filter(local_lifeform != "CACTUS"&local_lifeform!='NONVASCULAR') %>%
+  filter(local_lifeform == "NULL",
+         local_lifespan == "NULL") %>%
+  dplyr::select(site_code, Family, Taxon, local_lifeform, local_lifespan, ps_path, N.fixer) %>%
+  unique
 # 
 # # write.csv(MissingDat, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\missingtraitdata.csv", row.names=F)
 
+#Notes - drop datasets with missing years, need full 3 (2 years drought), 4 (3 years drought), or 5 (4 years drought) years of data.
+#do calculations seperately for each duration to be sure losses are being calcualted correctly.
 
 ##Dropping rare categories and merging in missing data
 datCat<-dat3%>% # 
@@ -701,11 +712,11 @@ panel.cor <- function(x, y, cex.cor = 0.05, method = "pearson", ...) {
 }
 
 pairsplot<-RRRac_average %>% 
-  rename(PrecipCV=cv_ppt_inter, SiteRichness=richness, DomSpChange=deltaabund) %>% 
-  dplyr::select(site_code, MAP, PrecipCV, PctAnnual, PctGrass, SiteRichness, DomSpChange) %>% 
+  rename(PrecipCV=cv_ppt_inter, SiteRichness=richness, DomSpChange=deltaabund, Season=seasonality_index) %>% 
+  dplyr::select(site_code, MAP, PrecipCV, PctAnnual,Season, MAT, PctGrass, SiteRichness, DomSpChange) %>% 
   unique()
 
-pair<-pairs(pairsplot[,2:7], lower.panel = panel.cor, cex.cor=1.5)
+pair<-pairs(pairsplot[,2:9], lower.panel = panel.cor, cex.cor=1.5)
 pair
 
 comchangeplot<-RRRac_average %>% 
