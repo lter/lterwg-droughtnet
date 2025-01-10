@@ -1995,7 +1995,7 @@ data_table <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
   left_join(graminoid_richness, by = "site_code")%>%
   left_join(seasonality, by = "site_code")%>%
-  dplyr::select(site_code, n_treat_years, anpp_response, type, e.n, drtsev.1,  map, temp,   sand_mean, AI, cv_ppt_inter, percent_graminoid, richness)
+  dplyr::select(site_code, n_treat_years, anpp_response, type, e.n, drtsev.1,  map, temp,   sand_mean, AI, cv_ppt_inter, percent_graminoid, richness, seasonality_index)
 
 write.csv(data_table, "C:/Users/ohler/Dropbox/IDE_Duration_ms/data_table.csv")
 

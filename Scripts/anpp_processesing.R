@@ -108,7 +108,7 @@ data.all<-anpp_ppt %>%
           subset(rep_year != "passogavia.it_2021_5_10_A")%>% #plot may have issues. check github
           subset(rep_year != "naqu.cn_2021_2_15_A")%>%#plot may have issues. check github
           subset(rep_year != "sevblack.us_2019_1_106_A")%>%#plot may have issues. Tim Ohlert says high biomass is due to shrub and therefore not representative of ANPP
-          subset(rep_year != "jenadrt.de_2015_1_1_A")%>%
+          subset(rep_year != "jenadrt.de_2015_1_1_A")%>%#Jena says they lost a biomass bag in 2015
 subset(rep_year != "jenadrt.de_2015_1_2_A")%>%
 subset(rep_year != "jenadrt.de_2015_1_3_A")%>%
 subset(rep_year != "jenadrt.de_2015_1_4_A")%>%
