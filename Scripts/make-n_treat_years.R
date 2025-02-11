@@ -78,7 +78,7 @@ comb1$n_treat_years1 <- case_when(
   comb1$site_code == "torla.es" & comb1$year == "2017" ~ 2, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
   comb1$site_code == "torla.es" & comb1$year == "2018" ~ 3, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
   comb1$site_code == "torla.es" & comb1$year == "2019" ~ 4, #this hard codes in a treatment year for this site but may need to be changed if n_treat_year definition changes
-  
+  comb1$site_code == "sevforest.us" & comb1$year == "2011" ~ 4,
   TRUE ~ comb1$n_treat_years
 )
 
