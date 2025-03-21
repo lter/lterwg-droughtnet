@@ -348,7 +348,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
 #  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -403,6 +403,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -639,7 +640,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
 #  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -694,6 +695,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -928,7 +930,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
   geom_smooth(method = "lm", se = TRUE, color = "black")+ 
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -983,6 +985,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -1209,7 +1212,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
 #  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -1264,6 +1267,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
