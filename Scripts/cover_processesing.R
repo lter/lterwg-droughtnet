@@ -495,9 +495,29 @@ cover_ppt$n_treat_days <- as.numeric(cover_ppt$n_treat_days)
 cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", "year"))%>%
                     subset(trt == "Control"| trt == "Drought")%>%
                   left_join(cover_survey, by = "site_code")%>%
-                  left_join(site_map, by = "site_code")#%>%
-                  #subset(habitat.type=="Grassland"|habitat.type=="Shrubland")
-
+                  left_join(site_map, by = "site_code")%>%
+  unite(rep_year, c("site_code", "year", "block", "plot", "subplot"), remove = FALSE)%>%
+  subset(rep_year != "bayrdrt.de_2021_1_1_A")%>%#recovery data from bayreuath
+  subset(rep_year != "bayrdrt.de_2021_1_6_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_2_2_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_2_7_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_3_3_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_3_8_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_4_4_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_4_9_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_5_10_A")%>%
+  subset(rep_year != "bayrdrt.de_2021_5_5_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_1_1_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_1_6_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_2_2_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_2_7_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_3_3_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_3_8_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_4_4_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_4_9_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_5_10_A")%>%
+  subset(rep_year != "bayrdrt.de_2022_5_5_A")%>%
+  subset(select=-c(rep_year))
 
 
 write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2024-12-19.csv")

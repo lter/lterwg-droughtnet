@@ -167,6 +167,10 @@ data.anpp.summary%>%
   dplyr::select(site_code, type, map)%>%
   unique()%>%
   write.csv("C:/Users/ohler/Downloads/IDE_duration_sites.csv")
+data.anpp.summary%>%
+  dplyr::select(site_code, year, n_treat_years,e.n)%>%
+  unique()%>%
+  write.csv("C:/Users/ohler/Downloads/IDE_duration_sites_years.csv")
 #  group_by(type)%>%
 #  tally()
 
@@ -348,7 +352,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
 #  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -403,6 +407,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -639,7 +644,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
 #  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -694,6 +699,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -928,7 +934,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
   geom_smooth(method = "lm", se = TRUE, color = "black")+ 
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -983,6 +989,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -1209,7 +1216,7 @@ c <- data.anpp.summary%>%
   ggplot(aes(AI, anpp_response))+
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
-  xlim(0,2)+
+  xlim(0,3.77)+
 #  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed")+ #marginal when controlling for multiple comparisons
   xlab("Aridity index")+
   ylab("Productivity response")+
@@ -1264,6 +1271,7 @@ e <- data.anpp.summary%>%
   geom_point(aes(color = e.n),alpha = 0.8, size = 3#, pch = 21
   )+
   #geom_smooth(method = "lm", se = TRUE)+
+  xlab("Percent graminoid")+
   ylab("Productivity response")+
   scale_color_manual( values = c("#da7901" , "grey48" ))+
   geom_hline(yintercept = 0, linetype = "dashed")+
@@ -1995,7 +2003,7 @@ data_table <- data.anpp.summary%>%
   left_join(cv1, by = "site_code")%>%
   left_join(graminoid_richness, by = "site_code")%>%
   left_join(seasonality, by = "site_code")%>%
-  dplyr::select(site_code, n_treat_years, anpp_response, type, e.n, drtsev.1,  map, temp,   sand_mean, AI, cv_ppt_inter, percent_graminoid, richness)
+  dplyr::select(site_code, n_treat_years, anpp_response, type, e.n, drtsev.1,  map, temp,   sand_mean, AI, cv_ppt_inter, percent_graminoid, richness, seasonality_index)
 
 write.csv(data_table, "C:/Users/ohler/Dropbox/IDE_Duration_ms/data_table.csv")
 
