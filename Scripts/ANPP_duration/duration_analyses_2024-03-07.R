@@ -167,6 +167,10 @@ data.anpp.summary%>%
   dplyr::select(site_code, type, map)%>%
   unique()%>%
   write.csv("C:/Users/ohler/Downloads/IDE_duration_sites.csv")
+data.anpp.summary%>%
+  dplyr::select(site_code, year, n_treat_years,e.n)%>%
+  unique()%>%
+  write.csv("C:/Users/ohler/Downloads/IDE_duration_sites_years.csv")
 #  group_by(type)%>%
 #  tally()
 
