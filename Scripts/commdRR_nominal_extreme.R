@@ -38,6 +38,9 @@ comp$n_treat_years <- as.character(comp$n_treat_years)
 
 unique(comp$site_code) #down to 49 sites
 
+
+
+##Categorcal by year
 mod <- lme(RR~e.n*n_treat_years, random = ~1|ipcc_regions/site_code, data = subset(comp, measure=="gains"))
 summary(mod)
 pairs(emmeans(mod, ~e.n | n_treat_years, var="n_treat_years"))
@@ -52,6 +55,33 @@ summary(mod)
 pairs(emmeans(mod, ~e.n | n_treat_years, var="n_treat_years"))
 
 
+
+
+##Regressed against drought severity
+mod <- lme(RR~drtsev.1, random = ~1|ipcc_regions, data = subset(comp, measure == "losses" & n_treat_years == "1"))
+summary(mod)
+
+mod <- lme(RR~drtsev.1, random = ~1|ipcc_regions, data = subset(comp, measure == "losses" & n_treat_years == "2"))
+summary(mod)
+
+mod <- lme(RR~drtsev.1, random = ~1|ipcc_regions, data = subset(comp, measure == "losses" & n_treat_years == "3"))
+summary(mod)
+
+mod <- lme(RR~drtsev.1, random = ~1|ipcc_regions, data = subset(comp, measure == "losses" & n_treat_years == "4"))
+summary(mod)
+
+
+
+
+
+
+
+
+
+
+
+
+###losses to anpp response
 mod <- lme(anpp_response~RR, random = ~1|ipcc_regions, data = subset(comp, measure == "losses" & n_treat_years == "1"))
 summary(mod)
 
