@@ -1,5 +1,6 @@
 #Get RR with IDE_community_analyses
 #Get data.anpp.summary with Duration_analyses_2024-03-07
+library(ggthemes)
 
 #read in drougth data
 nominal<-read.csv('C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\IDE_duration_sites_years.csv')
@@ -71,10 +72,14 @@ mod <- lme(RR~drtsev.1, random = ~1|ipcc_regions, data = subset(comp, measure ==
 summary(mod)
 
 
-
-
-
-
+ggplot(subset(comp, measure == "losses"), aes(drtsev.1, RR))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  #geom_smooth(method = "lm")+
+  geom_hline(yintercept = 0)+
+  ylab("losses")+
+  xlab("Drought severity")+
+  theme_base()
 
 
 
@@ -93,3 +98,14 @@ summary(mod)
 
 mod <- lme(anpp_response~RR, random = ~1|ipcc_regions, data = subset(comp, measure == "losses" & n_treat_years == "4"))
 summary(mod)
+
+
+ggplot(subset(comp, measure == "losses"), aes(RR, anpp_response))+
+  facet_wrap(~n_treat_years)+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  geom_hline(yintercept = 0)+
+  ylab("Productivity response")+
+  xlab("Losses")+
+  theme_base()
+
