@@ -2,7 +2,7 @@
 #Get data.anpp.summary with Duration_analyses_2024-03-07
 library(ggthemes)
 
-#read in drougth data
+#read in drought data
 nominal<-read.csv('C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\IDE_duration_sites_years.csv')
 
 rr3<-RR2 %>% 
@@ -24,7 +24,7 @@ fig<-ggplot(data=rr3, aes(x=n_treat_years, y=mrr, color=e.n))+
   xlab('Year of Drought Treatment')+
   scale_color_manual(name="Drought type", values=c('orange2', 'gray'), labels=c('Extreme', 'Nominal'))
 
-ggsave('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\supplemental_fig_RR.pdf',fig, width=8, height=5, units='in' )
+ggsave('C:\\Users\\ohler\\Dropbox\\IDE\\figures\\anpp_duration\\meghan_supp.pdf',fig, width=8, height=4, units='in' )
 
 
 ###stats
@@ -74,8 +74,9 @@ summary(mod)
 
 ggplot(subset(comp, measure == "losses"), aes(drtsev.1, RR))+
   facet_wrap(~n_treat_years)+
-  geom_point()+
-  #geom_smooth(method = "lm")+
+  geom_point(aes(color = e.n))+
+  #geom_smooth(method = "lm")+ 
+  scale_color_manual(values = c( "#da7901" , "grey48"), na.value = "white")+
   geom_hline(yintercept = 0)+
   ylab("losses")+
   xlab("Drought severity")+
@@ -100,12 +101,14 @@ mod <- lme(anpp_response~RR, random = ~1|ipcc_regions, data = subset(comp, measu
 summary(mod)
 
 
-ggplot(subset(comp, measure == "losses"), aes(RR, anpp_response))+
+fig<-ggplot(subset(comp, measure == "losses"), aes(RR, anpp_response))+
   facet_wrap(~n_treat_years)+
-  geom_point()+
-  geom_smooth(method = "lm")+
+  geom_point(aes(color = e.n))+
+  scale_color_manual(name = "",values = c( "#da7901" , "grey48"), na.value = "white", labels=c('Extreme', 'Nominal'))+
+  geom_smooth(method = "lm", color = "black")+
   geom_hline(yintercept = 0)+
   ylab("Productivity response")+
   xlab("Losses")+
   theme_base()
 
+ggsave('C:\\Users\\ohler\\Dropbox\\IDE\\figures\\anpp_duration\\anpp_losses.pdf',fig, width=8, height=7, units='in' )
