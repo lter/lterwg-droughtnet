@@ -5,12 +5,21 @@ library(ggthemes)
 #read in drought data
 nominal<-read.csv('C:\\Users\\ohler\\Dropbox\\IDE\\data_processed\\IDE_duration_sites_years.csv')
 
-rr3<-RR2 %>% 
-  left_join(nominal) %>% 
+
+comp <- left_join(RR2, data.anpp.summary, by = c("site_code", "n_treat_years"))%>%
+  subset(type == "Herbaceous.Perennial"|type == "Woody.Perennial")
+comp$n_treat_years <- as.character(comp$n_treat_years)
+
+unique(comp$site_code) #down to 49 sites
+rr3<-comp %>% 
+  #left_join(nominal) %>% 
   group_by(n_treat_years, measure, e.n) %>% 
   dplyr::summarise(mrr=mean(RR), se=(sd(RR))/sqrt(length(RR))) %>% 
   na.omit() %>% 
   filter(measure!='rank_change'&measure!='evenness_change')
+
+
+
 
 labs<-c('richness_change'='Richness Change', 'gains'='Gains', 'losses'='Losses')
 
@@ -19,7 +28,7 @@ fig<-ggplot(data=rr3, aes(x=n_treat_years, y=mrr, color=e.n))+
   geom_errorbar(aes(ymin=mrr-se, ymax=mrr+se), width=0.25)+
   facet_wrap(~measure, labeller=labeller(measure=labs))+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  geom_hline(yintercept = 0)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
   ylab("Drought-Control Differences")+
   xlab('Year of Drought Treatment')+
   scale_color_manual(name="Drought type", values=c('orange2', 'gray'), labels=c('Extreme', 'Nominal'))
@@ -33,11 +42,6 @@ ggsave('C:\\Users\\ohler\\Dropbox\\IDE\\figures\\anpp_duration\\meghan_supp.pdf'
 #        dplyr::select(Site.code, Vegetation.type, Number.of.treatment.years, Productivity.response, Drought.severity)
 
 
-comp <- left_join(RR2, data.anpp.summary, by = c("site_code", "n_treat_years"))%>%
-        subset(type == "Herbaceous.Perennial"|type == "Woody.Perennial")
-comp$n_treat_years <- as.character(comp$n_treat_years)
-
-unique(comp$site_code) #down to 49 sites
 
 
 
@@ -77,7 +81,7 @@ ggplot(subset(comp, measure == "losses"), aes(drtsev.1, RR))+
   geom_point(aes(color = e.n))+
   #geom_smooth(method = "lm")+ 
   scale_color_manual(values = c( "#da7901" , "grey48"), na.value = "white")+
-  geom_hline(yintercept = 0)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
   ylab("losses")+
   xlab("Drought severity")+
   theme_base()
@@ -106,7 +110,8 @@ fig<-ggplot(subset(comp, measure == "losses"), aes(RR, anpp_response))+
   geom_point(aes(color = e.n))+
   scale_color_manual(name = "",values = c( "#da7901" , "grey48"), na.value = "white", labels=c('Extreme', 'Nominal'))+
   geom_smooth(method = "lm", color = "black")+
-  geom_hline(yintercept = 0)+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+  geom_vline(xintercept = 0, linetype = "dashed")+
   ylab("Productivity response")+
   xlab("Losses")+
   theme_base()
