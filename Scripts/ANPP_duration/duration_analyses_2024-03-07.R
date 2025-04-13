@@ -1590,6 +1590,7 @@ ggplot(confint(means),aes(as.factor(n_treat_years), emmean))+
   theme_base()+
   theme(axis.ticks.length=unit(-0.25, "cm"), legend.position = "none")
 
+100 * (exp(grand.mean$grand_mean[1]) - 1) #percent reduction
 
 ggsave(
   "C:/Users/ohler/Dropbox/IDE/figures/anpp_duration/fig1_allsites.pdf",

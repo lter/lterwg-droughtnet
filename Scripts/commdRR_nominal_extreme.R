@@ -47,16 +47,16 @@ ggsave('C:\\Users\\ohler\\Dropbox\\IDE\\figures\\anpp_duration\\meghan_supp.pdf'
 
 ##Categorcal by year
 mod <- lme(RR~e.n*n_treat_years, random = ~1|ipcc_regions/site_code, data = subset(comp, measure=="gains"))
-summary(mod)
+write.csv(coef(summary(mod)), "C:\\Users\\ohler\\Dropbox\\Tim Work\\gain_stats.csv")
 pairs(emmeans(mod, ~e.n | n_treat_years, var="n_treat_years"))
 
 
 mod <- lme(RR~e.n*n_treat_years, random = ~1|ipcc_regions/site_code, data = subset(comp, measure=="losses"))
-summary(mod)
+write.csv(coef(summary(mod)), "C:\\Users\\ohler\\Dropbox\\Tim Work\\losses_stats.csv")
 pairs(emmeans(mod, ~e.n | n_treat_years, var="n_treat_years"))
 
 mod <- lme(RR~e.n*n_treat_years, random = ~1|ipcc_regions/site_code, data = subset(comp, measure=="richness_change"))
-summary(mod)
+write.csv(coef(summary(mod)), "C:\\Users\\ohler\\Dropbox\\Tim Work\\richnesschange_stats.csv")
 pairs(emmeans(mod, ~e.n | n_treat_years, var="n_treat_years"))
 
 
