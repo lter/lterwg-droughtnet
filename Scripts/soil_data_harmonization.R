@@ -19,7 +19,7 @@ key$dup <- duplicated(dplyr::select(key, source, tidy_name) )
 harmony_df <- ltertools::harmonize(key = key, raw_folder = "C:/Users/ohler/Dropbox/IDE_data_May 2018/Soil Reports/Tidy version", 
                                    data_format = "csv", quiet = TRUE)%>%
               subset(site_code != "")%>%
-                      dplyr::select(-c("site", "treatment", "x", "x_1", "x_2","x_3", "x_mo", "sample_id", "fert", "sample_density_g_ml", "exch_acidity_cmol_l", "total_cations_cmol_l", "acid_sat", "lab", "sample", "h", "c_org_n", "conductividad_s", "x2000_50_m", "x50_20_m", "x20_2_m", "x_2_m", "Sikora")) 
+                      dplyr::select(-c( "treatment", "x", "x_1", "x_2","x_3", "x_mo", "sample_id", "fert", "sample_density_g_ml", "exch_acidity_cmol_l", "total_cations_cmol_l", "acid_sat", "lab", "sample", "h", "c_org_n", "conductividad_s", "x2000_50_m", "x50_20_m", "x20_2_m", "x_2_m", "Sikora")) 
 
 
 
