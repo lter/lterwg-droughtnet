@@ -5,7 +5,7 @@ library(plyr)
 
 
 
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_12-16-2024.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_05-19-2025.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()
 data.anpp$n_treat_days <- as.numeric(data.anpp$n_treat_days)
@@ -92,5 +92,5 @@ subset(combfin, is.na(n_treat_years) == TRUE)
 
 
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2024-12-16.csv")
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2025-05-19.csv")
 

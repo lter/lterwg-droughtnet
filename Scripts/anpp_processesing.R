@@ -8,9 +8,9 @@ library(plyr)
 
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2024-12-16.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2025-05-19.csv")
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2024-12-16.csv")
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2025-05-19.csv")
 
 
 
@@ -55,7 +55,7 @@ ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"),
 
 
 #read in precip data
-ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2024-12-16.csv")
+ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2025-05-19.csv")
 
 #reduce column names to minimum
 ppt.2$ppt.2 <- ppt.2$ppt#change precip column names in lag files to reflect lags
@@ -66,7 +66,7 @@ ppt.2 <- ddply(ppt.2, c("site_code", "year", "trt"),
 
 
 #read in precip data
-ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2024-12-16.csv")
+ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2025-05-19.csv")
 
 #reduce column names to minimum
 ppt.3$ppt.3 <- ppt.3$ppt#change precip column names in lag files to reflect lags
@@ -76,7 +76,7 @@ ppt.3 <- ddply(ppt.3, c("site_code", "year", "trt"),
                ))
 
 #read in precip data
-ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2024-12-16.csv")
+ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2025-05-19.csv")
 
 #reduce column names to minimum
 ppt.4$ppt.4 <- ppt.4$ppt#change precip column names in lag files to reflect lags
@@ -172,6 +172,6 @@ anpp_ppt.end <- data.all%>%
 
 
 
-write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2024-12-16.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-05-19.csv")
 
 
