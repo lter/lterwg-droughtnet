@@ -14,6 +14,8 @@ library(MASS)
 library(cowplot)
 #library(rsq)
 library(emmeans)
+library(kernelshap)   #  General SHAP
+library(shapviz)      #  SHAP plots
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-05-19.csv")%>% #anpp_ppt_2023-11-03.csv
@@ -153,7 +155,7 @@ mult_reg <- data.anpp1%>%
 
 X <- mult_reg%>%
   ungroup()%>%
-  dplyr::select(ppt.1, ppt.2, ppt.3, ppt.4, n_treat_days, n_treat_years, map, arid, PctAnnual, PctGrass, sand_mean, AI, cv_ppt_inter, richness, seasonality_index, r_monthly_t_p)
+  dplyr::select(ppt.1, ppt.2, ppt.3, ppt.4, n_treat_days, n_treat_years, map,  PctAnnual, PctGrass, sand_mean, AI, cv_ppt_inter, richness, seasonality_index, r_monthly_t_p)
 
 tau.forest <- causal_forest(X, Y = mult_reg$mass, W = mult_reg$trt_num, num.trees = 4000)
 #
@@ -261,13 +263,23 @@ wrap_plots(pdps, guides = "collect", ncol = 5) &
 #partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 
+# Explaining one CATE
+#kernelshap(eval.forest, X = X.cf[-train, ], #bg_X = X, 
+#           pred_fun = pred_fun) |> 
+#  shapviz() |> 
+#  sv_waterfall() +
+#  xlab("Prediction")
 
-
-
-
-
-plot(tree <- get_tree(eval.forest,1))
-plot(rate.cate)
+# Explaining all CATEs globally
+system.time(  # 13 min
+  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+)
+shap_values <- shapviz(ks)
+sv_importance(shap_values)
+sv_importance(shap_values, kind = "bee")
+sv_dependence(shap_values, v = xvars) +
+  plot_layout(ncol = 3) &
+  ylim(c(-0.04, 0.03))
 
 
 
