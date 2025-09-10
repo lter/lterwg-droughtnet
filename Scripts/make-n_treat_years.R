@@ -33,7 +33,8 @@ first_treat_year <- subset(comb, n_treat_days >= 200 & n_treat_days < 565  )%>%
 #hist(first_treat_year$n_treat_days)
 
 half_treat_year <- subset(comb, n_treat_days >= 30 & n_treat_days < 200  )%>%
-                  dplyr::select(site_code, year)
+                  dplyr::select(site_code, year)%>%
+                  subset(site_code != "wytham.uk")
 half_treat_year$n_treat_years_half <- "0.5"
 
 pretreatment_year <- subset(comb, n_treat_days <30)%>%

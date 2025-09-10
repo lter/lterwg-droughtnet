@@ -103,6 +103,7 @@ anpp_ppt <- anpp_clean%>%
 #summarize treatment days and remove plots identified by site PIs as problematic
 data.all<-anpp_ppt %>%
   dplyr::group_by(site_code,block,plot,subplot,year,mass,mass_category,trt,ppt.1, ppt.2,ppt.3,ppt.4) %>%
+  subset(n_treat_days != 91 )%>% #only removes one problematic Wytham data entry that screws with n_treat_years
   dplyr::summarize(n_treat_days = max(n_treat_days))%>%
   unite(rep_year, c("site_code", "year", "block", "plot", "subplot"), remove = FALSE)%>%
           subset(rep_year != "passogavia.it_2021_5_10_A")%>% #plot may have issues. check github
