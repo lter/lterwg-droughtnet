@@ -517,7 +517,7 @@ cover_ppt_full <- left_join(cover_ppt, IDE_treatment_years, by = c("site_code", 
   subset(rep_year != "bayrdrt.de_2022_4_9_A")%>%
   subset(rep_year != "bayrdrt.de_2022_5_10_A")%>%
   subset(rep_year != "bayrdrt.de_2022_5_5_A")%>%
-  subset(select=-c(rep_year))
+  subset(select=-c(rep_year, local_lifeform))
 
 
 write.csv(cover_ppt_full, "C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2025-10-20.csv")
