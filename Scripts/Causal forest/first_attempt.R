@@ -18,8 +18,8 @@ library(kernelshap)   #  General SHAP
 library(shapviz)      #  SHAP plots
 
 #read ANPP data
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-05-19.csv")%>% #anpp_ppt_2023-11-03.csv
-  subset(habitat.type == "Grassland" | habitat.type == "Shrubland")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.csv")%>% #anpp_ppt_2023-11-03.csv
+  subset(habitat.type == "Grassland" | habitat.type == "Shrubland" | habitat.type == "Forest understory" | habitat.type == "")%>%
   mutate(n_treat_years = ifelse(site_code == "allmendo.ch" & n_treat_days == 197, 1, n_treat_years))%>%
   mutate(n_treat_years = ifelse(site_code == "allmendb.ch" & n_treat_days == 197, 1, n_treat_years))%>%
   mutate(n_treat_years = ifelse(site_code == "torla.es" & n_treat_days == 195, 1, n_treat_years))
@@ -88,14 +88,14 @@ Plot.trt.ct2<-tidyr::gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 
 #Merge unique trt count back with data frame to filter
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))%>%
-  subset(habitat.type == "Grassland")%>%
+  subset(habitat.type == "Grassland" | habitat.type == "Shrubland" | habitat.type == "Forest understory" | habitat.type == "")%>%
   left_join(prop, by = c("site_code"))%>%
   subset(site_code != "stubai.at")%>%#stubai is not a year-round drought so shouldn't be compared against these other sites
   subset(site_code != "sclaudio.ar") #sclaudio missed Y3 sampling (2020)
 #subset(site_code == "allmendo.ch" & site_code == "allmendb.ch" & site_code == "torla.es") #allmendo, allmendb, and torla have first treatment dates in the 190s, sclaudio missed Y3 sampling (2020)
 
 setdiff(data.anpp$site_code,data.anpp1$site_code) #"brandjberg.dk" "garraf.es"  "swift.ca" eliminated here
-length(unique(data.anpp1$site_code)) #111
+length(unique(data.anpp1$site_code)) #116
 
 ##How many treatment years does each site have of the first 3 years?
 num.treat.years <- data.anpp1[,c("site_code", "n_treat_years")]%>%
@@ -145,7 +145,8 @@ mult_reg <- data.anpp1%>%
   left_join(Site_Elev.Disturb, by = "site_code")%>%
   mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
   group_by(latitud, longitud, trt_num, ppt.1, ppt.2, ppt.3, ppt.4, n_treat_days, n_treat_years, map, arid, PctAnnual, PctGrass, sand_mean, AI, cv_ppt_inter, richness, seasonality_index, r_monthly_t_p)%>%
-  dplyr::summarise(mass = mean(mass))
+  dplyr::summarise(mass = mean(mass))%>%
+  subset(n_treat_years >=1 & n_treat_years <=4)
 
 
 #data.anpp1 <- data.anpp1%>%
@@ -202,9 +203,10 @@ varimp.Y <- variable_importance(Y.forest)
 # Keep the top 10 variables for CATE estimation
 keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:10]]
 keep
-#[1] "map"               "AI"                "sand_mean"         "arid"             
-#[5] "seasonality_index" "ppt.1"             "PctAnnual"         "PctGrass"         
-#[9] "ppt.3"             "ppt.2"  
+#[1] "AI"                "map"               "sand_mean"        
+#[4] "ppt.1"             "ppt.2"             "PctGrass"         
+#[7] "PctAnnual"         "ppt.3"             "seasonality_index"
+#[10] "richness"      
 
 
 
@@ -213,7 +215,10 @@ W.hat <- 0.5
 
 # Set aside the first half of the data for training and the second for evaluation.
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
-train <- 1:(nrow(X.cf) / 2)
+#train <- 1:(nrow(X.cf) / 2)
+
+train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
+
 
 train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
 tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
@@ -224,13 +229,16 @@ eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat
 
 average_treatment_effect(eval.forest)
 #estimate   std.err 
-#-19.93438  10.14605 
+#-10.39629  13.48111 
 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
-colnames(X.cf)[ranked.vars[1:5]]
-#[1] "PctAnnual" "ppt.1"     "PctGrass"  "sand_mean" "ppt.3"   
+colnames(X.cf)[ranked.vars[1:10]]
+#[1] "AI"                "sand_mean"         "seasonality_index"
+#[4] "ppt.3"             "PctAnnual"         "ppt.2"            
+#[7] "map"               "PctGrass"          "richness"         
+#[10] "ppt.1"   
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
