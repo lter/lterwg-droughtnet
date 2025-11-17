@@ -156,7 +156,8 @@ mult_reg <- data.anpp1%>%
 
 X <- mult_reg%>%
   ungroup()%>%
-  dplyr::select(ppt.1, ppt.2, ppt.3, ppt.4, n_treat_days, n_treat_years, map,  PctAnnual, PctGrass, sand_mean, AI, cv_ppt_inter, richness, seasonality_index, r_monthly_t_p)
+  dplyr::select(#ppt.1, ppt.2, ppt.3, ppt.4, 
+    n_treat_days, n_treat_years, map,  PctAnnual, PctGrass, sand_mean, AI, cv_ppt_inter, richness, seasonality_index, r_monthly_t_p)
 
 tau.forest <- causal_forest(X, Y = mult_reg$mass, W = mult_reg$trt_num, num.trees = 4000)
 #
