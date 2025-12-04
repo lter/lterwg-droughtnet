@@ -274,3 +274,172 @@ sv_importance(shap_values, kind = "bee")
 #  ylim(c(-0.04, 0.03))
 
 
+#######################################################################
+###Causal forest for moderators
+##FIRST JUST THE TOP RATED MODERATORS
+# As outcomes we'll look at the number of correct answers.
+
+##Top-rankd moderators from survey
+#Seasonality 
+#Soil N 
+#Mean annual precipitation 
+#Richness (pre-treatment) 
+#Functional group composition (pre-treatment) 
+#Species composition (pre-treatment) 
+#Interannual precipitation variability 
+#Soil texture 
+#Aridity 
+
+
+#First step, merge in moderators
+climate <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/climate_mean_annual_by_site_v3.csv")
+prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
+site_richness <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/site_ave_richness.csv")
+#soil variables for soil variation
+soil <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_soil_2024-12-16.csv")%>%
+  group_by(site_code)%>%
+  dplyr::summarize(ph = mean(ph, na.rm = TRUE), no3 = mean(no3, na.rm = TRUE), p = mean(p, na.rm = TRUE), k = mean(k, na.rm = TRUE), zn = mean(zn, na.rm = TRUE), fe = mean(fe, na.rm = TRUE), mn = mean(mn, na.rm = TRUE), cu = mean(cu, na.rm = TRUE), sand = mean(sand, na.rm = TRUE), silt = mean(silt, na.rm = TRUE), clay = mean(clay, na.rm = TRUE), c = mean(c, na.rm = TRUE), n = mean(n, na.rm = TRUE), c_n = mean(c_n, na.rm = TRUE))
+sand <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/site_sand_from_soilgrid.csv")
+
+te1 <- te%>%
+        left_join(climate, by = "site_code")%>%
+        left_join(prop, by = "site_code")%>%
+        left_join(soil, by = "site_code")%>%
+        left_join(site_richness, by = "site_code")%>%
+        left_join(sand, by = "site_code")
+
+
+
+Y <- te1$ANPP
+W <- te1%>%
+  ungroup()%>%
+  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
+  pull(trt_num)
+#W <- dist.anpp$relprecip.1
+#X <- dist.anpp%>%
+#  ungroup()%>%
+#  dplyr::select(relprecip.1,relprecip.2,relprecip.3,relprecip.4)
+X <- te1%>%
+  ungroup()%>%
+  dplyr::select(seasonality_index, n, MAP, mean_sr, cv_ppt_inter, sand_mean, aridity_index)#put just the moderators you're testing here
+#Still need below variables
+#Functional group composition (pre-treatment) 
+#Species composition (pre-treatment) 
+
+
+rf <- regression_forest(X, W, num.trees = 5000)
+p.hat <- predict(rf)$predictions
+
+hist(p.hat)
+
+Y.forest <- regression_forest(X, Y) #this function doesn't know the treatment but that's the whole point
+Y.hat <- predict(Y.forest)$predictions
+
+varimp.Y <- variable_importance(Y.forest)
+
+# Keep the top 10 variables for CATE estimation
+keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:7]]
+keep
+#[1] "MAP"               "aridity_index"     "sand_mean"         "mean_sr"  "cv_ppt_inter"      "seasonality_index" "n"        
+
+X.cf <- X[, keep]
+W.hat <- 0.5
+
+# Set aside the first half of the data for training and the second for evaluation.
+# (Note that the results may change depending on which samples we hold out for training/evaluation)
+train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
+
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
+tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
+
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
+
+average_treatment_effect(eval.forest)
+# estimate   std.err 
+#-16.12507  11.22932 
+
+varimp <- variable_importance(eval.forest)
+ranked.vars <- order(varimp, decreasing = TRUE)
+colnames(X.cf)[ranked.vars[1:7]]
+#[1] "sand_mean"         "mean_sr"           "MAP"               "aridity_index" "seasonality_index" "cv_ppt_inter"      "n"     
+
+rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
+#rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
+
+plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
+#plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
+
+#xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
+imp <- sort(setNames(variable_importance(eval.forest), keep))
+#par(mai = c(0.7, 2, 0.2, 0.2))
+barplot(imp, horiz = TRUE, las = 1, col = "orange")
+ggplot(rownames_to_column(data.frame(imp))#%>%dplyr::mutate(rowname = dplyr::recode(rowname, proportion.nestedness = "Proportion nestedness",PctGrass = "% grass",PctAnnual = "% annual",MAT = "Mean annual temperature",map = "Mean annual precipitation",gamma_rich = "Gamma richness",cv_ppt_inter = "Interannual precipitaiton variability",bp_dominance = "Berger-Parker Dominance",aridity_index = "Aridity",anpp = "Site ANPP"))
+       ,aes(fct_reorder(rowname,imp),imp))+
+  geom_bar(stat="identity")+
+  coord_flip()+
+  ylab("Variable Importance")+
+  xlab("")+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderators_variable-importance.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 6,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+pred_fun <- function(object, newdata, ...) {
+  predict(object, newdata, ...)$predictions
+}
+library(hstats)
+pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
+)))
+library(patchwork)
+wrap_plots(pdps, guides = "collect", ncol = 5) &
+  #  ylim(c(-0.11, -0.06)) &
+  ylab("Treatment effect")
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+#H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
+#plot(H)
+#partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
+# plot()
+
+partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+
+# Explaining one CATE
+kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+           pred_fun = pred_fun) |> 
+  shapviz() |> 
+  sv_waterfall() +
+  xlab("Prediction")
+
+# Explaining all CATEs globally
+system.time(  # 13 min
+  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+)
+shap_values <- shapviz(ks)
+sv_importance(shap_values)
+sv_importance(shap_values, kind = "bee")
+#sv_dependence(shap_values, v = xvars) +
+#  plot_layout(ncol = 3) &
+#  ylim(c(-0.04, 0.03))
