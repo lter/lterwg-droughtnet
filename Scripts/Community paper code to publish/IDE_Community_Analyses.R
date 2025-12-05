@@ -56,6 +56,15 @@ select(site_code) %>%
 # write.csv(sites, "community_comp\\sitelistMarhc2024.csv")
 unique(dat3$site_code)
 
+nreps<-dat3 %>% 
+  select(site_code, trt, replicate) %>% 
+  unique() %>% 
+  group_by(site_code, trt) %>% 
+  summarise(n=length(replicate)) %>% 
+  filter(trt!='Control')
+
+hist(nreps$n)
+
 #summarizing the data
 drt1yr<-dat3 %>%
   filter(n_treat_years==1) %>%
@@ -259,6 +268,11 @@ deltarac4yrs2<-deltarac4yrs %>%
   left_join(uniquereps) %>%
   mutate(rep2=paste(site_code, rep, sep=''))
 
+#why are gains so different from stats?
+ggplot(data=deltarac4yrs2, aes(x=as.factor(n_treat_years), y=gains, color=trt))+
+  geom_boxplot()+
+  geom_hline(yintercept=0.23)
+
 #there are NAs for change in abundnace of the dominant species. This occurs when the species was not in the plot in the pre-treatment year, and not in the plot in the treatment year, there is 0 change in abundance, but the speices just wasn't there, so really it is not applicable. Keep as NA
 
 unique(deltarac4yrs2$site_code)
@@ -275,19 +289,26 @@ unique(detlarac4yrs_allyears$site_code)
 #these values are from SAS
 #updated Jan 15 2025
 pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.0001, 0.2716,  0.0135, 0.0091, 0.0001, 0.0018)) %>%
-  mutate(padj=paste("p = " , round(p.adjust(pvalue, method="BH"), 3)))
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
 pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.9772, 0.2063, 0.0020, 0.9431, 0.9925, 0.0615)) %>%
-  mutate(padj=p.adjust(pvalue, method="BH"))
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
-pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.0395, 0.001, 0.0001, 0.0001, 0.0001, 0.0001)) %>% 
-  mutate(padj=p.adjust(pvalue, method="BH"))
+pvalsYR=data.frame(measure=c('even', 'rank', 'gain', 'loss', 'abund', 'rich'), pvalue=c(0.001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0395)) %>% 
+  mutate(padj=p.adjust(pvalue, method="BY", 6))
+
+p.adjust(0.001, method="fdr", 6)
+
+p.adjust(c(0.0395, 0.001, 0.0001, 0.0001, 0.0001, 0.0001), method="BH", 6)#what is going on here?
+
 
 ### Figure 2: Magnitude of effects over time ----
 #Overall change averaged over all years
 MeanCI<-deltarac4yrs %>%
   select(site_code, replicate, year, trt, n_treat_years, richness_change, evenness_change, rank_change, gains, losses, change) %>% 
   pivot_longer(richness_change:change, names_to = "measure", values_to = "value") %>% 
+  group_by(site_code, trt, measure) %>% 
+  summarise(value=mean(value, na.rm=T)) %>% 
   group_by(trt, measure) %>% 
   summarize(mean=mean(value, na.rm=T), n=length(value), sd=sd(value, na.rm=T)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
@@ -297,37 +318,163 @@ MeanCI<-deltarac4yrs %>%
 deltaracs_long_by_year <-deltarac4yrs %>%
   select(site_code, replicate, year, trt, n_treat_years, richness_change, evenness_change, rank_change, gains, losses, change) %>% 
   pivot_longer(richness_change:change, names_to = "measure", values_to = "value") %>% 
+  group_by(site_code, n_treat_years, trt, measure) %>% 
+  summarise(value=mean(value, na.rm=T)) %>% 
   group_by(n_treat_years, trt, measure) %>% 
   summarise(mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE),
             n = length(value)) %>% 
   mutate(se=sd/sqrt(n), CI=se*1.96) %>% 
-  bind_rows(MeanCI) %>% 
-  mutate(sig=ifelse(n_treat_years==5&measure!='evenness_change'&trt=='Control', "*", ""))
+  bind_rows(MeanCI)
 
-deltaracs_long_by_year$measure <- factor(deltaracs_long_by_year$measure,
-                                         levels = c("gains",
-                                                    "losses",
-                                                    "richness_change",
-                                                    "evenness_change",
-                                                    "rank_change", 
-                                                    'change'))
-labs=c(gains="Sp. Gains", losses='Sp. Losses', richness_change="Richness Chg.", evenness_change='Evenness Chg.', rank_change= 'Reordering', change="Dom. Abund. Chg.")
+# deltaracs_long_by_year$measure <- factor(deltaracs_long_by_year$measure,
+#                                          levels = c("gains",
+#                                                     "losses",
+#                                                     "richness_change",
+#                                                     "evenness_change",
+#                                                     "rank_change", 
+#                                                     'change'))
+labs=c(gains="Sp. Gains", losses='Species Losses', richness_change="Richness Change", evenness_change='Evenness Chg.', rank_change= 'Reordering', change="Dom. Abund. Chg.")
 
-Fig2 <- ggplot(data = deltaracs_long_by_year, aes(x=as.factor(n_treat_years), y=mean, color = trt, label=sig))+
-  scale_color_manual(values=c("darkgreen","darkorange")) + 
-  facet_wrap(~measure, scales = "free_y", nrow = 2, labeller = labeller(measure=labs)) + 
-  geom_text(aes(y=Inf), color='black', size=5, vjust=1.5)+
+# Fig2 <- ggplot(data = deltaracs_long_by_year, aes(x=as.factor(n_treat_years), y=mean, color = trt, label=sig))+
+#   scale_color_manual(values=c("darkgreen","darkorange")) + 
+#   facet_wrap(~measure, scales = "free_y", nrow = 2, labeller = labeller(measure=labs)) + 
+#   geom_text(color='black', size=3)+
+#   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.9)) +
+#   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+#                 width = 0, linewidth = 1, position = position_dodge(width = 0.9)) +
+#   labs(y = "Change from pre-treatment", x = "Years of treatment", color = "Treatment")+
+#   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), legend.position = "top")+
+#   geom_vline(xintercept = 4.5)+
+#   scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))
+
+pgains<-
+ggplot(data = subset(deltaracs_long_by_year, measure=='gains'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+  scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
+  annotate("text", x=1, y=0.265, color='black', size=3, label="C")+
+  annotate("text", x=2, y=0.295, color='black', size=3, label="B")+
+  annotate("text", x=3, y=0.31, color='black', size=3, label="A")+
+  annotate("text", x=4, y=0.29, color='black', size=3, label="A")+
+  annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
                 width = 0, linewidth = 1, position = position_dodge(width = 0.3)) +
-  labs(y = "Change from pre-treatment", x = "Years of treatment", color = "Treatment")+
-  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), legend.position = "top")+
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), plot.title = element_text(size=12))+
   geom_vline(xintercept = 4.5)+
-  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))
+  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))+
+  labs(x=NULL, y=NULL)+
+  ggtitle('A) Species Gains')
+pgains
+
+plosses<-
+  ggplot(data = subset(deltaracs_long_by_year, measure=='losses'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+  scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
+  annotate("text", x=1, y=0.33, color='black', size=3, label="C")+
+  annotate("text", x=2, y=0.35, color='black', size=3, label="B")+
+  annotate("text", x=3, y=0.37, color='black', size=3, label="B")+
+  annotate("text", x=4, y=0.39, color='black', size=3, label="A")+
+  annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
+  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, linewidth = 1, position = position_dodge(width = 0.3)) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), plot.title = element_text(size=12))+
+  geom_vline(xintercept = 4.5)+
+  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))+
+  labs(x=NULL, y=NULL)+
+  ggtitle('B) Species Losses')
+plosses
+
+prichness<-
+  ggplot(data = subset(deltaracs_long_by_year, measure=='richness_change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+  scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
+  annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.2, label="*")+
+  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, linewidth = 1, position = position_dodge(width = 0.3)) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), plot.title = element_text(size=12))+
+  geom_vline(xintercept = 4.5)+
+  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))+
+  labs(x=NULL, y=NULL)+
+  ggtitle('C) Change in Richness')
+prichness
+
+peven<-
+  ggplot(data = subset(deltaracs_long_by_year, measure=='evenness_change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+  scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
+  annotate("text", x=1, y=0.045, color='black', size=3, label="B")+
+  annotate("text", x=2, y=0.077, color='black', size=3, label="A")+
+  annotate("text", x=3, y=0.03, color='black', size=3, label="B")+
+  annotate("text", x=4, y=0.03, color='black', size=3, label="B")+
+  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, linewidth = 1, position = position_dodge(width = 0.3)) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),plot.title = element_text(size=12) )+
+  geom_vline(xintercept = 4.5)+
+  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))+
+  labs(x=NULL, y=NULL)+
+  ggtitle('D) Change in Evenness')
+peven
+
+preorder<-
+  ggplot(data = subset(deltaracs_long_by_year, measure=='rank_change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+  scale_color_manual(values=c("darkgreen","darkorange"), name='Teatment') + 
+  annotate("text", x=0.9, y=0.21, color='black', size=3, label="d")+
+  annotate("text", x=1.1, y=0.21, color='black', size=3, label="d")+
+  annotate("text", x=1.9, y=0.23, color='black', size=3, label="c")+
+  annotate("text", x=2.1, y=0.23, color='black', size=3, label="c")+
+  annotate("text", x=2.9, y=0.24, color='black', size=3, label="c")+
+  annotate("text", x=3.1, y=0.25, color='black', size=3, label="b")+
+  annotate("text", x=3.9, y=0.235, color='black', size=3, label="c")+
+  annotate("text", x=4.1, y=0.255, color='black', size=3, label="d")+
+  annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
+  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, linewidth = 1, position = position_dodge(width = 0.3)) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), plot.title = element_text(size=12))+
+  geom_vline(xintercept = 4.5)+
+  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))+
+  labs(x=NULL, y=NULL)+
+  ggtitle('E) Species Reordering')
+preorder
+
+pdom<-
+  ggplot(data = subset(deltaracs_long_by_year, measure=='change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
+  scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
+  annotate("text", x=1, y=-3, color='black', size=3, label="B")+
+  annotate("text", x=2, y=-4, color='black', size=3, label="A")+
+  annotate("text", x=3, y=-5, color='black', size=3, label="A")+
+  annotate("text", x=4, y=-4, color='black', size=3, label="A")+
+  annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
+  geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
+                width = 0, linewidth = 1, position = position_dodge(width = 0.3)) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),plot.title = element_text(size=12) )+
+  geom_vline(xintercept = 4.5)+
+  scale_x_discrete(labels=c('1', '2', '3', '4', 'Overall'))+
+  labs(x=NULL, y=NULL)+
+  ggtitle('F) Change in Dom. Abund.')
+pdom
+
+
+# Combine into one figure
+combined_grob_1 <- 
+  ggarrange(
+    pgains, plosses, prichness,
+    peven, preorder, pdom,
+    ncol = 3, nrow = 2,
+    common.legend = TRUE,      # <-- one shared legend
+    legend = "right" )  
+
+
+# Add common axis labels using annotate_figure
+
+Fig2<-
+  annotate_figure(combined_grob_1,
+                  left = text_grob("Change from Pre-Treatment", rot = 90, size = 14),
+                  bottom = text_grob("Years of Treatment", size = 14))
 
 Fig2
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig2_Jan25.jpg", plot=Fig2, units = "in", width=6.5, height=5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig2_Jan25.jpg", plot=Fig2, units = "in", width=9, height=5)
 
 ###comparison graph with only sites that have all four years of data
 #Overall change averaged over all years
@@ -456,7 +603,7 @@ ggplot(data=subset(RR2, measure=="losses"), aes(x=drtseverity, y=RR))+
   geom_point()
 
 pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.868, 0.710, 0.637, 1.0, 0.021)) %>% 
-  mutate(padj=p.adjust(pvalue, method="BH"))
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
 
 # Multiple regression analysis --------------------------------------------
@@ -514,23 +661,20 @@ calc.relimp(mloss2)
 
 
 toplotlm<-RRRac_average %>% 
-  filter(measure %in% c("losses", "richness_change")) %>%
-  pivot_longer(cols=c('MAP', 'PctAnnual'), names_to = 'ind', values_to = "indval") %>% 
-  mutate(drop=ifelse(measure=='richness_change'&ind=='PctAnnual', 1, 0)) %>%
-  filter(drop==0)
+  filter(measure %in% c("losses", "richness_change"))
 
-plotlm<-ggplot(data=toplotlm, aes(x=indval, y=RR))+
+plotlm<-ggplot(data=toplotlm, aes(x=MAP, y=RR))+
   geom_point()+
   geom_smooth(method="lm", color="black", alpha=0.1)+
   ylab("Drought-Control Differences")+
   geom_hline(yintercept = 0)+
-  xlab('Site Characteristic')+
+  xlab('MAP (mm)')+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  facet_grid(measure~ind, scales='free', labeller = labeller(measure=labs))
+  facet_grid(~measure, scales='free', labeller = labeller(measure=labs))
 
 plotlm
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=plotlm, units="in", width=3, height=4.5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=plotlm, units="in", width=5, height=3)
 
 
 # Analysis of trait and abundance based losses ----------------------------
@@ -761,13 +905,13 @@ plotcat<-datLoss2 %>%
 ###checking pvalues
 
 pvalsTraits=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.00001, 0.046399 , 0.25425)) %>%
-  mutate(padj=p.adjust(pvalue, method="BH"))
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
 pvalsAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.000001, 0.00001, 0.00001)) %>%
-  mutate(padj=p.adjust(pvalue, method="BH"))
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
 pvalsTraitAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.9018    , 0.7635, 0.00834, 0.08777)) %>%
-  mutate(padj=p.adjust(pvalue, method="BH"))
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
 ###Figure 4 for loss probabilities-------------
 LF.Loss<-
@@ -775,7 +919,7 @@ LF.Loss<-
   geom_point()+
   scale_color_manual(name='', values=c('purple','green4', 'black'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha = 0.1)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
   ggtitle('A) Lifeform')+
   #xlab("Pre-treatment Abundance")+
   #ylab("Loss Probability")+
@@ -789,7 +933,7 @@ LS.loss<-
   scale_color_manual(name='', values=c('cyan', 'skyblue4'),labels=c('Annual', 'Perennial'))+
   ggtitle('B) Lifespan')+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
   #xlab("Pre-treatment Abundance")+
   #ylab("Loss Probability")+
   labs(x=NULL, y=NULL)+
@@ -802,11 +946,11 @@ NFix.Loss<-
   scale_color_manual(name='', values=c('orange', 'orange4'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   ggtitle('C) Nitrogen Fixation')+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
   #xlab("Pre-treatment Abundance")+
   #ylab("Loss Probability")+
   labs(x=NULL, y=NULL)+
-  annotate('text', y=0.8, x= Inf, label='Trait ns\nAbund *\nTr. x Ab. *', size=3, hjust=1.2)
+  annotate('text', y=0.8, x= Inf, label='Trait ns\nAbund *\nTr. x Ab. ns', size=3, hjust=1.2)
 NFix.Loss
 # 
 ps.Loss<-
@@ -815,7 +959,7 @@ ps.Loss<-
   scale_color_manual(name='', values=c('darkorchid1', 'darkorchid4'))+
   ggtitle('d) Photosynthetic Pathway')+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top',plot.title = element_text(size=12))+
   #xlab("Pre-treatment Abundance")+
   #ylab("Loss Probability")+
   labs(x=NULL, y=NULL)+
@@ -848,14 +992,8 @@ ps.Loss
 
 ###put all figs together
 
-# Convert to grobs
-g1 <- ggplotGrob(LF.Loss)
-g2 <- ggplotGrob(LS.loss)
-g3 <- ggplotGrob(NFix.Loss)
-g4 <- ggplotGrob(ps.Loss)
-
 # Combine into one grob
-combined_grob <- arrangeGrob(g1, g2, g3, g4, ncol = 4)
+combined_grob <- ggarrange(LF.Loss, LS.loss, NFix.Loss, ps.Loss, ncol = 4,nrow = 1)
 
 
 # Add common axis labels using annotate_figure
@@ -924,15 +1062,6 @@ ggplot(dat=hist, aes(x=value, fill=attribute2))+
   xlab("")+
   ylab("")
 
-drtsevhist<-RR2 %>% 
-  ungroup() %>% 
-  select(site_code, drtseverity) %>% 
-  unique()
-ggplot(dat=drtsevhist, aes(x=drtseverity))+
-  geom_histogram(bins=15)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  xlab("Drought Severity")+
-  ylab("")
 
 
 # Figure 1: Map of sites + covariate distribution -------------------------
@@ -979,6 +1108,7 @@ hist1 <- ggplot() +
   geom_histogram(data = sitemap, binwidth = 10, mapping = aes(x = map/10), fill = "darkblue", color = "antiquewhite") +
   theme_bw(base_size = 12) +
   ylim(0, 20) +
+  scale_x_continuous(breaks = c(0, 100, 200))+
   labs(x = "MAP (cm)", y = "Site Count")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 hist1
@@ -999,13 +1129,30 @@ hist3 <- ggplot() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 hist3
 
+drtsev<-drt %>% 
+  filter(0<n_treat_years&n_treat_years<5)
+
+hist4 <- ggplot() +
+  geom_histogram(data = drtsev, binwidth = 0.1, mapping = aes(x = drtseverity), fill = "black", color = "antiquewhite") +
+  theme_bw(base_size = 12) +
+  ylim(0, 60) +
+  labs(x = "Drought Severity", y = "")+
+  scale_x_continuous(breaks = c(0, -0.5, -1))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+hist4
+
+ggplot(data = drtsev, aes(x = drtseverity))+
+  geom_histogram(binwidth = 0.1)
+
+mean(drtsev$drtseverity)
+
 # Combine into one figure
-Fig1<- grid.arrange(map, hist1, hist2, hist3, nrow = 2, 
-                    layout_matrix = rbind(c(1,1, 1), c(1,1,1), c(2,3,4)))
+Fig1<- grid.arrange(map, hist1, hist2, hist3, hist4, nrow = 2, 
+                    layout_matrix = rbind(c(1,1, 1,1), c(1,1,1,1), c(2,3,4,5)))
 
 Fig1
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\MAP.jpeg", plot=Fig1, units="in", width=5.5, height=4.5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\MAP.jpeg", plot=Fig1, units="in", width=7, height=4.5)
 
 
 
@@ -1147,24 +1294,44 @@ trt<-dat3 %>%
 rich<-community_structure(df = dat3, abundance.var ="max_cover", replicate.var = "rep", time.var = "n_treat_years") %>% 
   select(-Evar) 
 
-#figure out why there are NAs here
+#get the average loss of species per plots. 
 rich2<-rich %>% 
   separate(rep, into=c("site_code", "plot"), sep=";",remove=F) %>% 
   group_by(site_code) %>% 
-  filter(n_treat_years<4) %>% 
+  filter(n_treat_years<5) %>% 
   mutate(max=max(n_treat_years)) %>% 
   filter(n_treat_years==0|n_treat_years==max) %>% 
   pivot_wider(names_from=n_treat_years, names_prefix = "y", values_from = richness) %>% 
-  mutate(sp_change=ifelse(is.na(y1)&is.na(y2), y3-y0, ifelse(is.na(y1)&is.na(y3), y2-y0, y1-y0))) %>% 
+  mutate(sp_change= case_when(
+    max == 1 ~ y1-y0,
+    max == 2 ~ y2-y0,
+    max == 3 ~ y3-y0,
+    max == 4 ~ y4-y0, 
+    .default = 999)) %>% 
   left_join(trt) %>% 
   group_by(site_code, trt) %>% 
-  summarise(mean=mean(sp_change, rm.na=T)) %>% 
+  summarise(mean=mean(sp_change, na.rm=T)) %>% 
   filter(trt!="Control") %>% 
-  drop_na()
+  drop_na() %>% 
+  right_join(sites)
 
 mean(rich2$mean)
-se<-sd(rich2$mean)/sqrt(76)
+sd(rich2$mean)/sqrt(88)
+median(rich2$mean)
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+Mode(rich2$mean)
 
+hist<-ggplot(data=rich2, aes(x=mean))+
+  geom_histogram()+
+  ylab('Count')+
+  xlab('Change in Richness\n(last year of drought - pre drought)')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  annotate('text', x=Inf, y=Inf, vjust=1.2, hjust=1.2, label='mean = -0.76\nmedian = -0.42\nmode = 0  ')
+
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\rich_histogram.jpeg", plot=hist, units="in", width=5, height=4)
 
 #stuff for an appendix
 # Calculate plot richness in year 0
@@ -1207,7 +1374,7 @@ missing<-sites %>%
 write.csv(missing, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper_dec25.csv', row.names = F)
 
 
-#####doing permanova
+#####doing permanova analyses
 ##pull out last year for each dataset
 
 dat4<-dat3 %>% 
@@ -1240,7 +1407,11 @@ for (i in 1:length(sc)){
     bind_rows(output)
 }
 
-#what are happenign at these 10 sites that have change, in terms of these metrics
+permanova<-permanova %>% 
+  rename(pval="Pr(>F)") %>% 
+  mutate(pajd=p.adjust(pval, method = 'BH'))
+
+#what are happenning at these 10 sites that have change, in terms of these metrics
 #make fig 2 for the 10 sites.
 
 MeanCI_subset<-deltarac4yrs %>%
