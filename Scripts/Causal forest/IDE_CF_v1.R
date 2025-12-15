@@ -418,7 +418,7 @@ library(hstats)
 pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
 )))
 library(patchwork)
-wrap_plots(pdps, guides = "collect", ncol = 5) &
+wrap_plots(pdps, guides = "collect", ncol = 3) &
   #  ylim(c(-0.11, -0.06)) &
   ylab("Treatment effect")
 
