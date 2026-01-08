@@ -313,7 +313,7 @@ comm <- read.csv("C:/Users/ohler/Dropbox/DroughtMechanisms/data_processed/Preppe
   subset(n_treat_years.x == 0)%>%
   group_by(site_code)%>%
   dplyr::summarize(Domcover = mean(Domcover), Rarecover = mean(Rarecover), Subordcover = mean(Subordcover), PerForbCover = mean(PerForbCover), AnnualGrassCover = mean(AnnualGrassCover), PerenGrassCover = mean(PerenGrassCover), C3Cover = mean(C3Cover), C4Cover = mean(C4Cover), CAMCover = mean(CAMCover), AnnualForbCover = mean(AnnualForbCover), WoodyPercentcover = mean(WoodyPercentcover.yr), GrassPercentcover = mean(GrassPercentcover.yr), ForbPercentcover = mean(ForbPercentcover.yr), INTcover = mean(INTcover), Native_cover = mean(Native_cover.yr), AnnualPercentcover = mean(AnnualPercentcover.yr))
-
+length(unique(comm$site_code))
 
 te1 <- te%>%
   left_join(climate, by = "site_code")%>%
@@ -323,7 +323,11 @@ te1 <- te%>%
   left_join(sand.df, by = "site_code")%>%
   left_join(comm, by = "site_code")
 
+length(unique(subset(te1, mean_sr >0)$site_code))
+length(unique(subset(te1, PerenGrassCover >-1)$site_code))
 
+#seasonality_index, n, MAP, mean_sr, cv_ppt_inter, sand_mean, aridity_index, PerenGrassCover,#Functional group composition (pre-treatment) 
+#Domcover
 
 Y <- te1$ANPP
 W <- te1%>%
@@ -340,7 +344,6 @@ X <- te1%>%
                 PerenGrassCover,#Functional group composition (pre-treatment) 
                 Domcover#Species composition (pre-treatment) 
   )#put just the moderators you're testing here
-
 
 
 
