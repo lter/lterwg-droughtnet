@@ -325,6 +325,12 @@ te1 <- te%>%
 
 length(unique(subset(te1, mean_sr >0)$site_code))
 length(unique(subset(te1, PerenGrassCover >-1)$site_code))
+length(unique(subset(te1, ph >-1)$site_code))
+length(unique(subset(te1, p >-1)$site_code))
+length(unique(subset(te1, k >-1)$site_code))
+length(unique(subset(te1, zn >-1)$site_code))
+
+
 
 #seasonality_index, n, MAP, mean_sr, cv_ppt_inter, sand_mean, aridity_index, PerenGrassCover,#Functional group composition (pre-treatment) 
 #Domcover
