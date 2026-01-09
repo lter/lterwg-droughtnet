@@ -309,10 +309,10 @@ length(unique(subset(soil, n>0)$site_code))#number of site with N data
 sand.df <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/site_sand_from_soilgrid.csv")
 length(unique(subset(sand.df, sand_mean>0)$site_code))#number of site with N data
 
-comm <- read.csv("C:/Users/ohler/Dropbox/DroughtMechanisms/data_processed/PreppedForDataAnalysis_Nov2025.csv")%>%
-  subset(n_treat_years.x == 0)%>%
-  group_by(site_code)%>%
-  dplyr::summarize(Domcover = mean(Domcover), Rarecover = mean(Rarecover), Subordcover = mean(Subordcover), PerForbCover = mean(PerForbCover), AnnualGrassCover = mean(AnnualGrassCover), PerenGrassCover = mean(PerenGrassCover), C3Cover = mean(C3Cover), C4Cover = mean(C4Cover), CAMCover = mean(CAMCover), AnnualForbCover = mean(AnnualForbCover), WoodyPercentcover = mean(WoodyPercentcover.yr), GrassPercentcover = mean(GrassPercentcover.yr), ForbPercentcover = mean(ForbPercentcover.yr), INTcover = mean(INTcover), Native_cover = mean(Native_cover.yr), AnnualPercentcover = mean(AnnualPercentcover.yr))
+comm <- read.csv("C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/data/comm_moderators.csv")#%>%
+  #subset(n_treat_years.x == 0)%>%
+  #group_by(site_code)%>%
+  #dplyr::summarize(Domcover = mean(Domcover), Rarecover = mean(Rarecover), Subordcover = mean(Subordcover), PerForbCover = mean(PerForbCover), AnnualGrassCover = mean(AnnualGrassCover), PerenGrassCover = mean(PerenGrassCover), C3Cover = mean(C3Cover), C4Cover = mean(C4Cover), CAMCover = mean(CAMCover), AnnualForbCover = mean(AnnualForbCover), WoodyPercentcover = mean(WoodyPercentcover.yr), GrassPercentcover = mean(GrassPercentcover.yr), ForbPercentcover = mean(ForbPercentcover.yr), INTcover = mean(INTcover), Native_cover = mean(Native_cover.yr), AnnualPercentcover = mean(AnnualPercentcover.yr))
 length(unique(comm$site_code))
 
 te1 <- te%>%
@@ -366,9 +366,7 @@ varimp.Y <- variable_importance(Y.forest)
 # Keep the top 10 variables for CATE estimation
 keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:9]]
 keep
-#[1] "MAP"               "aridity_index"     "sand_mean"         "mean_sr"          
-#[5] "cv_ppt_inter"      "seasonality_index" "n"                 "PerenGrassCover"  
-#[9] "Domcover"         
+#[1] "MAP"               "aridity_index"     "sand_mean"         "mean_sr"           "cv_ppt_inter"     [6] "seasonality_index" "n"                 "PerenGrassCover"   "Domcover"         
 
 X.cf <- X[, keep]
 W.hat <- 0.5
