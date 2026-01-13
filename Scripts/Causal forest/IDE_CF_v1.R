@@ -14,7 +14,7 @@ library(emmeans)
 library(kernelshap)   #  General SHAP
 library(shapviz)      #  SHAP plots
 library(ggbeeswarm)
-set.seed(100)
+set.seed(54)
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.csv")%>% 
@@ -156,7 +156,7 @@ X <- te%>%
   left_join(drt.sev, by = c("site_code", "n_treat_years"))%>%
   dplyr::select(drtsev.1,drtsev.2,drtsev.3,drtsev.4)
 
-rf <- regression_forest(X, W, num.trees = 5000)
+rf <- regression_forest(X, W, num.trees = 100000)
 p.hat <- predict(rf)$predictions
 
 hist(p.hat)
@@ -178,14 +178,14 @@ W.hat <- 0.5
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
 train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
 
-train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 100000)
 tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 100000)
 
 average_treatment_effect(eval.forest)
-# estimate   std.err 
-#-12.38185  17.11393  
+#  estimate   std.err 
+#-23.51275  19.59317
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
@@ -232,9 +232,10 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 library(patchwork)
 
 
-wrap_plots(list(pdps[[2]],pdps[[1]],pdps[[3]],pdps[[4]]), guides = "collect", ncol = 4) &
-  #  ylim(c(-0.11, -0.06)) &
-  ylab("Treatment effect")
+wrap_plots(list(pdps[[1]],pdps[[2]],pdps[[3]],pdps[[4]]), guides = "collect", ncol = 4) & #in the above line is how you hack the order
+  ylim(c(-52,0)) &
+  xlim(c(-1,1))&
+  ylab("Treatment effect of drought on ANPP (g/m2)")
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmenteffects_predictions.pdf",
         plot = last_plot(),
@@ -382,10 +383,10 @@ W.hat <- 0.5
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
 train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
 
-train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat)
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 100000)
 tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 100000)
 
 average_treatment_effect(eval.forest)
 # estimate   std.err 
@@ -437,7 +438,7 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 )))
 library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 3) &
-  #  ylim(c(-0.11, -0.06)) &
+    ylim(c(-45, 0)) &
   ylab("Treatment effect")
 
 
@@ -582,8 +583,8 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 )))
 library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 5) &
-  #  ylim(c(-0.11, -0.06)) &
-  ylab("Treatment effect")
+  ylim(c(-45, 0)) &
+  ylab("Treatment effect of drought on ANPP (g/m2)")
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink.pdf",
