@@ -14,7 +14,7 @@ library(emmeans)
 library(kernelshap)   #  General SHAP
 library(shapviz)      #  SHAP plots
 library(ggbeeswarm)
-set.seed(77)
+set.seed(100)
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.csv")%>% 
@@ -95,7 +95,7 @@ data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))%>%
 #subset(site_code == "allmendo.ch" & site_code == "allmendb.ch" & site_code == "torla.es") #allmendo, allmendb, and torla have first treatment dates in the 190s, sclaudio missed Y3 sampling (2020)
 
 setdiff(data.anpp$site_code,data.anpp1$site_code) #"brandjberg.dk" "garraf.es"  "swift.ca" eliminated here
-length(unique(data.anpp1$site_code)) #118
+length(unique(data.anpp1$site_code)) #115
 
 ##How many treatment years does each site have of the first 3 years?
 num.treat.years <- data.anpp1[,c("site_code", "n_treat_years")]%>%
@@ -115,7 +115,6 @@ data.anpp1$relprecip.3 <- -((data.anpp1$ppt.3-data.anpp1$map)/data.anpp1$map)
 data.anpp1$relprecip.4 <- -((data.anpp1$ppt.4-data.anpp1$map)/data.anpp1$map)
 
 length(unique(data.anpp1$site_code))#number of sites
-#number of sites with soil N
 
 ############################
 #####Look at overall treatment effect in a way that shows there's tons of variability in response
@@ -249,7 +248,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmen
         limitsize = TRUE
 )
 
-H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
+H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE) 
 plot(H)
 #partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
 # plot()
@@ -257,20 +256,20 @@ plot(H)
 partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining one CATE
-kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
-           pred_fun = pred_fun) |> 
-  shapviz() |> 
-  sv_waterfall() +
-  xlab("Prediction")
+#kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+#           pred_fun = pred_fun) |> 
+#  shapviz() |> 
+#  sv_waterfall() +
+#  xlab("Prediction")
 
 
 # Explaining all CATEs globally
-system.time(  # 13 min
-  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
-)
-shap_values <- shapviz(ks)
-sv_importance(shap_values)
-sv_importance(shap_values, kind = "bee")
+#system.time(  # 13 min
+#  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+#)
+#shap_values <- shapviz(ks)
+#sv_importance(shap_values)
+#sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
@@ -302,8 +301,7 @@ site_richness <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/site_ave_ri
 #soil variables for soil variation
 soil <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_soil_2024-12-16.csv")%>%
   group_by(site_code)%>%
-  dplyr::summarize(ph = mean(ph, na.rm = TRUE), no3 = mean(no3, na.rm = TRUE), p = mean(p, na.rm = TRUE), k = mean(k, na.rm = TRUE), zn = mean(zn, na.rm = TRUE), fe = mean(fe, na.rm = TRUE), mn = mean(mn, na.rm = TRUE), cu = mean(cu, na.rm = TRUE), sand = mean(sand, na.rm = TRUE), silt = mean(silt, na.rm = TRUE), clay = mean(clay, na.rm = TRUE), c = mean(c, na.rm = TRUE), n = mean(n, na.rm = TRUE), c_n = mean(c_n, na.rm = TRUE))
-length(unique(subset(soil, n>0)$site_code))#number of site with N data
+  dplyr::summarize(ph = mean(ph, na.rm = TRUE), no3 = mean(as.numeric(no3), na.rm = TRUE), p = mean(as.numeric(p), na.rm = TRUE), k = mean(k, na.rm = TRUE), zn = mean(as.numeric(zn), na.rm = TRUE), fe = mean(fe, na.rm = TRUE), mn = mean(mn, na.rm = TRUE), cu = mean(cu, na.rm = TRUE),  silt = mean(silt, na.rm = TRUE), clay = mean(clay, na.rm = TRUE), c = mean(c, na.rm = TRUE), n = mean(n, na.rm = TRUE), c_n = mean(c_n, na.rm = TRUE))
 
 
 sand.df <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/site_sand_from_soilgrid.csv")
@@ -325,11 +323,20 @@ te1 <- te%>%
 
 length(unique(subset(te1, mean_sr >0)$site_code))
 length(unique(subset(te1, PerenGrassCover >-1)$site_code))
-length(unique(subset(te1, ph >-1)$site_code))
-length(unique(subset(te1, p >-1)$site_code))
-length(unique(subset(te1, k >-1)$site_code))
-length(unique(subset(te1, zn >-1)$site_code))
-
+length(unique(subset(te1, Domcover >-1)$site_code))
+length(unique(subset(te1, n>-1)$site_code))#number of site with N data
+length(unique(subset(te1, ph>-1)$site_code))#number of sites
+length(unique(subset(te1, no3>-1)$site_code))#number of sitea
+length(unique(subset(te1, p>-1)$site_code))#number of site
+length(unique(subset(te1, k>-1)$site_code))#number of site
+length(unique(subset(te1, zn>-1)$site_code))#number of site
+length(unique(subset(te1, fe>-1)$site_code))#number of site
+length(unique(subset(te1, mn>-1)$site_code))#number of site
+length(unique(subset(te1, cu>-1)$site_code))#number of site
+length(unique(subset(te1, silt>-1)$site_code))#number of site
+length(unique(subset(te1, clay>-1)$site_code))#number of site
+length(unique(subset(te1, c>-1)$site_code))#number of site
+length(unique(subset(te1, c_n>-1)$site_code))#number of site
 
 
 #seasonality_index, n, MAP, mean_sr, cv_ppt_inter, sand_mean, aridity_index, PerenGrassCover,#Functional group composition (pre-treatment) 
@@ -381,15 +388,15 @@ tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
 
 average_treatment_effect(eval.forest)
-#estimate   std.err 
-#-21.93045  11.27195  
+# estimate   std.err 
+#-36.36717  11.74884 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:9]]
-#[1] "sand_mean"         "mean_sr"           "cv_ppt_inter"      "aridity_index"    
-#[5] "MAP"               "seasonality_index" "n"                 "PerenGrassCover"  
-#[9] "Domcover"        
+#[1] "MAP"               "sand_mean"         "PerenGrassCover"  
+#[4] "cv_ppt_inter"      "Domcover"          "seasonality_index"
+#[7] "aridity_index"     "mean_sr"           "n"           
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
@@ -455,19 +462,19 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining one CATE
-kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
-           pred_fun = pred_fun) |> 
-  shapviz() |> 
-  sv_waterfall() +
-  xlab("Prediction")
+#kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+#           pred_fun = pred_fun) |> 
+#  shapviz() |> 
+#  sv_waterfall() +
+#  xlab("Prediction")
 
 # Explaining all CATEs globally
-system.time(  # 13 min
-  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
-)
-shap_values <- shapviz(ks)
-sv_importance(shap_values)
-sv_importance(shap_values, kind = "bee")
+#system.time(  # 13 min
+#  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+#)
+#shap_values <- shapviz(ks)
+#sv_importance(shap_values)
+#sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
@@ -488,8 +495,8 @@ W <- te1%>%
 #  dplyr::select(relprecip.1,relprecip.2,relprecip.3,relprecip.4)
 X <- te1%>%
   ungroup()%>%
-  dplyr::select(ppt_max_event, ppt_mean_event, days_half_ppt, daily_ppt_d, n_wet_days, avg_dryspell_length, ppt_95th_percentile_size, MAP, cv_ppt_intra, cv_ppt_inter, yearly_ppt_d, seasonality_index, aridity_index, r_monthly_t_p, MAT, #PctAnnual, PctGrass,
-                ph, no3, p, k, zn, fe, mn, cu, sand, silt, clay, c, n, c_n, mean_sr, sand_mean, sand0_5, sand5_15, sand15_30, sand30_60, sand60_100, Domcover, Rarecover, Subordcover, PerForbCover, AnnualGrassCover, PerenGrassCover, C3Cover, C4Cover, CAMCover, AnnualForbCover, WoodyPercentcover, GrassPercentcover, ForbPercentcover, INTcover, Native_cover, AnnualPercentcover) #put just the moderators you're testing here
+  dplyr::select(ppt_max_event, ppt_mean_event, days_half_ppt, daily_ppt_d, n_wet_days, avg_dryspell_length, ppt_95th_percentile_size, MAP, cv_ppt_intra, cv_ppt_inter, yearly_ppt_d, seasonality_index, aridity_index, r_monthly_t_p, MAT, PctAnnual, PctGrass,
+                ph, no3, p, k, zn, fe, mn, cu, silt, clay, c, n, c_n, mean_sr, sand_mean, sand0_5, sand5_15, sand15_30, sand30_60, sand60_100, Domcover, Rarecover, Subordcover, PerForbCover, AnnualGrassCover, PerenGrassCover, C3Cover, C4Cover, CAMCover, AnnualForbCover, WoodyPercentcover, GrassPercentcover, ForbPercentcover, INTcover, Native_cover, AnnualPercentcover) #put just the moderators you're testing here
 
 
 
@@ -522,13 +529,17 @@ tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat)
 
 average_treatment_effect(eval.forest)
-#estimate   std.err 
-#-39.90510  11.74852  
+# estimate   std.err 
+#-39.41199  11.84296  
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:10]]
-#[1] "sand_mean"                "sand0_5"                  "mean_sr"                #[4] "ppt_max_event"            "MAP"                      "aridity_index"           #[7] "cv_ppt_inter"             "ppt_95th_percentile_size" "daily_ppt_d"             #[10] "avg_dryspell_length"      
+# [1] "sand_mean"                "sand0_5"                 
+#[3] "ppt_max_event"            "MAP"                     
+#[5] "mean_sr"                  "aridity_index"           
+#[7] "ppt_95th_percentile_size" "cv_ppt_inter"            
+#[9] "daily_ppt_d"              "avg_dryspell_length"       
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
