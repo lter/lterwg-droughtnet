@@ -14,8 +14,7 @@ library(emmeans)
 library(kernelshap)   #  General SHAP
 library(shapviz)      #  SHAP plots
 library(ggbeeswarm)
-set.seed(60)
-
+set.seed(59)
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.csv")%>% 
@@ -157,7 +156,7 @@ X <- te%>%
   left_join(drt.sev, by = c("site_code", "n_treat_years"))%>%
   dplyr::select(drtsev.1,drtsev.2,drtsev.3,drtsev.4)
 
-rf <- regression_forest(X, W, num.trees = 10000)
+rf <- regression_forest(X, W, num.trees = 2000)
 p.hat <- predict(rf)$predictions
 
 hist(p.hat)
@@ -179,10 +178,10 @@ W.hat <- 0.5
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
 train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
 
-train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 10000)
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 2000)
 tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 10000)
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 2000)
 
 average_treatment_effect(eval.forest)
 #  estimate   std.err 
@@ -250,32 +249,43 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmen
         limitsize = TRUE
 )
 
-H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE) 
-plot(H)
+#H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE) 
+#plot(H)
 #partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
 # plot()
 
-partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+#partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining one CATE
-kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
-           pred_fun = pred_fun) |> 
-  shapviz() |> 
-  sv_waterfall() +
-  xlab("Prediction")
+#kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+#           pred_fun = pred_fun) |> 
+#  shapviz() |> 
+#  sv_waterfall() +
+#  xlab("Prediction")
 
 
 # Explaining all CATEs globally
-#system.time(  # 13 min
-#  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
-#)
-#shap_values <- shapviz(ks)
-#sv_importance(shap_values)
+system.time(  # 3 min
+  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+)
+shap_values <- shapviz(ks)
+sv_importance(shap_values)
 #sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmenteffects_shap.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 3,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 #######################################################################
 ###Causal forest for moderators
@@ -362,7 +372,7 @@ X <- te1%>%
 
 
 
-rf <- regression_forest(X, W, num.trees = 10000)
+rf <- regression_forest(X, W, num.trees = 2000)
 p.hat <- predict(rf)$predictions
 
 hist(p.hat)
@@ -384,10 +394,10 @@ W.hat <- 0.5
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
 train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
 
-train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 10000)
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 2000)
 tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 10000)
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 2000)
 
 average_treatment_effect(eval.forest)
 # estimate   std.err 
@@ -439,7 +449,7 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 )))
 library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 3) &
-  ylim(c(-50,0)) &
+  ylim(c(-35,0)) &
   ylab("Treatment effect")
 
 
@@ -461,7 +471,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 #partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
 # plot()
 
-partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+#partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining one CATE
 #kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
@@ -471,16 +481,27 @@ partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 #  xlab("Prediction")
 
 # Explaining all CATEs globally
-#system.time(  # 13 min
-#  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
-#)
-#shap_values <- shapviz(ks)
-#sv_importance(shap_values)
+system.time(  # 13 min
+  ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
+)
+shap_values <- shapviz(ks)
+sv_importance(shap_values)
 #sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shap.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 6,
+        height = 5,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 
 ######################################
@@ -503,7 +524,7 @@ X <- te1%>%
 
 
 
-rf <- regression_forest(X, W, num.trees = 50000)
+rf <- regression_forest(X, W, num.trees = 2000)
 p.hat <- predict(rf)$predictions
 
 hist(p.hat)
@@ -584,7 +605,7 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 )))
 library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 5) &
-  ylim(c(-45, 0)) &
+  ylim(c(-35, 0)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")
 
 
@@ -606,14 +627,14 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 #partial_dep(eval.forest, v = "map", X = X, pred_fun = pred_fun) |> 
 # plot()
 
-partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
+#partial_dep(eval.forest, v = colnames(X.cf[-train, ]), X = X.cf[-train, ])
 
 # Explaining one CATE
-kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
-           pred_fun = pred_fun) |> 
-  shapviz() |> 
-  sv_waterfall() +
-  xlab("Prediction")
+#kernelshap(eval.forest, X = X.cf[-train, ], bg_X = X, 
+#           pred_fun = pred_fun) |> 
+#  shapviz() |> 
+#  sv_waterfall() +
+#  xlab("Prediction")
 
 # Explaining all CATEs globally
 system.time(  # 13 min
@@ -621,12 +642,23 @@ system.time(  # 13 min
 )
 shap_values <- shapviz(ks)
 sv_importance(shap_values)
-sv_importance(shap_values, kind = "bee")
+#sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
 #  ylim(c(-0.04, 0.03))
 
 
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shap_kitchensink.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 6,
+        height = 5,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 
