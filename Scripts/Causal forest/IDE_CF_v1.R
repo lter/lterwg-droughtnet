@@ -178,19 +178,19 @@ W.hat <- 0.5
 # (Note that the results may change depending on which samples we hold out for training/evaluation)
 train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of data to train instead of jut the first half of the dataset
 
-train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 2000)
+train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 5000)
 tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 2000)
+eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 5000)
 
 average_treatment_effect(eval.forest)
-#  estimate   std.err 
-#-23.51275  19.59317
+# estimate   std.err 
+#-32.83670  19.66043 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:4]]
-#[1] "drtsev.1" "drtsev.2" "drtsev.3" "drtsev.4"
+#[1] "drtsev.1" "drtsev.4" "drtsev.2" "drtsev.3"
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
@@ -235,7 +235,9 @@ library(patchwork)
 wrap_plots(list(pdps[[1]],pdps[[2]],pdps[[3]],pdps[[4]]), guides = "collect", ncol = 4) & #in the above line is how you hack the order
   #ylim(c(-30,15)) &
   xlim(c(-1,1))&
-  ylab("Treatment effect of drought on ANPP (g/m2)")
+  ylab("Treatment effect of drought on ANPP (g/m2)")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+#  theme_base()
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmenteffects_predictions.pdf",
         plot = last_plot(),
@@ -269,7 +271,8 @@ system.time(  # 3 min
   ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
 )
 shap_values <- shapviz(ks)
-sv_importance(shap_values)
+sv_importance(shap_values)&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 #sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
@@ -372,7 +375,7 @@ X <- te1%>%
 
 
 
-rf <- regression_forest(X, W, num.trees = 2000)
+rf <- regression_forest(X, W, num.trees = 5000)
 p.hat <- predict(rf)$predictions
 
 hist(p.hat)
@@ -385,7 +388,9 @@ varimp.Y <- variable_importance(Y.forest)
 # Keep the top 10 variables for CATE estimation
 keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:9]]
 keep
-#[1] "MAP"               "aridity_index"     "sand_mean"         "mean_sr"           "cv_ppt_inter"     [6] "seasonality_index" "n"                 "PerenGrassCover"   "Domcover"         
+#[1] "MAP"               "aridity_index"     "sand_mean"         "mean_sr"          
+#[5] "cv_ppt_inter"      "seasonality_index" "n"                 "PerenGrassCover"  
+#[9] "Domcover"         
 
 X.cf <- X[, keep]
 W.hat <- 0.5
@@ -401,14 +406,14 @@ eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat
 
 average_treatment_effect(eval.forest)
 # estimate   std.err 
-#-36.36717  11.74884 
+#-26.80141  10.58402  
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:9]]
-#[1] "MAP"               "sand_mean"         "PerenGrassCover"  
-#[4] "cv_ppt_inter"      "Domcover"          "seasonality_index"
-#[7] "aridity_index"     "mean_sr"           "n"           
+#[1] "sand_mean"         "mean_sr"           "MAP"               "seasonality_index"
+#[5] "cv_ppt_inter"      "Domcover"          "aridity_index"     "PerenGrassCover"  
+#[9] "n"              
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
@@ -447,10 +452,11 @@ pred_fun <- function(object, newdata, ...) {
 library(hstats)
 pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
 )))
-library(patchwork)
+
 wrap_plots(pdps, guides = "collect", ncol = 3) &
-  ylim(c(-35,0)) &
-  ylab("Treatment effect")
+  ylim(c(-31,-22)) &
+  ylab("Treatment effect")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions.pdf",
@@ -485,7 +491,8 @@ system.time(  # 13 min
   ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
 )
 shap_values <- shapviz(ks)
-sv_importance(shap_values)
+sv_importance(shap_values)&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 #sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
@@ -496,8 +503,8 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 6,
-        height = 5,
+        width = 5,
+        height = 4,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
@@ -535,9 +542,11 @@ Y.hat <- predict(Y.forest)$predictions
 varimp.Y <- variable_importance(Y.forest)
 
 # Keep the top 10 variables for CATE estimation
-keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:10]]
+keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:9]]
 keep
-#[1] "MAP"                      "aridity_index"            "avg_dryspell_length"    #[4] "daily_ppt_d"              "ppt_max_event"            "sand_mean"              #[7] "cv_ppt_inter"             "ppt_95th_percentile_size" "mean_sr"                #[10] "sand0_5"       
+#[1] "MAP"                      "aridity_index"            "avg_dryspell_length"     
+#[4] "ppt_max_event"            "daily_ppt_d"              "sand_mean"               
+#[7] "cv_ppt_inter"             "ppt_95th_percentile_size" "sand0_5"       
 
 X.cf <- X[, keep]
 W.hat <- 0.5
@@ -553,17 +562,14 @@ eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat
 
 average_treatment_effect(eval.forest)
 # estimate   std.err 
-#-39.41199  11.84296  
+#-30.90507  12.99972  
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
-colnames(X.cf)[ranked.vars[1:10]]
-# [1] "sand_mean"                "sand0_5"                 
-#[3] "ppt_max_event"            "MAP"                     
-#[5] "mean_sr"                  "aridity_index"           
-#[7] "ppt_95th_percentile_size" "cv_ppt_inter"            
-#[9] "daily_ppt_d"              "avg_dryspell_length"       
-
+colnames(X.cf)[ranked.vars[1:9]]
+# [1] "sand_mean"                "sand0_5"                  "ppt_max_event"           
+#[4] "ppt_95th_percentile_size" "MAP"                      "daily_ppt_d"             
+#[7] "aridity_index"            "cv_ppt_inter"             "avg_dryspell_length"       
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
 
@@ -603,10 +609,10 @@ pred_fun <- function(object, newdata, ...) {
 library(hstats)
 pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
 )))
-library(patchwork)
 wrap_plots(pdps, guides = "collect", ncol = 5) &
-  ylim(c(-35, 0)) &
-  ylab("Treatment effect of drought on ANPP (g/m2)")
+  ylim(c(-39, -27)) &
+  ylab("Treatment effect of drought on ANPP (g/m2)")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink.pdf",
@@ -641,7 +647,8 @@ system.time(  # 13 min
   ks <- kernelshap(eval.forest, X = X.cf[-train, ], pred_fun = pred_fun)  
 )
 shap_values <- shapviz(ks)
-sv_importance(shap_values)
+sv_importance(shap_values)&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 #sv_importance(shap_values, kind = "bee")
 #sv_dependence(shap_values, v = xvars) +
 #  plot_layout(ncol = 3) &
@@ -654,8 +661,8 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 6,
-        height = 5,
+        width = 5,
+        height = 4,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
