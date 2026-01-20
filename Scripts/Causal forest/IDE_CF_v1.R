@@ -375,7 +375,7 @@ X <- te1%>%
 
 
 
-rf <- regression_forest(X, W, num.trees = 5000)
+rf <- regression_forest(X, W, num.trees = 2000)
 p.hat <- predict(rf)$predictions
 
 hist(p.hat)
@@ -406,7 +406,7 @@ eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat
 
 average_treatment_effect(eval.forest)
 # estimate   std.err 
-#-26.80141  10.58402  
+#-26.80141  10.58402 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
@@ -454,7 +454,7 @@ pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.fores
 )))
 
 wrap_plots(pdps, guides = "collect", ncol = 3) &
-  ylim(c(-31,-22)) &
+  ylim(c(-33,-22)) &
   ylab("Treatment effect")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
@@ -464,7 +464,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 14,
+        width = 8,
         height = 6,
         units = c("in"),
         dpi = 600,
@@ -609,8 +609,8 @@ pred_fun <- function(object, newdata, ...) {
 library(hstats)
 pdps <- lapply(colnames(X.cf[-train, ]), function(v) plot(partial_dep(eval.forest, v=v, X = X.cf[-train, ], pred_fun = pred_fun
 )))
-wrap_plots(pdps, guides = "collect", ncol = 5) &
-  ylim(c(-39, -27)) &
+wrap_plots(pdps, guides = "collect", ncol = 3) &
+  ylim(c(-40, -28)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
@@ -620,7 +620,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 14,
+        width = 8,
         height = 6,
         units = c("in"),
         dpi = 600,
