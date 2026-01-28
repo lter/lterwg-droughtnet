@@ -169,7 +169,7 @@ varimp.Y <- variable_importance(Y.forest)
 # Keep the top 10 variables for CATE estimation
 keep <- colnames(X)[order(varimp.Y, decreasing = TRUE)[1:4]]
 keep
-#[1] "drtsev.2" "drtsev.1" "drtsev.3" "drtsev.4"
+# "drtsev.1" "drtsev.2" "drtsev.3" "drtsev.4"
 
 X.cf <- X[, keep]
 W.hat <- 0.5
@@ -197,6 +197,10 @@ rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.
 
 plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
 #plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
+rate <- rank_average_treatment_effect(eval.forest,
+                                      predict(train.forest, X[-train, ])$predictions)
+plot(rate)
+paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
 
 #xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
 imp <- sort(setNames(variable_importance(eval.forest), keep))
@@ -405,21 +409,25 @@ tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 2000)
 
 average_treatment_effect(eval.forest)
-# estimate   std.err 
-#-26.80141  10.58402 
+#  estimate   std.err 
+#-26.78029  11.61936 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:9]]
-#[1] "sand_mean"         "mean_sr"           "MAP"               "seasonality_index"
-#[5] "cv_ppt_inter"      "Domcover"          "aridity_index"     "PerenGrassCover"  
-#[9] "n"              
+#[1] "mean_sr"           "sand_mean"         "seasonality_index" "Domcover"         
+#[5] "aridity_index"     "PerenGrassCover"   "MAP"               "cv_ppt_inter"     
+#[9] "n"                 
 
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
 
 plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
 #plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
+rate <- rank_average_treatment_effect(eval.forest,
+                                      predict(train.forest, X[-train, ])$predictions)
+plot(rate)
+paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
 
 #xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
 imp <- sort(setNames(variable_importance(eval.forest), keep))
@@ -562,19 +570,26 @@ eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat
 
 average_treatment_effect(eval.forest)
 # estimate   std.err 
-#-30.90507  12.99972  
+#-34.94326  11.54231  
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X.cf)[ranked.vars[1:9]]
-# [1] "sand_mean"                "sand0_5"                  "ppt_max_event"           
-#[4] "ppt_95th_percentile_size" "MAP"                      "daily_ppt_d"             
-#[7] "aridity_index"            "cv_ppt_inter"             "avg_dryspell_length"       
+#[1] "sand0_5"                  "aridity_index"           
+#[3] "sand_mean"                "avg_dryspell_length"     
+#[5] "MAP"                      "daily_ppt_d"             
+#[7] "cv_ppt_inter"             "ppt_max_event"           
+#[9] "ppt_95th_percentile_size"     
+
 rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.eval))
 #rate.age <- rank_average_treatment_effect(eval.forest, list(map = X[-train, "map"]))
 
 plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
 #plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
+rate <- rank_average_treatment_effect(eval.forest,
+                                      predict(train.forest, X[-train, ])$predictions)
+plot(rate)
+paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
 
 #xvars <- c("ppt.1", "ppt.2", "ppt.3", "ppt.4", "n_treat_days", "n_treat_years", "map", "arid", "PctAnnual", "PctGrass", "sand_mean", "AI", "cv_ppt_inter", "richness", "seasonality_index", "r_monthly_t_p")
 imp <- sort(setNames(variable_importance(eval.forest), keep))
