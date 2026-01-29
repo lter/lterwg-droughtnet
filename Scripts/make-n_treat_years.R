@@ -5,12 +5,12 @@ library(plyr)
 
 
 
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_10-20-2025.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_01-29-2026.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()
 data.anpp$n_treat_days <- as.numeric(data.anpp$n_treat_days)
 
-data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2025-10-20.csv")%>%
+data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2026-01-29.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()%>%
               subset(n_treat_days != "NULL")#marcdrt.ar has some null values for unknown reasons
@@ -18,8 +18,9 @@ data.cover$n_treat_days <- as.numeric(data.cover$n_treat_days)
 
 comb <- rbind(data.anpp, data.cover)%>%
   ddply(.(site_code, year), function(x)data.frame(
-    n_treat_days = max(x$n_treat_days)
-  ))
+    n_treat_days = max(x$n_treat_days, na.rm = TRUE)
+  ))%>%
+  mutate(n_treat_days = ifelse(is.infinite(n_treat_days), NA, n_treat_days))
 
   
 
@@ -93,5 +94,9 @@ subset(combfin, is.na(n_treat_years) == TRUE)
 
 
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2025-10-20.csv")
+
+
+
+
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2026-01-29.csv")
 
