@@ -181,7 +181,10 @@ train <- sample(1:nrow(X.cf), size = floor(0.5 * nrow(X.cf)))#random sample of d
 train.forest <- causal_forest(X.cf[train, ], Y[train], W[train], Y.hat = Y.hat[train], W.hat = W.hat, num.trees = 5000)
 tau.hat.eval <- predict(train.forest, X.cf[-train, ])$predictions
 
-eval.forest <- causal_forest(X.cf[-train, ], Y[-train], W[-train], Y.hat = Y.hat[-train], W.hat = W.hat, num.trees = 5000)
+eval.forest <- causal_forest(X, Y, W,
+                             #Y.hat = Y.hat, W.hat = W.hat, 
+                             num.trees = 5000)
+tau.hat.eval <- predict(eval.forest, X)$predictions
 
 average_treatment_effect(eval.forest)
 # estimate   std.err 
@@ -198,7 +201,7 @@ rate.cate <- rank_average_treatment_effect(eval.forest, list(cate = -1 *tau.hat.
 plot(rate.cate, ylab = "Number of correct answers", main = "TOC: By most negative CATEs")
 #plot(rate.age, ylab = "Number of correct answers", main = "TOC: By decreasing map")
 rate <- rank_average_treatment_effect(eval.forest,
-                                      predict(train.forest, X[-train, ])$predictions)
+                                      predict(eval.forest, X)$predictions)
 plot(rate)
 paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
 
