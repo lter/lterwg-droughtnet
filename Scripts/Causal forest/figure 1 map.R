@@ -1,0 +1,198 @@
+#map of sites for Causal forest
+
+
+library(grf)
+library(tidyverse)
+library(plyr)
+library(lmerTest)
+library(nlme)
+library(visreg)
+library(MuMIn)
+library(ggthemes)
+library(ggeffects)
+library(MASS)
+library(cowplot)
+library(ggplotify)
+library(emmeans)
+library(kernelshap)   #  General SHAP
+library(shapviz)      #  SHAP plots
+library(ggbeeswarm)
+library(hstats)
+library(patchwork)
+
+
+#read ANPP data
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.csv")%>% 
+  subset(habitat.type == "Grassland" | habitat.type == "Shrubland" | habitat.type == "Forest understory" | habitat.type == "")%>%
+  mutate(n_treat_years = ifelse(site_code == "allmendo.ch" & n_treat_days == 197, 1, n_treat_years))%>%
+  mutate(n_treat_years = ifelse(site_code == "allmendb.ch" & n_treat_days == 197, 1, n_treat_years))%>%
+  mutate(n_treat_years = ifelse(site_code == "torla.es" & n_treat_days == 195, 1, n_treat_years))%>%
+  subset(n_treat_years >=1 & n_treat_years <= 4)
+
+length(unique(data.anpp$site_code)) #121
+
+prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
+
+Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")%>%
+  dplyr::select(site_code, latitud, longitud )
+
+#create long-term average ANPP in controls
+anpp.mean <- data.anpp%>%
+  subset(trt == "Control")%>%
+  ddply(.(site_code, year),function(x)data.frame(mass = mean(x$mass)))%>% #summarizes controls for each year
+  ddply(.(site_code),function(x)data.frame(mean.mass = mean(x$mass), n_years = length(x$mass)))#summarizes controls across years
+
+
+##Calculate which years are extreme vs nominal for each site in each year
+extremeyrs <- subset(data.anpp, trt == "Control")%>%
+  dplyr::select(site_code, n_treat_years, year, ppt.1, map)%>%
+  unique() %>%
+  mutate(ppt.minus.map=ppt.1-map,
+         e.n=ifelse(n_treat_years <1, NA,
+                    ifelse(ppt.minus.map>0, "nominal", "extreme"))) %>%
+  dplyr::select(site_code, year, n_treat_years, e.n)
+
+extremeyrs.prev <- extremeyrs%>%
+  dplyr::select(site_code, year, e.n)%>%
+  dplyr::rename(prev_e.n = e.n)
+extremeyrs.prev$year <- extremeyrs.prev$year + 1
+
+
+extremeyrs.prev2 <- extremeyrs%>%
+  dplyr::select(site_code, year, e.n)%>%
+  dplyr::rename(prev_e.n2 = e.n)
+extremeyrs.prev2$year <- extremeyrs.prev$year + 1 #had some trouble with these addition things but I think it's fine now
+
+extremeyrs.prev3 <- extremeyrs%>%
+  dplyr::select(site_code, year, e.n)%>%
+  dplyr::rename(prev_e.n3 = e.n)
+extremeyrs.prev3$year <- extremeyrs.prev$year + 2
+
+#Only using sites with >= 2 reps for drought and >=1 rep for control
+#Counting the number of reps for each treatment and year
+uniq.plot<- data.anpp %>% 
+  dplyr::filter(trt %in% c("Drought","Control"))%>%
+  dplyr::select(site_code,year,plot,trt)%>%
+  dplyr::distinct(site_code,year,plot,trt)%>%
+  dplyr::as_tibble()
+
+Plot.trt.ct <- uniq.plot%>% dplyr::group_by(site_code,trt,year) %>% dplyr::summarise(Plot.count=dplyr::n())
+
+#Switching to wide format to see which sites do not have both treatments in a year
+Plottrt_wide<-tidyr::spread(Plot.trt.ct,trt,Plot.count)
+Plottrt_wide[is.na(Plottrt_wide)] <- 0
+
+#Remove sites and years that don't have both control and drought plots
+#or that only have one rep of drought
+Plottrt_wide1<-Plottrt_wide%>%
+  dplyr::filter(Drought>=2 & Control>=1)%>%
+  dplyr::as_tibble()
+
+#Switch back to long format for merge
+Plot.trt.ct2<-tidyr::gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
+
+#Merge unique trt count back with data frame to filter
+data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))%>%
+  subset(habitat.type == "Grassland" | habitat.type == "Shrubland" | habitat.type == "Forest understory" | habitat.type == "")%>%
+  left_join(prop, by = c("site_code"))
+
+length(unique(data.anpp1$site_code)) #115
+
+##How many treatment years does each site have of the first 3 years?
+num.treat.years <- data.anpp1[,c("site_code", "n_treat_years")]%>%
+  unique()%>%
+  subset(n_treat_years>=1&n_treat_years<=4)
+
+num.treat.years <- ddply(num.treat.years,.(site_code),
+                         function(x)data.frame(
+                           num.years = length(x$n_treat_years)
+                         ))
+
+
+##Create anpp_response and drought severity metrics
+data.anpp1$relprecip.1 <- -((data.anpp1$ppt.1-data.anpp1$map)/data.anpp1$map)
+data.anpp1$relprecip.2 <- -((data.anpp1$ppt.2-data.anpp1$map)/data.anpp1$map)
+data.anpp1$relprecip.3 <- -((data.anpp1$ppt.3-data.anpp1$map)/data.anpp1$map)
+data.anpp1$relprecip.4 <- -((data.anpp1$ppt.4-data.anpp1$map)/data.anpp1$map)
+
+
+############################
+#####Look at overall treatment effect in a way that shows there's tons of variability in response
+te <- data.anpp1%>%
+  group_by(site_code, trt, n_treat_years)%>%
+  dplyr::summarize(ANPP = mean(mass))%>%
+  pivot_wider(names_from = "trt", values_from = "ANPP")%>%
+  dplyr::mutate(treatment_effect = Drought-Control)%>%
+  group_by(site_code)%>%
+  dplyr::summarize(treatment_effect = mean(treatment_effect))
+
+sand.df <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/site_sand_from_soilgrid.csv")
+length(unique(subset(sand.df, sand_mean>0)$site_code))#number of site with N data
+
+climate <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/climate_mean_annual_by_site_v3.csv")
+
+sites <- data.anpp1%>%
+          dplyr::select(site_code)%>%
+          unique()%>%
+          left_join(Site_Elev.Disturb, by = "site_code")%>%
+          left_join(sand.df, by = "site_code")%>%
+          left_join(climate, by = "site_code")
+
+
+
+library(maps)
+
+world <- map_data("world")
+
+ggplot() +
+  geom_polygon(
+    data = world,
+    aes(x = long, y = lat, group = group),
+    fill = "gray90",
+    color = "gray70",
+    linewidth = 0.2
+  ) +
+  geom_point(
+    data = sites,
+    aes(x = longitud, y = latitud),
+    color = "dodgerblue",
+    size = 1,
+    alpha = 0.7
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  )
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/world_map.pdf",
+        plot = get_last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+ggplot(sites, aes(MAP, sand_mean))+
+  geom_point(color = "dodgerblue")+
+  xlab("Mean annual precipitation (mm)")+
+  ylab("Soil sand content (%)")+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/sand-map.pdf",
+        plot = get_last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4,
+        height = 4,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
