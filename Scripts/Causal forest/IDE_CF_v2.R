@@ -112,6 +112,11 @@ data.anpp1$relprecip.2 <- -((data.anpp1$ppt.2-data.anpp1$map)/data.anpp1$map)
 data.anpp1$relprecip.3 <- -((data.anpp1$ppt.3-data.anpp1$map)/data.anpp1$map)
 data.anpp1$relprecip.4 <- -((data.anpp1$ppt.4-data.anpp1$map)/data.anpp1$map)
 
+data.anpp1%>%
+  left_join(read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv"), by = "site_code")%>%
+  dplyr::select(site_name,site_code)%>%
+  unique()%>%
+write.csv("C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/site_list.csv")
 
 ############################
 #####Look at overall treatment effect in a way that shows there's tons of variability in response
