@@ -252,25 +252,25 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmen
 
 
 # Explaining all CATEs globally
-system.time(  # 3 min
-  ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
-)
-shap_values <- shapviz(ks)
-sv_importance(shap_values)&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+#system.time(  # 3 min
+#  ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
+#)
+#shap_values <- shapviz(ks)
+#sv_importance(shap_values)&
+#  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmenteffects_shap.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 3,
-        height = 3,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
+#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/lag_treatmenteffects_shap.pdf",
+#        plot = last_plot(),
+#        device = "pdf",
+#        path = NULL,
+#        scale = 1,
+#        width = 3,
+#        height = 3,
+#        units = c("in"),
+#        dpi = 600,
+#        limitsize = TRUE
+#)
 
 #######################################################################
 ###Causal forest for moderators
@@ -334,7 +334,7 @@ X <- te1%>%
 
 
 
-eval.forest <- causal_forest(X, Y, W, 
+eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
                              num.trees = 2000)
 tau.hat.eval <- predict(eval.forest, X)$predictions
 
@@ -458,7 +458,7 @@ X <- te1%>%
   ungroup()%>%
   dplyr::select( MAP,seasonality_index,mean_sr,Domcover,sand_mean,aridity_index,cv_ppt_inter,PerenGrassCover,n,drtsev.1) #put just the moderators you're testing here
 
-eval.forest <- causal_forest(X, Y, W, 
+eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
                              num.trees = 2000)
 
 average_treatment_effect(eval.forest)
