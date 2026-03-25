@@ -5,12 +5,12 @@ library(plyr)
 
 
 
-data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_01-29-2026.csv")%>%
+data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_03-23-2026.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()
 data.anpp$n_treat_days <- as.numeric(data.anpp$n_treat_days)
 
-data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2026-01-29.csv")%>%
+data.cover <- read.csv("C:/Users/ohler/Dropbox/IDE/data_raw/full_cover_2026-03-25.csv")%>%
               dplyr::select(site_code, year, n_treat_days)%>%
               unique()%>%
               subset(n_treat_days != "NULL")#marcdrt.ar has some null values for unknown reasons
@@ -98,5 +98,5 @@ subset(combfin, is.na(n_treat_years) == TRUE)
 
 
 
-write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2026-01-29.csv")
+write.csv(combfin, "C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2026-03-25.csv")
 
