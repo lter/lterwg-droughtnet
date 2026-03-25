@@ -161,7 +161,7 @@ climate <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/climate_m
 
 prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
 
-site_richness <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/site_ave_richness.csv")
+site_richness <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/site_ave_richness.csv") # pretreatment_community_info.csv
 #soil variables for soil variation
 soil <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_soil_2024-12-16.csv")%>%
   group_by(site_code)%>%
