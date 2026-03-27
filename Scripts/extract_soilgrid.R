@@ -112,4 +112,67 @@ sites$soc_0_60cm_weighted <- weighted_soil_mean(
 )
 
 
+
+
+############soil nitrogen
+
+
+depths <- c(5, 15, 30, 60)  # 0–5, 5–15, 15–30, 30–60
+
+sites_v <- vect(
+  sites,
+  geom = c("lon", "lat"),
+  crs  = "EPSG:4326"
+)
+
+# --- extract nitrogen by depth ---
+for (d in depths) {
+  soildat <- soil_world("nitrogen", depth = d, stat = "mean")
+  n_vals  <- extract(soildat, sites_v)
+  
+  # name column based on depth
+  colname <- paste0("n_0_", d, "cm")
+  sites[[colname]] <- n_vals[, 2]
+}
+
+# --- layer metadata (for weighting) ---
+layer_info <- data.frame(
+  depth  = c(5, 15, 30, 60, 100),
+  top    = c(0, 5, 15, 30, 60),
+  bottom = c(5, 15, 30, 60, 100)
+)
+
+layer_info$thickness <- layer_info$bottom - layer_info$top
+layer_info
+
+
+weighted_soil_mean <- function(df, var_prefix, depths, thickness) {
+  cols <- paste0(var_prefix, "_0_", depths, "cm")
+  
+  values  <- as.matrix(df[, cols])
+  weights <- thickness / sum(thickness)
+  
+  rowSums(
+    values * matrix(weights,
+                    nrow = nrow(values),
+                    ncol = length(weights),
+                    byrow = TRUE),
+    na.rm = TRUE
+  )
+}
+
+sites$n_0_60cm_weighted <- weighted_soil_mean(
+  df        = sites,
+  var_prefix = "n",
+  depths     = c(5, 15, 30, 60),
+  thickness = c(5, 10, 15, 30)
+)
+
+
+site_soil_data <- sites %>%
+  mutate(site_code = id)
+
+
+
+
 write.csv(site_soil_data, "C:/Users/ohler/Dropbox/IDE/data_processed/site_sand_soc_from_soilgrid_2026-03-26.csv")
