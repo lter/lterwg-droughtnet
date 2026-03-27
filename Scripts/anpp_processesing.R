@@ -8,13 +8,13 @@ library(plyr)
 
 
 #read n_treat_years data
-IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2025-10-20.csv")
+IDE_treatment_years<- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/IDE_treatment_years_2026-03-27.csv")
 
-anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2025-10-20.csv")
+anpp_clean <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/anpp_clean_2026-03-23.csv")
 
 
 
-treatment_info <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_10-20-2025.csv")
+treatment_info <- read.csv("C:/Users/ohler/Dropbox/IDE MS_Single year extreme/Data/full_biomass_03-23-2026.csv")
 treatment_info <- treatment_info[,c("site_code", "year", "n_treat_days", "block", "plot", "subplot", "trt")]
 treatment_info <- unique(treatment_info)
 infrastructure_controls <- subset(treatment_info, trt == "Control_infrastructure")
@@ -44,7 +44,7 @@ site_map <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Distur
 #details <- full_biomass[,c("site_code", block, plot, subplot, year, )]
 
 #read in precip data
-ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2025-10-20.csv")
+ppt.1 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_365-0days_2026-03-23.csv")
 
 #reduce column names to minimum
 ppt.1$ppt.1 <- ppt.1$ppt#change precip column names in lag files to reflect lags
@@ -55,7 +55,7 @@ ppt.1 <- ddply(ppt.1, c("site_code", "year", "trt"),
 
 
 #read in precip data
-ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2025-10-20.csv")
+ppt.2 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_730-365days_2026-03-26.csv")
 
 #reduce column names to minimum
 ppt.2$ppt.2 <- ppt.2$ppt#change precip column names in lag files to reflect lags
@@ -66,7 +66,7 @@ ppt.2 <- ddply(ppt.2, c("site_code", "year", "trt"),
 
 
 #read in precip data
-ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2025-10-20.csv")
+ppt.3 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1095-730days_2026-03-26.csv")
 
 #reduce column names to minimum
 ppt.3$ppt.3 <- ppt.3$ppt#change precip column names in lag files to reflect lags
@@ -76,7 +76,7 @@ ppt.3 <- ddply(ppt.3, c("site_code", "year", "trt"),
                ))
 
 #read in precip data
-ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2025-10-20.csv")
+ppt.4 <- read.csv("C:/Users/ohler/Dropbox/IDE Meeting_Oct2019/Data/precip/anpp_clean_trt_ppt_no-perc_1460-1095days_2026-03-26.csv")
 
 #reduce column names to minimum
 ppt.4$ppt.4 <- ppt.4$ppt#change precip column names in lag files to reflect lags
@@ -173,6 +173,6 @@ anpp_ppt.end <- data.all%>%
 
 
 
-write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2025-10-20.csv")
+write.csv(anpp_ppt.end, "C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2026-03-27.csv")
 
 
