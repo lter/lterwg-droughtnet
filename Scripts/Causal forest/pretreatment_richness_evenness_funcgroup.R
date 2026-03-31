@@ -4,8 +4,8 @@ library(plyr)
 library(codyn)
 
 
-cover_ppt <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2026-03-25.csv")%>%
-  dplyr::select(site_code, block, plot, subplot, Taxon, functional_group, ps_path n_treat_years, max_cover)%>%
+cover_ppt <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/cover_ppt_2026-03-27.csv")%>%
+  dplyr::select(site_code, block, plot, subplot, Taxon, functional_group, ps_path, n_treat_years, max_cover)%>%
   subset(n_treat_years == "0")
 
 cover_ppt$functional_group_revised <- ifelse(cover_ppt$functional_group == "GRASS", "GRAMINOID", cover_ppt$functional_group)
