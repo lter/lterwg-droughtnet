@@ -393,8 +393,8 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderators_v
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 6,
-        height = 3,
+        width = 5.5,
+        height = 4,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
@@ -406,8 +406,8 @@ pred_fun <- function(object, newdata, ...) {
 }
 pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
-wrap_plots(pdps, guides = "collect", ncol = 3) &
-  ylim(c(-34,-16)) &
+wrap_plots(pdps, guides = "collect", ncol = 5) &
+  ylim(c(-33,-22)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
@@ -417,8 +417,8 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 8,
-        height = 8,
+        width = 13,
+        height = 6,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
@@ -435,8 +435,8 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 5,
-        height = 4,
+        width = 4,
+        height = 3.5,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
@@ -444,12 +444,121 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 
 
 
-sv_dependence(shap_values, v = names(X)[1:10], color_var = NULL, jitter_width = 0.01) +
-  plot_layout(ncol = 5)# &
-#ylim(c(-20, 6))
+sv_dependence(shap_values, v = names(X)[1:10], color_var = NULL, jitter_width = 0.001) +
+  plot_layout(ncol = 5) &
+  ylim(c(-6, 6))&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
+  theme(strip.text = element_blank())
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shappredictions_kitchensink.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 13,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
 
 H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
 plot(H)
 sv_importance(shap_values, kind = "bee")
 
 
+#############################################
+###########mixed effects regressions
+
+te2 <- te1%>%
+  dplyr::select(site_code, trt, n_treat_years, ANPP)%>%
+  pivot_wider(names_from = trt, values_from = ANPP)%>%
+  mutate(trt_minus_con = Drought-Control)
+
+
+te3 <- te1%>%
+  subset(trt=="Drought")%>%
+  left_join(te2, by = c("site_code", "n_treat_years"))
+
+
+vars <- c("MAP","seasonality_index","ave.richness","ave.evenness","sand_0_60cm_weighted","aridity_index","cv_ppt_inter","percent_graminoid","n","soc_0_60cm_weighted")
+
+plots <- lapply(vars, function(v) {
+  
+  # mixed-effects model
+  f <- as.formula(paste("trt_minus_con ~", v))
+  
+  m <- lme(
+    fixed = f,
+    random = ~1 | site_code,
+    data = te3,
+    na.action = na.omit,
+    method = "REML"
+  )
+  
+  # extract p-value for fixed effect
+  pval <- summary(m)$tTable[2, "p-value"]
+  sig  <- pval < 0.1  #0.05
+  
+  p_label <- paste0("p = ", format.pval(pval, digits = 2))
+  
+  # base plot
+  p <- ggplot(te3, aes(x = .data[[v]], y = trt_minus_con)) +
+    geom_point() +
+    annotate(
+      "text",
+      x = Inf, y = Inf,
+      label = p_label,
+      hjust = 1.1, vjust = 1.5,
+      size = 3.5
+    ) +
+    ylab("Treatment effect on ANPP") +
+    xlab(v) +
+    theme_base()
+  
+  # add regression line ONLY if significant
+  if (sig) {
+    
+    # new data for smooth line
+    newdat <- data.frame(
+      x = seq(
+        min(te3[[v]], na.rm = TRUE),
+        max(te3[[v]], na.rm = TRUE),
+        length.out = 100
+      )
+    )
+    names(newdat) <- v
+    
+    # fixed-effect predictions (no random effects)
+    newdat$pred <- predict(m, newdata = newdat, level = 0)
+    
+    p <- p +
+      geom_line(
+        data = newdat,
+        aes(x = .data[[v]], y = pred),
+        linewidth = 1
+      )
+  }
+  
+  p
+})
+
+
+wrap_plots(plots, ncol = 5)
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_mixed_regressions.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
