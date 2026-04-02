@@ -361,9 +361,9 @@ colnames(X)[ranked.vars[1:10]]
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
-as.ggplot(~plot(rate))
+plot(rate)
 paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
-
+test_calibration(eval.forest) #A coefficient of 1 for mean.forest.prediction suggests that the mean forest prediction is correct and a coefficient of 1 for differential.forest.prediction suggests that the forest has captured heterogeneity in the underlying signal.
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TOC_kitchensink.pdf",
         plot = get_last_plot(),
@@ -465,9 +465,45 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 
 
 
-
+#visualize overall interaction strength (left) - how much prediction variability comes from interactions with that varible
 H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
-plot(H)
+plot(H)&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
+  theme(strip.text = element_blank())
+
+
+partial_dep(eval.forest, v = "percent_graminoid", X = X, BY = "soc_0_60cm_weighted", by_size = 4L, pred_fun = pred_fun) |> 
+  plot()&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
+  theme(strip.text = element_blank())
+
+
+pd <- partial_dep(
+  eval.forest,
+  v = c("percent_graminoid", "soc_0_60cm_weighted"),
+  X = X,
+  pred_fun = pred_fun,
+  grid_size = 250   # increase for smoother surface
+)
+
+pd_df <- pd$data
+ggplot(pd_df, aes(
+  x = percent_graminoid,
+  y = soc_0_60cm_weighted,
+  fill = y   # or yhat depending on output
+)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(
+    x = "Percent Graminoid",
+    y = "SOC (0–60 cm)",
+    fill = "Predicted"
+  ) +
+  theme(
+    panel.background = element_rect(fill = "white", colour = "grey50")
+  )
+
 sv_importance(shap_values, kind = "bee")
 
 
