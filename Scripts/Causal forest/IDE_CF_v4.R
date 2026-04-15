@@ -16,7 +16,7 @@ library(shapviz)      #  SHAP plots
 library(ggbeeswarm)
 library(hstats)
 library(patchwork)
-
+library(mgcv)
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2026-03-27.csv")%>% 
@@ -588,6 +588,126 @@ wrap_plots(plots, ncol = 5)
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_mixed_regressions.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
+###GAMS for comparison
+
+
+
+
+plots <- lapply(vars, function(v) {
+  
+  #----------------------------------
+  # 0. Variable-specific data
+  #----------------------------------
+  dat <- te3 %>%
+    dplyr::select(trt_minus_con, site_code, all_of(v)) %>%
+    dplyr::filter(!is.na(.data[[v]]))
+  
+  dat$site_code <- factor(dat$site_code)
+  
+  # skip if too few unique values to form a smooth
+  if (dplyr::n_distinct(dat[[v]]) < 4) {
+    message(paste("Skipping", v, "- too few unique values"))
+    return(NULL)
+  }
+  
+  #----------------------------------
+  # 1. Fit GAM
+  #----------------------------------
+  f <- as.formula(
+    paste0("trt_minus_con ~ s(", v, ", k = 5) + s(site_code, bs = 're')")
+  )
+  
+  m <- gam(
+    formula = f,
+    data = dat,
+    method = "REML"
+  )
+  
+  sm <- summary(m)
+  
+  #----------------------------------
+  # 2. Check that the smooth actually exists
+  #----------------------------------
+  smooth_name <- paste0("s(", v, ")")
+  
+  if (!smooth_name %in% rownames(sm$s.table)) {
+    message(paste("Smooth dropped for", v))
+    return(NULL)
+  }
+  
+  pval <- sm$s.table[smooth_name, "p-value"]
+  sig  <- pval < 0.1
+  p_label <- paste0("p = ", format.pval(pval, digits = 2))
+  
+  #----------------------------------
+  # 3. Base plot
+  #----------------------------------
+  p <- ggplot(dat, aes(x = .data[[v]], y = trt_minus_con)) +
+    geom_point(alpha = 0.7) +
+    annotate(
+      "text",
+      x = Inf, y = Inf,
+      label = p_label,
+      hjust = 1.1, vjust = 1.5,
+      size = 3.5
+    ) +
+    ylab("Treatment effect on ANPP") +
+    xlab(v) +
+    theme_base()
+  
+  #----------------------------------
+  # 4. Add smooth only if significant
+  #----------------------------------
+  if (sig) {
+    
+    newdat <- data.frame(
+      site_code = dat$site_code[1],
+      x = seq(
+        min(dat[[v]], na.rm = TRUE),
+        max(dat[[v]], na.rm = TRUE),
+        length.out = 200
+      )
+    )
+    names(newdat)[2] <- v
+    
+    smooth_terms <- predict(
+      m,
+      newdata = newdat,
+      type = "terms"
+    )
+    
+    newdat$pred <- smooth_terms[, smooth_name] +
+      coef(m)["(Intercept)"]
+    
+    p <- p +
+      geom_line(
+        data = newdat,
+        aes(x = .data[[v]], y = pred),
+        linewidth = 1
+      )
+  }
+  
+  p
+})
+
+
+plots <- Filter(Negate(is.null), plots)
+wrap_plots(plots, ncol = 5)
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_GAM.pdf",
         plot = last_plot(),
         device = "pdf",
         path = NULL,
