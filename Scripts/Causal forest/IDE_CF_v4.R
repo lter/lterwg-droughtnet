@@ -28,8 +28,6 @@ data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2026-0
 
 length(unique(data.anpp$site_code)) #121
 
-#prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
-
 Site_Elev.Disturb <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv")%>%
   dplyr::select(site_code, latitud, longitud )
 
@@ -40,30 +38,6 @@ anpp.mean <- data.anpp%>%
   ddply(.(site_code),function(x)data.frame(mean.mass = mean(x$mass), n_years = length(x$mass)))#summarizes controls across years
 
 
-##Calculate which years are extreme vs nominal for each site in each year
-#extremeyrs <- subset(data.anpp, trt == "Control")%>%
-#  dplyr::select(site_code, n_treat_years, year, ppt.1, map)%>%
-#  unique() %>%
-#  mutate(ppt.minus.map=ppt.1-map,
-#         e.n=ifelse(n_treat_years <1, NA,
-#                    ifelse(ppt.minus.map>0, "nominal", "extreme"))) %>%
-#  dplyr::select(site_code, year, n_treat_years, e.n)
-
-#extremeyrs.prev <- extremeyrs%>%
-#  dplyr::select(site_code, year, e.n)%>%
-#  dplyr::rename(prev_e.n = e.n)
-#extremeyrs.prev$year <- extremeyrs.prev$year + 1
-
-
-#extremeyrs.prev2 <- extremeyrs%>%
-#  dplyr::select(site_code, year, e.n)%>%
-#  dplyr::rename(prev_e.n2 = e.n)
-#extremeyrs.prev2$year <- extremeyrs.prev$year + 1 #had some trouble with these addition things but I think it's fine now
-
-#extremeyrs.prev3 <- extremeyrs%>%
-#  dplyr::select(site_code, year, e.n)%>%
-#  dplyr::rename(prev_e.n3 = e.n)
-#extremeyrs.prev3$year <- extremeyrs.prev$year + 2
 
 #Only using sites with >= 2 reps for drought and >=1 rep for control
 #Counting the number of reps for each treatment and year
@@ -89,9 +63,7 @@ Plottrt_wide1<-Plottrt_wide%>%
 Plot.trt.ct2<-tidyr::gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 
 #Merge unique trt count back with data frame to filter
-data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))#%>%
-#  subset(habitat.type == "Grassland" | habitat.type == "Shrubland" | habitat.type == "Forest understory" | habitat.type == "")%>%
-#  left_join(prop, by = c("site_code"))
+data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
 
 length(unique(data.anpp1$site_code)) #118
 
@@ -104,13 +76,6 @@ num.treat.years <- ddply(num.treat.years,.(site_code),
                          function(x)data.frame(
                            num.years = length(x$n_treat_years)
                          ))
-
-
-##Create anpp_response and drought severity metrics
-#data.anpp1$relprecip.1 <- -((data.anpp1$ppt.1-data.anpp1$map)/data.anpp1$map)
-#data.anpp1$relprecip.2 <- -((data.anpp1$ppt.2-data.anpp1$map)/data.anpp1$map)
-#data.anpp1$relprecip.3 <- -((data.anpp1$ppt.3-data.anpp1$map)/data.anpp1$map)
-#data.anpp1$relprecip.4 <- -((data.anpp1$ppt.4-data.anpp1$map)/data.anpp1$map)
 
 data.anpp1%>%
   left_join(read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv"), by = "site_code")%>%
@@ -133,6 +98,32 @@ ggplot(te, aes(trt, ANPP))+
   theme_base()
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/main_effect.pdf",
+        plot = get_last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+te_figure <- te%>%
+  dplyr::select(site_code, trt, n_treat_years, ANPP)%>%
+  pivot_wider(names_from = trt, values_from = ANPP)%>%
+  mutate(trt_minus_con = Drought-Control)%>%
+  group_by(site_code)%>%
+  dplyr::summarize(trt_minus_con = mean(trt_minus_con))
+
+ggplot(te_figure, aes(trt_minus_con))+
+  geom_histogram(bins = 15, color = "black")+
+  xlab("Average ANPP response (treatment-control)[g/m2]")+
+  ylab("Count of sites")+
+  geom_vline(xintercept = -27.745905, color = "red", linetype = "dashed")+
+  theme_base()
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/treatment_effect_histogram.pdf",
         plot = get_last_plot(),
         device = "pdf",
         path = NULL,
@@ -183,14 +174,7 @@ te1 <- te%>%
   left_join(comm, by = "site_code")#%>%
   #left_join(drt.sev, by = c("site_code", "n_treat_years"))
 
-#length(unique(subset(te1, mean_sr >0)$site_code))
-#length(unique(subset(te1, PerenGrassCover >-1)$site_code))
-#length(unique(subset(te1, Domcover >-1)$site_code))
-#length(unique(subset(te1, n>-1)$site_code))#number of site with N data
 
-#moderator variables below
-#seasonality_index, n, MAP, mean_sr, cv_ppt_inter, sand_mean, aridity_index, PerenGrassCover,#Functional group composition (pre-treatment) 
-#Domcover
 
 Y <- te1$ANPP
 W <- te1%>%
@@ -203,6 +187,16 @@ X <- te1%>%
                 ,sand_0_60cm_weighted
   )#put just the moderators you're testing here
 
+length(unique(subset(te1, MAP > 0)$site_code))
+length(unique(subset(te1, seasonality_index > 0)$site_code))
+length(unique(subset(te1, ave.richness > -1)$site_code))
+length(unique(subset(te1, ave.evenness > -1)$site_code))
+length(unique(subset(te1, sand_0_60cm_weighted > -1)$site_code))
+length(unique(subset(te1, percent_graminoid > -1)$site_code))
+length(unique(subset(te1, n > -1)$site_code))
+length(unique(subset(te1, cv_ppt_inter > -1)$site_code))
+length(unique(subset(te1, aridity_index > -1)$site_code))
+length(unique(subset(te1, soc_0_60cm_weighted > -1)$site_code))
 
 
 
@@ -357,7 +351,7 @@ average_treatment_effect(eval.forest)
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X)[ranked.vars[1:10]]
-#"percent_graminoid"    "sand_0_60cm_weighted" "seasonality_index"    "ave.richness"  "ave.evenness"         "n"  "soc_0_60cm_weighted"  "cv_ppt_inter" "MAP"       "aridity_index"       
+#"sand_0_60cm_weighted" "percent_graminoid" "seasonality_index"    "ave.richness" "n"                    "soc_0_60cm_weighted" "ave.evenness" "cv_ppt_inter"  "MAP"                  "aridity_index"       
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
@@ -427,7 +421,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 # Explaining all CATEs globally
 ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
 shap_values <- shapviz(ks)
-sv_importance(shap_values)&
+sv_importance(shap_values,  fill = "grey",)&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shap_kitchensink.pdf",
@@ -467,15 +461,96 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 
 #visualize overall interaction strength (left) - how much prediction variability comes from interactions with that varible
 H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
-plot(H)&
+plot(H, fill = "black")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
   theme(strip.text = element_blank())
 
+h2 <- H[["h2_pairwise"]]
 
-partial_dep(eval.forest, v = "percent_graminoid", X = X, BY = "soc_0_60cm_weighted", by_size = 4L, pred_fun = pred_fun) |> 
+vals <- h2$num[, 1] / h2$denom[, 1]
+names(vals) <- rownames(h2$num)
+
+vars <- unique(unlist(strsplit(names(vals), ":")))
+p <- length(vars)
+M <- matrix(0, p, p, dimnames = list(vars, vars))
+
+for (nm in names(vals)) {
+  parts <- strsplit(nm, ":")[[1]]
+  
+  if (length(parts) == 1) {
+    # main effects (optional: put on diagonal)
+    M[parts, parts] <- vals[nm]
+  } else {
+    v1 <- parts[1]
+    v2 <- parts[2]
+    M[v1, v2] <- vals[nm]
+    M[v2, v1] <- vals[nm]
+  }
+}
+
+df <- as.data.frame(M) |>
+  rownames_to_column("var1") |>
+  pivot_longer(-var1, names_to = "var2", values_to = "interaction") |>
+  mutate(
+    var1 = factor(var1, levels = vars),
+    var2 = factor(var2, levels = vars)
+  ) |>
+  filter(as.integer(var1) > as.integer(var2))
+
+
+ggplot(df, aes(x = var2, y = var1, fill = interaction)) +
+  geom_tile(color = "black", linewidth = 0.4) +
+  coord_fixed() +
+  scale_fill_gradient(
+    low = "white",
+    high = "black"
+  )+
+  labs(
+    x = NULL,
+    y = NULL,
+    fill = "Interaction\nstrength"
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank()
+  )
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_h2_heatmap.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 6,
+        height = 4,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
+
+partial_dep(eval.forest, v = "MAP", X = X, BY = "soc_0_60cm_weighted", by_size = 3L, pred_fun = pred_fun) |> 
   plot()&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
   theme(strip.text = element_blank())
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_example.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 6,
+        height = 4,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
+
 
 
 pd <- partial_dep(
