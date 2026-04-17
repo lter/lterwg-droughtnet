@@ -1080,6 +1080,7 @@ ggplot(pd_all, aes(x = x, y = y)) +
   ) +
   ylab("Treatment effect of drought on ANPP") +
   xlab(NULL) +
+  ylim(-50,0)+ #RF T-learner species richness goes way lower than this limit
   theme_base() +
   theme(
     panel.background = element_rect(fill = "white", colour = "grey50"),
@@ -1092,7 +1093,70 @@ ggplot(pd_all, aes(x = x, y = y)) +
 
 
 
+plot_one_variable <- function(dat, var, lab) {
+  
+  p <- ggplot(
+    dat |> dplyr::filter(variable == var),
+    aes(x = x, y = y)
+  ) +
+    geom_line(linewidth = 0.9) +
+    facet_grid(
+      . ~ model,
+      scales = "free_y"
+    ) +
+    xlab(lab) +
+    ylim(-190,0)+
+    theme_base() +
+    theme(
+      panel.background = element_rect(fill = "white", colour = "grey50"),
+      strip.background = element_blank(),
+      strip.text.x = element_text(size = 10)
+    )
+  
+  # ✅ add y-axis label only once (middle row)
+  if (var == focal_vars[2]) {
+    p <- p + ylab("Treatment effect of drought on ANPP")
+  } else {
+    p <- p + ylab(NULL)
+  }
+  
+  p
+}
+
+p_sand <- plot_one_variable(
+  pd_all,
+  "sand_0_60cm_weighted",
+  "Sand content (0–60 cm)"
+)
+
+p_rich <- plot_one_variable(
+  pd_all,
+  "ave.richness",
+  "Species richness"
+)
+
+p_seas <- plot_one_variable(
+  pd_all,
+  "seasonality_index",
+  "Seasonality"
+)
 
 
+
+(p_sand / p_rich / p_seas) +
+  plot_layout(heights = c(1, 1, 1))
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/partial_dependiencies_comparison.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 7,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 
