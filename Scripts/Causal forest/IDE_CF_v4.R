@@ -17,6 +17,7 @@ library(ggbeeswarm)
 library(hstats)
 library(patchwork)
 library(mgcv)
+library(ranger)
 
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2026-03-27.csv")%>% 
@@ -470,15 +471,19 @@ h2 <- H[["h2_pairwise"]]
 vals <- h2$num[, 1] / h2$denom[, 1]
 names(vals) <- rownames(h2$num)
 
-vars <- unique(unlist(strsplit(names(vals), ":")))
+vars <- colnames(X)
+vars <- H$varnames
+
 p <- length(vars)
 M <- matrix(0, p, p, dimnames = list(vars, vars))
+diag(M) <- NA
+
 
 for (nm in names(vals)) {
   parts <- strsplit(nm, ":")[[1]]
   
   if (length(parts) == 1) {
-    # main effects (optional: put on diagonal)
+    # main effects (optional)
     M[parts, parts] <- vals[nm]
   } else {
     v1 <- parts[1]
@@ -495,7 +500,11 @@ df <- as.data.frame(M) |>
     var1 = factor(var1, levels = vars),
     var2 = factor(var2, levels = vars)
   ) |>
-  filter(as.integer(var1) > as.integer(var2))
+  filter(
+    as.integer(var1) > as.integer(var2),   # keep one triangle
+    !is.na(interaction)                     # remove diagonal
+  )
+
 
 
 ggplot(df, aes(x = var2, y = var1, fill = interaction)) +
@@ -504,7 +513,7 @@ ggplot(df, aes(x = var2, y = var1, fill = interaction)) +
   scale_fill_gradient(
     low = "white",
     high = "black"
-  )+
+  ) +
   labs(
     x = NULL,
     y = NULL,
@@ -515,6 +524,8 @@ ggplot(df, aes(x = var2, y = var1, fill = interaction)) +
     axis.text.x = element_text(angle = 45, hjust = 1),
     panel.grid = element_blank()
   )
+
+
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_h2_heatmap.pdf",
         plot = last_plot(),
@@ -793,3 +804,262 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_GA
         dpi = 600,
         limitsize = TRUE
 )
+
+
+
+
+
+# S-learner and T-learner versions of top 10 moderator analyses 
+# using the ranger package. Set some of the tuning params
+# to what causal_forest uses:
+# 2000 trees
+# subsampling with half the data per tree
+# # vars to try per split: min(ceiling(sqrt(ncol(X)) + 20), ncol(X))
+
+# s-learner
+sl.data = cbind(Y, W, X)
+sl.predvars = colnames(sl.data)[-1]
+sl.form = as.formula(paste0("Y ~ ", paste(sl.predvars, collapse=" + ")))
+sl.mod = ranger(sl.form,
+                data=sl.data, 
+                num.trees=2000, 
+                mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                replace=F,
+                sample.fraction=0.5)
+
+# Function to predict treatment effects. One model but predict twice:
+# once with treatment = 1, once with treatment = 0, and subtract.
+
+sl_te_pred = function(mod, newX) {
+  tmp.data = cbind(W=rep(1, length(Y)), newX)
+  treated_preds = predict(mod, data=tmp.data)$predictions
+  tmp.data[,"W"] = 0
+  ctrl_preds = predict(mod, data=tmp.data)$predictions
+  return(treated_preds-ctrl_preds)
+}
+
+# ATE - sign same, but magnitudes very different than CF
+mean(sl_te_pred(sl.mod, X))
+
+pdps.s.learner <- lapply(colnames(X), function(v) plot(partial_dep(sl.mod, v=v, X = X, pred_fun = sl_te_pred)))
+
+wrap_plots(pdps.s.learner, guides = "collect", ncol = 5) &
+  #ylim(c(-37,-25)) &
+  ylab("Treatment effect")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+
+# t-learner
+tl.data = cbind(Y, X)
+tl.predvars = colnames(tl.data)[-1]
+tl.form = as.formula(paste0("Y ~ ", paste(tl.predvars, collapse=" + ")))
+tl.mod.trt = ranger(tl.form,
+                    data=tl.data[W==1,], 
+                    num.trees=2000, 
+                    mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                    replace=F,
+                    sample.fraction=0.5)
+tl.mod.ctrl = ranger(tl.form,
+                     data=tl.data[W==0,], 
+                     num.trees=2000, 
+                     mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                     replace=F,
+                     sample.fraction=0.5)
+
+tl.mod = list(tmod = tl.mod.trt, 
+              cmod = tl.mod.ctrl)
+
+tl_te_pred = function(mod, newX) {
+  treated_preds = predict(mod$tmod, data=newX)$predictions
+  ctrl_preds = predict(mod$cmod, data=newX)$predictions
+  return(treated_preds-ctrl_preds)
+}
+
+# ATE - sign same (and closer to CF estimate than S-learner estimate is)
+mean(tl_te_pred(tl.mod, X))
+
+
+pdps.t.learner <- lapply(colnames(X), function(v) plot(partial_dep(tl.mod, v=v, X = X, pred_fun = tl_te_pred)))
+
+wrap_plots(pdps.t.learner, guides = "collect", ncol = 5) &
+  #ylim(c(-37,-25)) &
+  ylab("Treatment effect")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+# Compare across CF, S-learner, T-learner
+#mod_lab1 <- wrap_elements(panel = textGrob("Causal Forest", rot = 90))
+#mod_lab2 <- wrap_elements(panel = textGrob("S-Learner", rot = 90))
+#mod_lab3 <- wrap_elements(panel = textGrob("T-Learner", rot = 90))
+
+#p_all <- (mod_lab1 | pdps[[1]] | pdps[[2]] | pdps[[3]] | pdps[[4]] | pdps[[5]]) / 
+#  (mod_lab2 | pdps.s.learner[[1]] | pdps.s.learner[[2]] | pdps.s.learner[[3]] | pdps.s.learner[[4]] | pdps.s.learner[[5]]) / 
+#  (mod_lab3 | pdps.t.learner[[1]] | pdps.t.learner[[2]] | pdps.t.learner[[3]] | pdps.t.learner[[4]] | pdps.t.learner[[5]]) + 
+#  plot_layout(widths = c(0.1, rep(0.18, times=5))) # Adjust the first value to control label width
+
+#print(p_all)
+
+
+#####
+###Combine a few partial dependency plots for a figure
+focal_vars <- c(
+  "sand_0_60cm_weighted",
+  "ave.richness",
+  "seasonality_index"
+)
+
+var_labels <- c(
+  sand_0_60cm_weighted = "Sand content (0–60 cm)",
+  ave.richness        = "Species richness",
+  seasonality_index   = "Seasonality"
+)
+
+get_pd_df <- function(mod, v, X, pred_fun, model_name) {
+  pd <- partial_dep(
+    mod,
+    v = v,
+    X = X,
+    pred_fun = pred_fun,
+    grid_size = 100
+  )
+  
+  pd$data |>
+    dplyr::rename(x = !!v, y = yhat) |>
+    dplyr::mutate(
+      variable = v,
+      model = model_name
+    )
+}
+
+cf_pd <- purrr::map_dfr(
+  focal_vars,
+  get_pd_df,
+  mod = eval.forest,
+  X = X,
+  pred_fun = pred_fun,
+  model_name = "Causal forest"
+)
+
+sl_pd <- purrr::map_dfr(
+  focal_vars,
+  get_pd_df,
+  mod = sl.mod,
+  X = X,
+  pred_fun = sl_te_pred,
+  model_name = "RF S-learner"
+)
+
+tl_pd <- purrr::map_dfr(
+  focal_vars,
+  get_pd_df,
+  mod = tl.mod,
+  X = X,
+  pred_fun = tl_te_pred,
+  model_name = "RF T-learner"
+)
+
+lme_pd <- purrr::map_dfr(focal_vars, function(v) {
+  
+  f <- as.formula(paste("trt_minus_con ~", v))
+  
+  m <- lme(
+    fixed = f,
+    random = ~ 1 | site_code,
+    data = te3,
+    method = "REML",
+    na.action = na.omit
+  )
+  
+  xseq <- seq(
+    min(te3[[v]], na.rm = TRUE),
+    max(te3[[v]], na.rm = TRUE),
+    length.out = 100
+  )
+  
+  newdat <- data.frame(xseq)
+  names(newdat) <- v
+  
+  newdat$y <- predict(m, newdata = newdat, level = 0)
+  
+  newdat |>
+    dplyr::rename(x = !!v) |>
+    dplyr::mutate(
+      variable = v,
+      model = "Linear model"
+    )
+})
+
+gam_pd <- purrr::map_dfr(focal_vars, function(v) {
+  
+  dat <- te3 |>
+    dplyr::select(trt_minus_con, site_code, all_of(v)) |>
+    dplyr::filter(!is.na(.data[[v]]))
+  
+  m <- gam(
+    as.formula(paste0("trt_minus_con ~ s(", v, ", k = 5) + s(site_code, bs = 're')")),
+    data = dat,
+    method = "REML"
+  )
+  
+  xseq <- seq(min(dat[[v]]), max(dat[[v]]), length.out = 200)
+  
+  newdat <- data.frame(
+    site_code = dat$site_code[1],
+    xseq
+  )
+  names(newdat)[2] <- v
+  
+  pred <- predict(m, newdata = newdat, type = "terms")
+  
+  newdat$y <- pred[, paste0("s(", v, ")")] + coef(m)["(Intercept)"]
+  
+  newdat |>
+    dplyr::rename(x = !!v) |>
+    dplyr::mutate(
+      variable = v,
+      model = "GAM"
+    )
+})
+
+pd_all <- dplyr::bind_rows(
+  cf_pd,
+  sl_pd,
+  tl_pd,
+  lme_pd,
+  gam_pd
+) |>
+  dplyr::mutate(
+    variable = factor(variable, levels = focal_vars),
+    model = factor(
+      model,
+      levels = c(
+        "Causal forest",
+        "RF S-learner",
+        "RF T-learner",
+        "Linear model",
+        "GAM"
+      )
+    )
+  )
+
+ggplot(pd_all, aes(x = x, y = y)) +
+  geom_line(linewidth = 0.9) +
+  facet_grid(
+    rows = vars(variable, scales = "free_x", labeller = labeller(variable = var_labels)),
+    cols = vars(model)
+  ) +
+  ylab("Treatment effect of drought on ANPP") +
+  xlab(NULL) +
+  theme_base() +
+  theme(
+    panel.background = element_rect(fill = "white", colour = "grey50"),
+    strip.background = element_blank(),
+    strip.text = element_text(size = 10)
+  )
+
+
+
+
+
+
+
+
