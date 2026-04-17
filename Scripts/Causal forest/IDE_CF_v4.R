@@ -914,6 +914,7 @@ var_labels <- c(
 )
 
 get_pd_df <- function(mod, v, X, pred_fun, model_name) {
+  
   pd <- partial_dep(
     mod,
     v = v,
@@ -922,13 +923,26 @@ get_pd_df <- function(mod, v, X, pred_fun, model_name) {
     grid_size = 100
   )
   
-  pd$data |>
-    dplyr::rename(x = !!v, y = yhat) |>
+  df <- pd$data
+  
+  # identify prediction column robustly
+  pred_col <- setdiff(colnames(df), v)
+  
+  if (length(pred_col) != 1) {
+    stop("Could not uniquely identify prediction column in partial_dep output")
+  }
+  
+  df |>
+    dplyr::rename(
+      x = !!v,
+      y = !!pred_col
+    ) |>
     dplyr::mutate(
       variable = v,
       model = model_name
     )
 }
+
 
 cf_pd <- purrr::map_dfr(
   focal_vars,
@@ -994,31 +1008,46 @@ gam_pd <- purrr::map_dfr(focal_vars, function(v) {
     dplyr::select(trt_minus_con, site_code, all_of(v)) |>
     dplyr::filter(!is.na(.data[[v]]))
   
+  dat$site_code <- factor(dat$site_code)
+  
+  # skip variables with too few unique values
+  if (dplyr::n_distinct(dat[[v]]) < 4) {
+    message("Skipping ", v, " (too few unique values)")
+    return(NULL)
+  }
+  
   m <- gam(
-    as.formula(paste0("trt_minus_con ~ s(", v, ", k = 5) + s(site_code, bs = 're')")),
+    as.formula(paste0(
+      "trt_minus_con ~ s(", v, ", k = 5) + s(site_code, bs = 're')"
+    )),
     data = dat,
     method = "REML"
   )
   
-  xseq <- seq(min(dat[[v]]), max(dat[[v]]), length.out = 200)
+  # prediction grid
+  xseq <- seq(
+    min(dat[[v]], na.rm = TRUE),
+    max(dat[[v]], na.rm = TRUE),
+    length.out = 200
+  )
   
   newdat <- data.frame(
-    site_code = dat$site_code[1],
-    xseq
+    site_code = dat$site_code[1],  # hold RE constant
+    xval = xseq
   )
   names(newdat)[2] <- v
   
-  pred <- predict(m, newdata = newdat, type = "terms")
-  
-  newdat$y <- pred[, paste0("s(", v, ")")] + coef(m)["(Intercept)"]
+  # ✅ marginal prediction (always defined)
+  newdat$y <- predict(m, newdata = newdat, type = "response")
   
   newdat |>
     dplyr::rename(x = !!v) |>
     dplyr::mutate(
       variable = v,
-      model = "GAM"
+      model    = "GAM"
     )
 })
+
 
 pd_all <- dplyr::bind_rows(
   cf_pd,
@@ -1044,8 +1073,10 @@ pd_all <- dplyr::bind_rows(
 ggplot(pd_all, aes(x = x, y = y)) +
   geom_line(linewidth = 0.9) +
   facet_grid(
-    rows = vars(variable, scales = "free_x", labeller = labeller(variable = var_labels)),
-    cols = vars(model)
+    rows   = vars(variable),
+    cols   = vars(model),
+    scales = "free",
+    labeller = labeller(variable = var_labels)
   ) +
   ylab("Treatment effect of drought on ANPP") +
   xlab(NULL) +
@@ -1053,8 +1084,10 @@ ggplot(pd_all, aes(x = x, y = y)) +
   theme(
     panel.background = element_rect(fill = "white", colour = "grey50"),
     strip.background = element_blank(),
-    strip.text = element_text(size = 10)
+    strip.text.y = element_text(angle = 0, size = 10),
+    strip.text.x = element_text(size = 10)
   )
+
 
 
 
