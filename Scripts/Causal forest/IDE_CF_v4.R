@@ -971,90 +971,90 @@ tl_pd <- purrr::map_dfr(
   model_name = "RF T-learner"
 )
 
-lme_pd <- purrr::map_dfr(focal_vars, function(v) {
+#lme_pd <- purrr::map_dfr(focal_vars, function(v) {
   
-  f <- as.formula(paste("trt_minus_con ~", v))
+#  f <- as.formula(paste("trt_minus_con ~", v))
   
-  m <- lme(
-    fixed = f,
-    random = ~ 1 | site_code,
-    data = te3,
-    method = "REML",
-    na.action = na.omit
-  )
+#  m <- lme(
+#    fixed = f,
+#    random = ~ 1 | site_code,
+#    data = te3,
+#    method = "REML",
+#    na.action = na.omit
+#  )
   
-  xseq <- seq(
-    min(te3[[v]], na.rm = TRUE),
-    max(te3[[v]], na.rm = TRUE),
-    length.out = 100
-  )
+#  xseq <- seq(
+#    min(te3[[v]], na.rm = TRUE),
+#    max(te3[[v]], na.rm = TRUE),
+#    length.out = 100
+#  )
   
-  newdat <- data.frame(xseq)
-  names(newdat) <- v
+#  newdat <- data.frame(xseq)
+#  names(newdat) <- v
   
-  newdat$y <- predict(m, newdata = newdat, level = 0)
+#  newdat$y <- predict(m, newdata = newdat, level = 0)
   
-  newdat |>
-    dplyr::rename(x = !!v) |>
-    dplyr::mutate(
-      variable = v,
-      model = "Linear model"
-    )
-})
+#  newdat |>
+#    dplyr::rename(x = !!v) |>
+#    dplyr::mutate(
+#      variable = v,
+#     model = "Linear model"
+#    )
+#})
 
-gam_pd <- purrr::map_dfr(focal_vars, function(v) {
+#gam_pd <- purrr::map_dfr(focal_vars, function(v) {
   
-  dat <- te3 |>
-    dplyr::select(trt_minus_con, site_code, all_of(v)) |>
-    dplyr::filter(!is.na(.data[[v]]))
+#  dat <- te3 |>
+#    dplyr::select(trt_minus_con, site_code, all_of(v)) |>
+#    dplyr::filter(!is.na(.data[[v]]))
   
-  dat$site_code <- factor(dat$site_code)
+#  dat$site_code <- factor(dat$site_code)
   
   # skip variables with too few unique values
-  if (dplyr::n_distinct(dat[[v]]) < 4) {
-    message("Skipping ", v, " (too few unique values)")
-    return(NULL)
-  }
+#  if (dplyr::n_distinct(dat[[v]]) < 4) {
+#    message("Skipping ", v, " (too few unique values)")
+#    return(NULL)
+#  }
   
-  m <- gam(
-    as.formula(paste0(
-      "trt_minus_con ~ s(", v, ", k = 5) + s(site_code, bs = 're')"
-    )),
-    data = dat,
-    method = "REML"
-  )
+#  m <- gam(
+#    as.formula(paste0(
+#      "trt_minus_con ~ s(", v, ", k = 5) + s(site_code, bs = 're')"
+#    )),
+#    data = dat,
+#    method = "REML"
+#  )
   
   # prediction grid
-  xseq <- seq(
-    min(dat[[v]], na.rm = TRUE),
-    max(dat[[v]], na.rm = TRUE),
-    length.out = 200
-  )
+#  xseq <- seq(
+#    min(dat[[v]], na.rm = TRUE),
+#    max(dat[[v]], na.rm = TRUE),
+#    length.out = 200
+#  )
   
-  newdat <- data.frame(
-    site_code = dat$site_code[1],  # hold RE constant
-    xval = xseq
-  )
-  names(newdat)[2] <- v
+#  newdat <- data.frame(
+#    site_code = dat$site_code[1],  # hold RE constant
+#    xval = xseq
+#  )
+#  names(newdat)[2] <- v
   
   # ✅ marginal prediction (always defined)
-  newdat$y <- predict(m, newdata = newdat, type = "response")
+#  newdat$y <- predict(m, newdata = newdat, type = "response")
   
-  newdat |>
-    dplyr::rename(x = !!v) |>
-    dplyr::mutate(
-      variable = v,
-      model    = "GAM"
-    )
-})
+#  newdat |>
+#    dplyr::rename(x = !!v) |>
+#    dplyr::mutate(
+#      variable = v,
+#      model    = "GAM"
+#    )
+#})
 
 
 pd_all <- dplyr::bind_rows(
   cf_pd,
   sl_pd,
-  tl_pd,
-  lme_pd,
-  gam_pd
+  tl_pd#,
+#  lme_pd,
+#  gam_pd
 ) |>
   dplyr::mutate(
     variable = factor(variable, levels = focal_vars),
@@ -1063,9 +1063,9 @@ pd_all <- dplyr::bind_rows(
       levels = c(
         "Causal forest",
         "RF S-learner",
-        "RF T-learner",
-        "Linear model",
-        "GAM"
+        "RF T-learner"#,
+#        "Linear model",
+#        "GAM"
       )
     )
   )
@@ -1105,7 +1105,7 @@ plot_one_variable <- function(dat, var, lab) {
       scales = "free_y"
     ) +
     xlab(lab) +
-    ylim(-190,0)+
+    ylim(-50,0)+#RF T-learner species richness goes way lower than this limit
     theme_base() +
     theme(
       panel.background = element_rect(fill = "white", colour = "grey50"),
@@ -1152,8 +1152,8 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/partial_depe
         device = "pdf",
         path = NULL,
         scale = 1,
-        width = 7,
-        height = 6,
+        width = 6,
+        height = 7,
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
