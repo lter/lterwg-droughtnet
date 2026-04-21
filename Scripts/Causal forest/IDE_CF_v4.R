@@ -1219,8 +1219,45 @@ ggplot(temp, aes(n_0_15cm,n))+
   geom_smooth(method = "lm")
 
 
+########
+#visual summary of survey results
+df <- tibble::tibble(
+  moderator = c(
+    "Mean annual precipitation (MAP)",
+    "Soil texture",
+    "Functional group composition",
+    "Seasonality",
+    "Species composition",
+    "Soil nutrients",
+    "Species richness",
+    "Interannual precipitation variability",
+    "Aridity",
+    "Soil organic matter"
+  ),
+  count = c(12, 12, 8, 7, 6, 5, 4, 3, 2, 2)
+)
 
+# Bar chart (sideways)
+ggplot(df, aes(x = reorder(moderator, count), y = count)) +
+  geom_col(fill = "grey50") +
+  coord_flip() +
+  labs(
+    x = NULL,
+    y = "Unweighted count"
+  ) +
+  theme_base(base_size = 12)
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/survey_summary.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 5.5,
+        height = 4,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 
 
