@@ -177,16 +177,16 @@ te1 <- te%>%
 
 
 
-Y <- te1$ANPP
-W <- te1%>%
-  ungroup()%>%
-  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
-  pull(trt_num)
-X <- te1%>%
-  ungroup()%>%
-  dplyr::select(MAP,seasonality_index,ave.richness,ave.evenness#Species composition (pre-treatment) 
-                ,sand_0_60cm_weighted
-  )#put just the moderators you're testing here
+#Y <- te1$ANPP
+#W <- te1%>%
+#  ungroup()%>%
+#  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
+#  pull(trt_num)
+#X <- te1%>%
+#  ungroup()%>%
+#  dplyr::select(MAP,seasonality_index,ave.richness,ave.evenness#Species composition (pre-treatment) 
+#                ,sand_0_60cm_weighted
+#  )#put just the moderators you're testing here
 
 length(unique(subset(te1, MAP > 0)$site_code))
 length(unique(subset(te1, seasonality_index > 0)$site_code))
@@ -201,112 +201,112 @@ length(unique(subset(te1, soc_0_60cm_weighted > -1)$site_code))
 
 
 
-eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
-                             num.trees = 2000)
-tau.hat.eval <- predict(eval.forest, X)$predictions
+#eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
+#                             num.trees = 2000)
+#tau.hat.eval <- predict(eval.forest, X)$predictions
 
-average_treatment_effect(eval.forest)
+#average_treatment_effect(eval.forest)
 #  estimate    std.err 
 #-27.745905   5.352455 
 
-varimp <- variable_importance(eval.forest)
-ranked.vars <- order(varimp, decreasing = TRUE)
-colnames(X)[ranked.vars[1:5]]
-#"sand_0_60cm_weighted" "seasonality_index" "ave.richness"         "ave.evenness"  "MAP"               
+#varimp <- variable_importance(eval.forest)
+#ranked.vars <- order(varimp, decreasing = TRUE)
+#colnames(X)[ranked.vars[1:5]]
+##"sand_0_60cm_weighted" "seasonality_index" "ave.richness"         "ave.evenness"  "MAP"               
 
-rate <- rank_average_treatment_effect(eval.forest,
-                                      predict(eval.forest, X)$predictions)
-as.ggplot(~plot(rate))
-paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
-
-
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TOC.pdf",
-        plot = get_last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 4,
-        height = 3,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
+#rate <- rank_average_treatment_effect(eval.forest,
+#                                      predict(eval.forest, X)$predictions)
+#as.ggplot(~plot(rate))
+#paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
 
 
-imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
-
-ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, MAP = "Mean annual precipitation", sand_mean = "Mean sand content", seasonality_index = "Seasonality", mean_sr = "Species richness", Domcover = "Cover of dominant species"))
-       ,aes(fct_reorder(rowname,imp),imp))+
-  geom_bar(stat="identity")+
-  coord_flip()+
-  ylab("Variable Importance")+
-  xlab("")+
-  theme_base()
-
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderators_variable-importance.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 6,
-        height = 3,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
+#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TOC.pdf",
+#        plot = get_last_plot(),
+#        device = "pdf",
+#        path = NULL,
+#        scale = 1,
+#        width = 4,
+#        height = 3,
+#        units = c("in"),
+#        dpi = 600,
+#        limitsize = TRUE
+#)
 
 
-pred_fun <- function(object, newdata, ...) {
-  predict(object, newdata, ...)$predictions
-}
-pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
-)))
+#imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
 
-wrap_plots(pdps, guides = "collect", ncol = 3) &
-  ylim(c(-36,-23)) &
-  ylab("Treatment effect")&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+#ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, MAP = "Mean annual precipitation", sand_mean = "Mean sand content", seasonality_index = "Seasonality", mean_sr = "Species richness", Domcover = "Cover of dominant species"))
+#       ,aes(fct_reorder(rowname,imp),imp))+
+#  geom_bar(stat="identity")+
+#  coord_flip()+
+#  ylab("Variable Importance")+
+#  xlab("")+
+#  theme_base()
+
+#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderators_variable-importance.pdf",
+#        plot = last_plot(),
+#        device = "pdf",
+#        path = NULL,
+#        scale = 1,
+#        width = 6,
+#        height = 3,
+#        units = c("in"),
+#        dpi = 600,
+#        limitsize = TRUE
+#)
 
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 8,
-        height = 6,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
+#pred_fun <- function(object, newdata, ...) {
+#  predict(object, newdata, ...)$predictions
+#}
+#pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
+#)))
+
+#wrap_plots(pdps, guides = "collect", ncol = 3) &
+#  ylim(c(-36,-23)) &
+#  ylab("Treatment effect")&
+#  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+
+#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions.pdf",
+#        plot = last_plot(),
+#        device = "pdf",
+#        path = NULL,
+#        scale = 1,
+#        width = 8,
+#        height = 6,
+#        units = c("in"),
+#        dpi = 600,
+#        limitsize = TRUE
+#)
 
 
 # Explaining all CATEs globally
-ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
-shap_values <- shapviz(ks)
-sv_importance(shap_values)&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+#ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
+#shap_values <- shapviz(ks)
+#sv_importance(shap_values)&
+#  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shap.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 5,
-        height = 4,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
+#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shap.pdf",
+#        plot = last_plot(),
+#        device = "pdf",
+#        path = NULL,
+#        scale = 1,
+#        width = 5,
+#        height = 4,
+#        units = c("in"),
+#        dpi = 600,
+#        limitsize = TRUE
+#)
 
 
-sv_dependence(shap_values, v = names(X)[1:5], color_var = NULL, jitter_width = 0.01) +
-  plot_layout(ncol = 3)# &
+#sv_dependence(shap_values, v = names(X)[1:5], color_var = NULL, jitter_width = 0.01) +
+#  plot_layout(ncol = 3)# &
   #ylim(c(-20, 6))
 
-H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
-plot(H)
-sv_importance(shap_values, kind = "bee")
+#H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
+#plot(H)
+#sv_importance(shap_values, kind = "bee")
 
 
 
@@ -340,10 +340,12 @@ W <- te1%>%
   pull(trt_num)
 X <- te1%>%
   ungroup()%>%
-  dplyr::select( MAP,seasonality_index,ave.richness,ave.evenness,sand_0_60cm_weighted,aridity_index,cv_ppt_inter,percent_graminoid,n, ,soc_0_60cm_weighted)#drtsev.1) #put just the moderators you're testing here
+  dplyr::select( MAP,seasonality_index,ave.richness,ave.evenness,sand_0_60cm_weighted,aridity_index,cv_ppt_inter,percent_graminoid,n, 
+                 #n_0_15cm,
+                 soc_0_60cm_weighted)#drtsev.1) #put just the moderators you're testing here
 
 eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
-                             num.trees = 2000)
+                             num.trees = 2000)#change to 10,000 for publication
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
@@ -352,7 +354,7 @@ average_treatment_effect(eval.forest)
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X)[ranked.vars[1:10]]
-#"sand_0_60cm_weighted" "percent_graminoid" "seasonality_index"    "ave.richness" "n"                    "soc_0_60cm_weighted" "ave.evenness" "cv_ppt_inter"  "MAP"                  "aridity_index"       
+#"sand_0_60cm_weighted" "percent_graminoid"   "ave.richness"         "seasonality_index"    "soc_0_60cm_weighted"  "ave.evenness"    "cv_ppt_inter"         "MAP"                 "n_0_15cm"             "aridity_index"        
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
@@ -472,7 +474,7 @@ vals <- h2$num[, 1] / h2$denom[, 1]
 names(vals) <- rownames(h2$num)
 
 vars <- colnames(X)
-vars <- H$varnames
+#vars <- H$varnames
 
 p <- length(vars)
 M <- matrix(0, p, p, dimnames = list(vars, vars))
@@ -609,24 +611,56 @@ te3 <- te1%>%
 
 vars <- c("MAP","seasonality_index","ave.richness","ave.evenness","sand_0_60cm_weighted","aridity_index","cv_ppt_inter","percent_graminoid","n","soc_0_60cm_weighted")
 
+
 plots <- lapply(vars, function(v) {
   
-  # mixed-effects model
-  f <- as.formula(paste("trt_minus_con ~", v))
+  # enforce complete cases for THIS variable
+  dat_v <- te3 %>%
+    dplyr::select(trt_minus_con, site_code, all_of(v)) %>%
+    tidyr::drop_na()
   
-  m <- lme(
-    fixed = f,
+  # null model (ML)
+  m0 <- lme(
+    fixed  = trt_minus_con ~ 1,
     random = ~1 | site_code,
-    data = te3,
-    na.action = na.omit,
-    method = "REML"
+    data   = dat_v,
+    method = "ML"
   )
   
-  # extract p-value for fixed effect
-  pval <- summary(m)$tTable[2, "p-value"]
-  sig  <- pval < 0.1  #0.05
+  # forward selection up to quartic
+  m_sel_ml <- stepAIC(
+    m0,
+    scope = list(
+      lower = ~1,
+      upper = as.formula(
+        paste0("~ poly(", v, ", 4, raw = TRUE)")
+      )
+    ),
+    direction = "forward",
+    trace = FALSE
+  )
   
-  p_label <- paste0("p = ", format.pval(pval, digits = 2))
+  # refit with REML for inference
+  m_sel <- update(m_sel_ml, method = "REML")
+  sm <- summary(m_sel)
+  
+  
+  # extract overall p-value for the fixed effect block
+  tt <- sm$tTable
+  has_term <- nrow(tt) > 1
+  
+  pval <- if (has_term) {
+    max(tt[-1, "p-value"])   # conservative: weakest polynomial term
+  } else {
+    NA
+  }
+  
+  sig <- !is.na(pval) && pval < 0.1
+  p_label <- if (has_term) {
+    paste0("p = ", format.pval(pval, digits = 2))
+  } else {
+    "null"
+  }
   
   # base plot
   p <- ggplot(te3, aes(x = .data[[v]], y = trt_minus_con)) +
@@ -642,10 +676,9 @@ plots <- lapply(vars, function(v) {
     xlab(v) +
     theme_base()
   
-  # add regression line ONLY if significant
-  if (sig) {
+  # add fitted curve if any non-null model selected
+  if (has_term) {
     
-    # new data for smooth line
     newdat <- data.frame(
       x = seq(
         min(te3[[v]], na.rm = TRUE),
@@ -655,8 +688,7 @@ plots <- lapply(vars, function(v) {
     )
     names(newdat) <- v
     
-    # fixed-effect predictions (no random effects)
-    newdat$pred <- predict(m, newdata = newdat, level = 0)
+    newdat$pred <- predict(m_sel, newdata = newdat, level = 0)
     
     p <- p +
       geom_line(
@@ -668,7 +700,6 @@ plots <- lapply(vars, function(v) {
   
   p
 })
-
 
 wrap_plots(plots, ncol = 5)
 
@@ -822,7 +853,7 @@ sl.predvars = colnames(sl.data)[-1]
 sl.form = as.formula(paste0("Y ~ ", paste(sl.predvars, collapse=" + ")))
 sl.mod = ranger(sl.form,
                 data=sl.data, 
-                num.trees=2000, 
+                num.trees=2000, #change to 10,000 for publication
                 mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                 replace=F,
                 sample.fraction=0.5)
@@ -855,13 +886,13 @@ tl.predvars = colnames(tl.data)[-1]
 tl.form = as.formula(paste0("Y ~ ", paste(tl.predvars, collapse=" + ")))
 tl.mod.trt = ranger(tl.form,
                     data=tl.data[W==1,], 
-                    num.trees=2000, 
+                    num.trees=2000, #change to 10,000 for publication
                     mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                     replace=F,
                     sample.fraction=0.5)
 tl.mod.ctrl = ranger(tl.form,
                      data=tl.data[W==0,], 
-                     num.trees=2000, 
+                     num.trees=2000, #change to 10,000 for publication
                      mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                      replace=F,
                      sample.fraction=0.5)
@@ -1158,5 +1189,38 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/partial_depe
         dpi = 600,
         limitsize = TRUE
 )
+
+
+
+
+####
+#Compare soilgrid N with site collected N
+
+temp <- te3%>%
+  ungroup()%>%
+  dplyr::select(site_code, n, n_0_60cm_weighted, n_0_5cm, n_0_15cm, n_0_30cm)%>%
+        unique()%>%
+        na.omit()
+
+mod <- lm(n~n_0_60cm_weighted,data = temp)
+summary(mod) #it's not a great fit
+
+mod <- lm(n~n_0_5cm,data = temp)
+summary(mod) #this is actually pretty decent
+
+mod <- lm(n~n_0_15cm,data = temp)
+summary(mod) #this is even better
+
+mod <- lm(n~n_0_30cm,data = temp)
+summary(mod) #this is even better
+
+ggplot(temp, aes(n_0_15cm,n))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+
+
+
+
 
 
