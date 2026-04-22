@@ -202,7 +202,7 @@ length(unique(subset(te1, soc_0_60cm_weighted > -1)$site_code))
 
 
 #eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
-#                             num.trees = 2000)
+#                             num.trees = 10000)
 #tau.hat.eval <- predict(eval.forest, X)$predictions
 
 #average_treatment_effect(eval.forest)
@@ -345,7 +345,7 @@ X <- te1%>%
                  soc_0_60cm_weighted)#drtsev.1) #put just the moderators you're testing here
 
 eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
-                             num.trees = 2000)#change to 10,000 for publication
+                             num.trees = 10000)#change to 10,000 for publication
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
@@ -853,7 +853,7 @@ sl.predvars = colnames(sl.data)[-1]
 sl.form = as.formula(paste0("Y ~ ", paste(sl.predvars, collapse=" + ")))
 sl.mod = ranger(sl.form,
                 data=sl.data, 
-                num.trees=2000, #change to 10,000 for publication
+                num.trees=10000, #change to 10,000 for publication
                 mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                 replace=F,
                 sample.fraction=0.5)
@@ -886,13 +886,13 @@ tl.predvars = colnames(tl.data)[-1]
 tl.form = as.formula(paste0("Y ~ ", paste(tl.predvars, collapse=" + ")))
 tl.mod.trt = ranger(tl.form,
                     data=tl.data[W==1,], 
-                    num.trees=2000, #change to 10,000 for publication
+                    num.trees=10000, #change to 10,000 for publication
                     mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                     replace=F,
                     sample.fraction=0.5)
 tl.mod.ctrl = ranger(tl.form,
                      data=tl.data[W==0,], 
-                     num.trees=2000, #change to 10,000 for publication
+                     num.trees=10000, #change to 10,000 for publication
                      mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                      replace=F,
                      sample.fraction=0.5)
