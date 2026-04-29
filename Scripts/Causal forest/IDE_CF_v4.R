@@ -19,6 +19,8 @@ library(patchwork)
 library(mgcv)
 library(ranger)
 
+set.seed(100)
+
 #read ANPP data
 data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2026-03-27.csv")%>% 
   subset(habitat.type == "Grassland" | habitat.type == "Shrubland" | habitat.type == "Forest understory")%>%
@@ -345,7 +347,7 @@ X <- te1%>%
                  soc_0_60cm_weighted)#drtsev.1) #put just the moderators you're testing here
 
 eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
-                             num.trees = 10000)#change to 10,000 for publication
+                             num.trees = 2000)#change to 10,000 for publication
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
@@ -562,7 +564,22 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_
 )
 
 
+partial_dep(eval.forest, v = "seasonality_index", X = X, BY = "percent_graminoid", by_size = 4L, pred_fun = pred_fun) |> 
+  plot()&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
+  theme(strip.text = element_blank())
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_example2.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 6,
+        height = 4,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 
 
@@ -853,7 +870,7 @@ sl.predvars = colnames(sl.data)[-1]
 sl.form = as.formula(paste0("Y ~ ", paste(sl.predvars, collapse=" + ")))
 sl.mod = ranger(sl.form,
                 data=sl.data, 
-                num.trees=10000, #change to 10,000 for publication
+                num.trees=2000, #change to 10,000 for publication
                 mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                 replace=F,
                 sample.fraction=0.5)
@@ -886,13 +903,13 @@ tl.predvars = colnames(tl.data)[-1]
 tl.form = as.formula(paste0("Y ~ ", paste(tl.predvars, collapse=" + ")))
 tl.mod.trt = ranger(tl.form,
                     data=tl.data[W==1,], 
-                    num.trees=10000, #change to 10,000 for publication
+                    num.trees=2000, #change to 10,000 for publication
                     mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                     replace=F,
                     sample.fraction=0.5)
 tl.mod.ctrl = ranger(tl.form,
                      data=tl.data[W==0,], 
-                     num.trees=10000, #change to 10,000 for publication
+                     num.trees=2000, #change to 10,000 for publication
                      mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
                      replace=F,
                      sample.fraction=0.5)
