@@ -86,6 +86,22 @@ data.anpp1%>%
   unique()%>%
   write.csv("C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/site_list.csv")
 
+# ----------------------------------
+# Master variable naming key
+# ----------------------------------
+var_key <- c(
+  MAP = "Mean annual precipitation (MAP)",
+  sand_0_60cm_weighted = "Soil texture",
+  percent_graminoid = "Functional group composition",
+  seasonality_index = "Seasonality",
+  ave.evenness = "Species composition",
+  n = "Soil nutrients",
+  ave.richness = "Species richness",
+  cv_ppt_inter = "Interannual precipitation variability",
+  aridity_index = "Aridity",
+  soc_0_60cm_weighted = "Soil organic matter"
+)
+
 ############################
 #####Look at overall treatment effect in a way that shows there's tons of variability in response
 te <- data.anpp1%>%
@@ -378,26 +394,21 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TO
 
 
 imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
-ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, MAP = "Mean annual precipitation", sand_mean = "Mean sand content", seasonality_index = "Seasonality", mean_sr = "Species richness", Domcover = "Cover of dominant species", #organicmatter = "Organic matter", 
-                                                                                   PerenGrassCover = "Cover of perennial grass", aridity_index = "Aridity", cv_ppt_inter = "CV of interannual precipitation", n = "Soil nitrogen"))
-       ,aes(fct_reorder(rowname,imp),imp))+
-  geom_bar(stat="identity")+
-  coord_flip()+
-  ylab("Variable Importance")+
-  xlab("")+
-  theme_base()
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderators_variable-importance_kitchensink.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 5.5,
-        height = 4,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
+varimp_df <- tibble(
+  variable = names(imp),
+  value = as.numeric(imp)
+) %>%
+  mutate(
+    moderator = recode(variable, !!!var_key)
+  ) %>%
+  filter(!is.na(moderator))
+
+p_varimp <- ggplot(varimp_df, aes(x = reorder(moderator, value), y = value)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "Split-based variable importance") +
+  theme_base()
 
 
 pred_fun <- function(object, newdata, ...) {
@@ -426,20 +437,30 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 # Explaining all CATEs globally
 ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
 shap_values <- shapviz(ks)
-sv_importance(shap_values,  fill = "grey",)&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shap_kitchensink.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 4,
-        height = 3.5,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
+shap_imp <- sv_importance(shap_values, kind = "bar", plot = FALSE)
+
+#shap_df <- shap_imp$data %>%
+#  dplyr::select(variable, value = importance) %>%
+#  mutate(
+#    moderator = recode(variable, !!!var_key)
+#  ) %>%
+#  filter(!is.na(moderator))
+
+shap_df <- shap_imp$data %>%
+  mutate(
+    moderator = recode(feature, !!!var_key)
+  ) %>%
+  filter(!is.na(moderator)) %>%
+  dplyr::rename(
+    variable = feature
+  )
+
+p_shap <- ggplot(shap_df, aes(x = reorder(moderator, value), y = value)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "SHAP importance value") +
+  theme_base()
 
 
 
@@ -690,7 +711,7 @@ plots <- lapply(vars, function(v) {
       size = 3.5
     ) +
     ylab("Treatment effect on ANPP") +
-    xlab(v) +
+    xlab(var_key[[v]]) +
     theme_base()
   
   # add fitted curve if any non-null model selected
@@ -799,7 +820,7 @@ plots <- lapply(vars, function(v) {
       size = 3.5
     ) +
     ylab("Treatment effect on ANPP") +
-    xlab(v) +
+    xlab(var_key[[v]]) +
     theme_base()
   
   #----------------------------------
@@ -1124,7 +1145,7 @@ ggplot(pd_all, aes(x = x, y = y)) +
     rows   = vars(variable),
     cols   = vars(model),
     scales = "free",
-    labeller = labeller(variable = var_labels)
+    #labeller = labeller(variable = as.labeller(var_key))
   ) +
   ylab("Treatment effect of drought on ANPP") +
   xlab(NULL) +
@@ -1239,42 +1260,58 @@ ggplot(temp, aes(n_0_15cm,n))+
 ########
 #visual summary of survey results
 df <- tibble::tibble(
-  moderator = c(
-    "Mean annual precipitation (MAP)",
-    "Soil texture",
-    "Functional group composition",
-    "Seasonality",
-    "Species composition",
-    "Soil nutrients",
-    "Species richness",
-    "Interannual precipitation variability",
-    "Aridity",
-    "Soil organic matter"
-  ),
+  moderator = unname(var_key),
   count = c(12, 12, 8, 7, 6, 5, 4, 3, 2, 2)
 )
 
-# Bar chart (sideways)
-ggplot(df, aes(x = reorder(moderator, count), y = count)) +
-  geom_col(fill = "grey50") +
+survey_df <- df %>%
+  mutate(moderator = factor(moderator, levels = unname(var_key)))
+
+p_survey <- ggplot(survey_df, aes(x = reorder(moderator, count), y = count)) +
+  geom_col(fill = "grey40") +
   coord_flip() +
-  labs(
-    x = NULL,
-    y = "Unweighted count"
-  ) +
+  labs(x = NULL, y = "Survey count") +
   theme_base(base_size = 12)
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/survey_summary.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 5.5,
-        height = 4,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
+
+order_levels <- survey_df %>%
+  arrange(desc(count)) %>%
+  pull(moderator)
+
+survey_df$moderator <- factor(survey_df$moderator, levels = order_levels)
+varimp_df$moderator <- factor(varimp_df$moderator, levels = order_levels)
+shap_df$moderator   <- factor(shap_df$moderator, levels = order_levels)
+
+p_survey <- ggplot(survey_df, aes(moderator, count)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "Survey count") +
+  theme_base()
+
+p_varimp <- ggplot(varimp_df, aes(moderator, value)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "Split-based variable importance") +
+  theme_base()
+
+p_shap <- ggplot(shap_df, aes(moderator, value)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "SHAP importance value") +
+  theme_base()
+
+library(patchwork)
+
+final_plot <- p_survey + p_varimp + p_shap +
+  plot_layout(ncol = 3) +
+  plot_annotation(tag_levels = "A")
+
+final_plot
+
+ggsave(
+  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_combined.pdf",
+  final_plot,
+  width = 10,
+  height = 4,
+  dpi = 600
 )
-
-
-
