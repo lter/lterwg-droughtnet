@@ -566,8 +566,11 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_
 
 
 
+by_var <- as.numeric(X$soc_0_60cm_weighted > 30)
 
-partial_dep(eval.forest, v = "MAP", X = X, BY = "soc_0_60cm_weighted", by_size = 3L, pred_fun = pred_fun) |> 
+
+partial_dep(eval.forest, v = "MAP", X = X, BY =by_var, #"soc_0_60cm_weighted", 
+            by_size = 3L,  pred_fun = pred_fun) |> 
   plot()&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
   theme(strip.text = element_blank())
@@ -585,10 +588,47 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_
 )
 
 
-partial_dep(eval.forest, v = "seasonality_index", X = X, BY = "percent_graminoid", by_size = 4L, pred_fun = pred_fun) |> 
-  plot()&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
+
+by_var <- ifelse(is.na(X$percent_graminoid), NA, as.numeric(X$percent_graminoid > 0.3))
+table(by_var, useNA = "always")  # confirm you get 0s, 1s, and NAs
+
+pd <- partial_dep(
+  eval.forest,
+  v = "seasonality_index",
+  X = X,
+  BY = by_var,
+  by_size = 2L,
+  pred_fun = pred_fun
+) 
+
+
+
+# Remove NAs from X and create grouping vector
+keep <- !is.na(X$percent_graminoid)
+X_clean <- X[keep, ]
+by_var <- as.numeric(X_clean$percent_graminoid > 0.8)
+
+# Compute partial dependence
+pd <- partial_dep(
+  eval.forest,
+  v = "seasonality_index",
+  X = X_clean,
+  BY = by_var,
+  by_size = 2L,
+  pred_fun = pred_fun
+)
+
+# Plot
+plot(pd) &
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
   theme(strip.text = element_blank())
+
+
+#partial_dep(eval.forest, v = "seasonality_index", X = X, BY = "percent_graminoid", by_size = 2L, 
+#            by_breaks =  c(0.0000,0.2, 0.9743), pred_fun = pred_fun) |> 
+#  plot()&
+#  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
+#  theme(strip.text = element_blank())
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_example2.pdf",
         plot = last_plot(),
