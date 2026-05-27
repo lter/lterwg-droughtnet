@@ -566,14 +566,25 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_
 
 
 
-by_var <- as.numeric(X$soc_0_60cm_weighted > 30)
+keep <- !is.na(X$soc_0_60cm_weighted)
+X_clean <- X[keep, ]
+by_var <- as.numeric(X_clean$soc_0_60cm_weighted > 30)
 
+pd <- partial_dep(
+  eval.forest,
+  v = "MAP",
+  X = X_clean,
+  BY = by_var,
+  by_size = 2L,
+  pred_fun = pred_fun
+)
 
-partial_dep(eval.forest, v = "MAP", X = X, BY =by_var, #"soc_0_60cm_weighted", 
-            by_size = 3L,  pred_fun = pred_fun) |> 
-  plot()&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
-  theme(strip.text = element_blank())
+pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low SOC (0-30)", "High SOC (30+)"))
+
+plot(pd) &
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
+  theme(strip.text = element_text())
+
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_example.pdf",
         plot = last_plot(),
@@ -603,12 +614,10 @@ pd <- partial_dep(
 
 
 
-# Remove NAs from X and create grouping vector
 keep <- !is.na(X$percent_graminoid)
 X_clean <- X[keep, ]
-by_var <- as.numeric(X_clean$percent_graminoid > 0.8)
+by_var <- as.numeric(X_clean$percent_graminoid > 0.3)
 
-# Compute partial dependence
 pd <- partial_dep(
   eval.forest,
   v = "seasonality_index",
@@ -618,10 +627,11 @@ pd <- partial_dep(
   pred_fun = pred_fun
 )
 
-# Plot
+pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low graminoid (0-0.3)", "High graminoid (0.3-1)"))
+
 plot(pd) &
   theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
-  theme(strip.text = element_blank())
+  theme(strip.text = element_text())
 
 
 #partial_dep(eval.forest, v = "seasonality_index", X = X, BY = "percent_graminoid", by_size = 2L, 
@@ -953,9 +963,22 @@ mean(sl_te_pred(sl.mod, X))
 pdps.s.learner <- lapply(colnames(X), function(v) plot(partial_dep(sl.mod, v=v, X = X, pred_fun = sl_te_pred)))
 
 wrap_plots(pdps.s.learner, guides = "collect", ncol = 5) &
-  #ylim(c(-37,-25)) &
+  ylim(c(-22,9)) &
   ylab("Treatment effect")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_s-learner.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 
 # t-learner
@@ -991,9 +1014,22 @@ mean(tl_te_pred(tl.mod, X))
 pdps.t.learner <- lapply(colnames(X), function(v) plot(partial_dep(tl.mod, v=v, X = X, pred_fun = tl_te_pred)))
 
 wrap_plots(pdps.t.learner, guides = "collect", ncol = 5) &
-  #ylim(c(-37,-25)) &
+  ylim(c(-190,90)) &
   ylab("Treatment effect")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_t-learner.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 # Compare across CF, S-learner, T-learner
 #mod_lab1 <- wrap_elements(panel = textGrob("Causal Forest", rot = 90))
@@ -1351,7 +1387,7 @@ final_plot
 ggsave(
   "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_combined.pdf",
   final_plot,
-  width = 10,
+  width = 15,
   height = 4,
   dpi = 600
 )
