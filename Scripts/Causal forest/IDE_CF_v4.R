@@ -69,6 +69,9 @@ Plot.trt.ct2<-tidyr::gather(Plottrt_wide1,trt,Plot.count,Drought:Control)
 data.anpp1<-merge(data.anpp,Plot.trt.ct2,by=c("site_code","trt","year"))
 
 length(unique(data.anpp1$site_code)) #118
+length(unique(subset(data.anpp1, habitat.type == "Grassland")$site_code)) #84
+length(unique(subset(data.anpp1, habitat.type == "Shrubland")$site_code)) #28
+length(unique(subset(data.anpp1, habitat.type == "Forest understory")$site_code)) #6
 
 ##How many treatment years does each site have of the first 3 years?
 num.treat.years <- data.anpp1[,c("site_code", "n_treat_years")]%>%
