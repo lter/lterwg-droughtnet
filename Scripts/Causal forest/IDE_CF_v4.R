@@ -365,8 +365,16 @@ X <- te1%>%
                  #n_0_15cm,
                  soc_0_60cm_weighted)#drtsev.1) #put just the moderators you're testing here
 
-eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
-                             num.trees = 2000)#change to 10,000 for publication
+# Compute per-row weights: each site gets total weight of 1
+site_counts <- te1 %>%
+  add_count(site_code, name = "site_n") %>%
+  mutate(w = 1 / site_n) %>%
+  pull(w)
+
+eval.forest <- causal_forest(X, Y, W,
+                             clusters      = as.factor(te1$site_code),
+                             sample.weights = site_counts,
+                             num.trees     = 20000)#change to 10,000 for publication 2000
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
@@ -435,6 +443,77 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
+)
+
+# ── Partial dependence plots with SE CI ──────────────────────────────────────
+# Strategy: vary focal variable across its observed range; fix all other
+# covariates at their column means.  predict(..., estimate.variance = TRUE)
+# returns the IJ variance for each individual CATE, so SE = sqrt(var) is exact.
+pdp_with_ci <- function(forest, focal_var, X, n_grid = 50) {
+  
+  grid_vals <- seq(
+    min(X[[focal_var]], na.rm = TRUE),
+    max(X[[focal_var]], na.rm = TRUE),
+    length.out = n_grid
+  )
+  
+  # Use colMeans() instead of summarise(across(...))
+  X_means <- as.data.frame(as.list(colMeans(X, na.rm = TRUE)))
+  
+  newdata <- X_means[rep(1L, n_grid), ]
+  newdata[[focal_var]] <- grid_vals
+  
+  preds <- predict(forest, newdata = newdata, estimate.variance = TRUE)
+  
+  tibble(
+    x        = grid_vals,
+    estimate = preds$predictions,
+    se       = sqrt(preds$variance.estimates),
+    lower    = estimate - se,
+    upper    = estimate + se,
+    variable = focal_var
+  )
+}
+
+# Run for every moderator and bind into one data frame
+pdp_data <- purrr::map_dfr(colnames(X), pdp_with_ci,
+                           forest = eval.forest, X = X)
+
+# Attach human-readable labels
+pdp_data <- pdp_data %>%
+  mutate(label = recode(variable, !!!var_key))
+
+# One plot per moderator
+pdp_plots <- pdp_data %>%
+  group_by(variable) %>%
+  group_split() %>%
+  purrr::map(function(df) {
+    ggplot(df, aes(x = x, y = estimate)) +
+      geom_ribbon(aes(ymin = lower, ymax = upper),
+                  fill = "grey70", alpha = 0.4) +
+      geom_line(linewidth = 0.7, colour = "grey20") +
+      geom_hline(yintercept = 0, linetype = "dashed",
+                 colour = "grey50", linewidth = 0.4) +
+      labs(
+        x     = unique(df$label),
+        y     = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)",
+        title = NULL
+      ) +
+      coord_cartesian(ylim = c(-35, 0)) +
+      theme(
+        panel.background = element_rect(fill = "white", colour = "grey50"),
+        axis.title       = element_text(size = 8),
+        axis.text        = element_text(size = 7)
+      )
+  })
+
+wrap_plots(pdp_plots, ncol = 5)
+
+ggsave(
+  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink1.pdf",
+  plot   = last_plot(),
+  device = "pdf",
+  width  = 13, height = 6, units = "in", dpi = 600
 )
 
 # Explaining all CATEs globally
