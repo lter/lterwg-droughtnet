@@ -374,11 +374,37 @@ site_counts <- te1 %>%
 eval.forest <- causal_forest(X, Y, W,
                              clusters      = as.factor(te1$site_code),
                              sample.weights = site_counts,
-                             num.trees     = 20000)#change to 10,000 for publication 2000
+                             num.trees     = 2000,
+                             tune.parameters = "all")#change to 10,000 for publication 2000
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
 #-27.745905   5.352455 
+
+#________________
+# Fit a separate model for baseline ANPP (outcome nuisance)
+Y.hat <- predict(regression_forest(X, Y, num.trees = 2000))$predictions
+
+# Fit a separate model for treatment propensity
+W.hat <- predict(regression_forest(X, W, num.trees = 2000))$predictions
+
+# Now pass these into causal forest
+eval.forest <- causal_forest(X, Y, W,
+                             Y.hat = Y.hat,
+                             W.hat = W.hat,
+                             clusters = as.factor(te1$site_code),
+                             sample.weights = site_counts,
+                             num.trees = 10000,
+                             min.node.size  = 10#,
+                             #tune.parameters = "all"
+                             )
+#___________________
+
+
+
+
+
+
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
