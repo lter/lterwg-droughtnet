@@ -424,7 +424,7 @@ preorder<-
   annotate("text", x=2.9, y=0.24, color='black', size=3, label="c")+
   annotate("text", x=3.1, y=0.25, color='black', size=3, label="b")+
   annotate("text", x=3.9, y=0.235, color='black', size=3, label="c")+
-  annotate("text", x=4.1, y=0.255, color='black', size=3, label="d")+
+  annotate("text", x=4.1, y=0.255, color='black', size=3, label="a")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
@@ -474,7 +474,7 @@ Fig2<-
 
 Fig2
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig2_Jan25.jpg", plot=Fig2, units = "in", width=9, height=5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig2_July26.jpg", plot=Fig2, units = "in", width=9, height=5)
 
 ###comparison graph with only sites that have all four years of data
 #Overall change averaged over all years
@@ -800,10 +800,10 @@ length(unique(datLoss$site_code))
   
 
 # ###thinking about groupings
-# #c3/c4 with functional type
-# group1<-datblip2 %>% 
-#   group_by(local_lifeform, N.fixer, ps_path, local_lifespan) %>% 
-#   summarise(n=length(pretrt))
+#c3/c4 with functional type
+group1<-datblip2_three %>%
+  select(local_lifeform, N.fixer, Taxon) %>%
+  unique()
 # 
 # #n-fixer lifeform
 # group2<-datblip2 %>% 
@@ -917,7 +917,7 @@ pvalsTraitAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.9018
 LF.Loss<-
   ggplot(data=subset(plotlifeform, trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifeform))+
   geom_point()+
-  scale_color_manual(name='', values=c('purple','green4', 'black'))+
+  scale_color_manual(name='', values=c('#E69F00','#56B4E9', '#000000'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha = 0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
   ggtitle('A) Lifeform')+
@@ -930,7 +930,7 @@ LF.Loss
 LS.loss<-
   ggplot(data=subset(plotlifespan, local_lifeform!='Woody'&trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifespan))+
   geom_point()+
-  scale_color_manual(name='', values=c('cyan', 'skyblue4'),labels=c('Annual', 'Perennial'))+
+  scale_color_manual(name='', values=c('#009E73', '#F0C2E0'),labels=c('Annual', 'Perennial'))+
   ggtitle('B) Lifespan')+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
@@ -941,11 +941,11 @@ LS.loss<-
 LS.loss
 
 NFix.Loss<-
-  ggplot(data=subset(plotnfix, local_lifeform!='Grass'&trt=='Drought'), aes(x=pretrt, y=loss2, color=N.fixer))+
+  ggplot(data=subset(plotnfix, local_lifeform=='Forb'&trt=='Drought'), aes(x=pretrt, y=loss2, color=N.fixer))+
   geom_point()+
-  scale_color_manual(name='', values=c('orange', 'orange4'))+
+  scale_color_manual(name='', values=c('#0072B2', '#CC79A7'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
-  ggtitle('C) Nitrogen Fixation')+
+  ggtitle('C) Forb Nitrogen Fixation')+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
   #xlab("Pre-treatment Abundance")+
   #ylab("Loss Probability")+
@@ -956,8 +956,8 @@ NFix.Loss
 ps.Loss<-
   ggplot(data=subset(plotps, local_lifeform=="Grass"&trt=='Drought'), aes(x=pretrt, y=loss2, color=ps_path))+
   geom_point()+
-  scale_color_manual(name='', values=c('darkorchid1', 'darkorchid4'))+
-  ggtitle('d) Photosynthetic Pathway')+
+  scale_color_manual(name='', values=c('#D55E00', '#999999'))+
+  ggtitle('d) Grass Photosynthetic Pathway')+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top',plot.title = element_text(size=12))+
   #xlab("Pre-treatment Abundance")+
@@ -1006,7 +1006,7 @@ lossfig<-
 lossfig
 
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfigDec25.jpg", plot=lossfig, units="in", width=11.5, height=4)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfigJuly26.jpg", plot=lossfig, units="in", width=11.8, height=4)
 
 # Appendix Figures 2 and 3 ---------------------------
 ###pairs funtion to make panels
@@ -1361,7 +1361,7 @@ fortable<-yr1 %>%
   mutate(max=max(yr)) %>% 
   filter(yr==max) %>% 
   ungroup() %>% 
-  mutate(padj=p.adjust(P_Value, method="BH")) %>% 
+  mutate(padj=p.adjust(P_Value, method="BY")) %>% 
   dplyr::select(site, analysis_period, diff, Z_Score, P_Value,padj, analysis_period) %>% 
   mutate(ZScore=round(Z_Score, 3), 
          PVAdj=round(padj, 3))
@@ -1371,7 +1371,7 @@ missing<-sites %>%
   left_join(sites2) %>% 
   select(site_code, site_name, continent, country, analysis_period, diff, ZScore, P_Value, PVAdj)
 
-write.csv(missing, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper_dec25.csv', row.names = F)
+write.csv(missing, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper_July26.csv', row.names = F)
 
 
 #####doing permanova analyses
