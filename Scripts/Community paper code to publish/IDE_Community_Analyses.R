@@ -25,8 +25,8 @@ setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
 
 # reading in and getting data ---------------------------------------------
-
-dat<-read.csv("cover_ppt_2024-12-19.csv") %>% 
+#was using 2024-12-19
+dat<-read.csv("cover_ppt_2026-03-27.csv") %>% 
   mutate(replicate=paste(block, plot, subplot, sep="_"))
 
 #dropping datasets without pretreatment data
@@ -115,7 +115,7 @@ drt<-dat3 %>%
 
 site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Dec24.csv")
 
-precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv") %>% 
+precipcv<-read.csv("climate\\climate_mean_annual_by_site_v4.csv") %>% 
   mutate(MAT2=ifelse(site_code=="docker.au", 14, ifelse(site_code=='lygraold.no',7.4, ifelse(site_code=='lygraint.no', 7.4, MAT))))
 
 
