@@ -7,6 +7,7 @@
 ###Feb 2024 updating to include new dominance analyses
 ####Dec 2024, new data using 4 years now.
 ####Nov 2025, finalizing analyses - removed grass from multiple regression.
+#####July 2006, UGH, redoing with most up to date dataset.
 
 library(tidyverse)
 library(codyn)
@@ -27,7 +28,8 @@ setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 # reading in and getting data ---------------------------------------------
 #was using 2024-12-19
 dat<-read.csv("cover_ppt_2026-03-27.csv") %>% 
-  mutate(replicate=paste(block, plot, subplot, sep="_"))
+  mutate(replicate=paste(block, plot, subplot, sep="_")) |> 
+  select(-cover_survey_comments)
 
 #dropping datasets without pretreatment data
 drop_no_pretrt<-dat %>% 
@@ -42,10 +44,10 @@ dat2<-dat %>%
   filter(n_treat_years!=0.5&n_treat_years>-1)
 
 
-#having problems with sherman.pa, eea.br because they only have year 0 data, kranz.de is a forest site with 50% cover of only 2 species for each year.
+#having problems with sherman.pa, eea.br, tian.cn because they only have year 0 data, kranz.de is a forest site with 50% cover of only 2 species for each year.
 #brokenh.au didn't collect drought treatment data in years 2 and 3 so drop those years
 dat3<-dat2 %>% 
-  filter(site_code!="sherman.pa"&site_code!="eea.br"&site_code!='kranz.de') %>% 
+  filter(site_code!="sherman.pa"&site_code!="eea.br"&site_code!='kranz.de'&site_code!='tian.cn') %>% 
   mutate(drop=ifelse(site_code=="brokenh.au"&n_treat_years==2|site_code=='brokenh.au'&n_treat_years==3, 1, 0)) %>% 
   filter(drop!=1) %>% 
   select(-drop)
@@ -54,7 +56,7 @@ sites<-dat3 %>%
 select(site_code) %>%
   unique()
 # write.csv(sites, "community_comp\\sitelistMarhc2024.csv")
-unique(dat3$site_code)
+unique(dat3$site_code) #97 datasets
 
 nreps<-dat3 %>% 
   select(site_code, trt, replicate) %>% 
@@ -89,12 +91,12 @@ drt4yr<-dat3 %>%
 
 drtyears<-drt1yr %>% 
   full_join(drt2yr) %>% 
-  left_join(drt3yr) %>% 
-  left_join(drt4yr) %>% 
+  full_join(drt3yr) %>% 
+  full_join(drt4yr) %>% 
   mutate(totyrs=p+p2+p3+p4) %>% 
   filter(totyrs==4)
 
-# #five sites are not repeated over years, and only have one year of data.
+# #seven sites are not repeated over years, and only have one year of data.
 # oneyr<-dat2 %>%
 #   select(site_code, n_treat_years) %>%
 #   unique() %>%
@@ -113,7 +115,7 @@ drt<-dat3 %>%
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4) %>% 
   filter(n_treat_years<5)
 
-site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Dec24.csv")
+site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_July2026.csv")
 
 precipcv<-read.csv("climate\\climate_mean_annual_by_site_v4.csv") %>% 
   mutate(MAT2=ifelse(site_code=="docker.au", 14, ifelse(site_code=='lygraold.no',7.4, ifelse(site_code=='lygraint.no', 7.4, MAT))))
@@ -275,27 +277,27 @@ ggplot(data=deltarac4yrs2, aes(x=as.factor(n_treat_years), y=gains, color=trt))+
 
 #there are NAs for change in abundnace of the dominant species. This occurs when the species was not in the plot in the pre-treatment year, and not in the plot in the treatment year, there is 0 change in abundance, but the speices just wasn't there, so really it is not applicable. Keep as NA
 
-unique(deltarac4yrs2$site_code)
+unique(deltarac4yrs2$site_code) #97 datasets
 
 detlarac4yrs_allyears<-deltarac4yrs2 %>% 
   right_join(drtyears)
 unique(detlarac4yrs_allyears$site_code)
 
-#write.csv(deltarac4yrs2, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_Jan25.csv", row.names=F)
-#write.csv(detlarac4yrs_allyears, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_Jan25_allyears.csv", row.names=F)
+#write.csv(deltarac4yrs2, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_July26.csv", row.names=F)
+#write.csv(detlarac4yrs_allyears, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_July26_allyears.csv", row.names=F)
 
 
 #adjust P-values for treat effect
 #these values are from SAS
 #updated Jan 15 2025
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.0001, 0.2716,  0.0135, 0.0091, 0.0001, 0.0018)) %>%
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.0001, 0.2216,  0.0134, 0.0040, 0.0001, 0.0002)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
-pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.9772, 0.2063, 0.0020, 0.9431, 0.9925, 0.0615)) %>%
-  mutate(padj=p.adjust(pvalue, method="BY"))
-
-pvalsYR=data.frame(measure=c('even', 'rank', 'gain', 'loss', 'abund', 'rich'), pvalue=c(0.001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0395)) %>% 
+pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.0265, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001)) %>% 
   mutate(padj=p.adjust(pvalue, method="BY", 6))
+
+pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.9342, 0.1771, 0.0014, 0.9780, 0.9128, 0.0019)) %>%
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
 p.adjust(0.001, method="fdr", 6)
 
@@ -350,9 +352,9 @@ labs=c(gains="Sp. Gains", losses='Species Losses', richness_change="Richness Cha
 pgains<-
 ggplot(data = subset(deltaracs_long_by_year, measure=='gains'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=0.265, color='black', size=3, label="C")+
-  annotate("text", x=2, y=0.295, color='black', size=3, label="B")+
-  annotate("text", x=3, y=0.31, color='black', size=3, label="A")+
+  annotate("text", x=1, y=0.273, color='black', size=3, label="C")+
+  annotate("text", x=2, y=0.29, color='black', size=3, label="B")+
+  annotate("text", x=3, y=0.315, color='black', size=3, label="A")+
   annotate("text", x=4, y=0.29, color='black', size=3, label="A")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
@@ -368,10 +370,10 @@ pgains
 plosses<-
   ggplot(data = subset(deltaracs_long_by_year, measure=='losses'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=0.33, color='black', size=3, label="C")+
-  annotate("text", x=2, y=0.35, color='black', size=3, label="B")+
-  annotate("text", x=3, y=0.37, color='black', size=3, label="B")+
-  annotate("text", x=4, y=0.39, color='black', size=3, label="A")+
+  annotate("text", x=1, y=0.31, color='black', size=3, label="C")+
+  annotate("text", x=2, y=0.33, color='black', size=3, label="B")+
+  annotate("text", x=3, y=0.35, color='black', size=3, label="B")+
+  annotate("text", x=4, y=0.37, color='black', size=3, label="A")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
@@ -400,8 +402,8 @@ prichness
 peven<-
   ggplot(data = subset(deltaracs_long_by_year, measure=='evenness_change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=0.045, color='black', size=3, label="B")+
-  annotate("text", x=2, y=0.077, color='black', size=3, label="A")+
+  annotate("text", x=1, y=0.04, color='black', size=3, label="B")+
+  annotate("text", x=2, y=0.07, color='black', size=3, label="A")+
   annotate("text", x=3, y=0.03, color='black', size=3, label="B")+
   annotate("text", x=4, y=0.03, color='black', size=3, label="B")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
@@ -419,12 +421,12 @@ preorder<-
   scale_color_manual(values=c("darkgreen","darkorange"), name='Teatment') + 
   annotate("text", x=0.9, y=0.21, color='black', size=3, label="d")+
   annotate("text", x=1.1, y=0.21, color='black', size=3, label="d")+
-  annotate("text", x=1.9, y=0.23, color='black', size=3, label="c")+
-  annotate("text", x=2.1, y=0.23, color='black', size=3, label="c")+
+  annotate("text", x=1.9, y=0.225, color='black', size=3, label="c")+
+  annotate("text", x=2.1, y=0.225, color='black', size=3, label="c")+
   annotate("text", x=2.9, y=0.24, color='black', size=3, label="c")+
-  annotate("text", x=3.1, y=0.25, color='black', size=3, label="b")+
+  annotate("text", x=3.1, y=0.245, color='black', size=3, label="b")+
   annotate("text", x=3.9, y=0.235, color='black', size=3, label="c")+
-  annotate("text", x=4.1, y=0.255, color='black', size=3, label="a")+
+  annotate("text", x=4.1, y=0.25, color='black', size=3, label="a")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
@@ -439,10 +441,14 @@ preorder
 pdom<-
   ggplot(data = subset(deltaracs_long_by_year, measure=='change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=-3, color='black', size=3, label="B")+
-  annotate("text", x=2, y=-4, color='black', size=3, label="A")+
-  annotate("text", x=3, y=-5, color='black', size=3, label="A")+
-  annotate("text", x=4, y=-4, color='black', size=3, label="A")+
+  annotate("text", x=0.9, y=-4, color='black', size=3, label="a")+
+  annotate("text", x=1.1, y=-5.7, color='black', size=3, label="ab")+
+  annotate("text", x=1.9, y=-5, color='black', size=3, label="b")+
+  annotate("text", x=2.1, y=-7, color='black', size=3, label="c")+
+  annotate("text", x=2.9, y=-4.5, color='black', size=3, label="a")+
+  annotate("text", x=3.1, y=-10, color='black', size=3, label="d")+
+  annotate("text", x=3.9, y=-4.5, color='black', size=3, label="ab")+
+  annotate("text", x=4.1, y=-10, color='black', size=3, label="cd")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
