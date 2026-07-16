@@ -557,7 +557,7 @@ RR2<-RRall %>%
   left_join(precipcv, by="site_code") %>% 
   left_join(siterichness) %>% 
   left_join(sitedomchange) %>% 
-  select(site_code, year, n_treat_years, measure, RR, trt, map, drtseverity, PctAnnual, PctGrass, MAP, cv_ppt_inter, seasonality_index, MAT2, richness, deltaabund) %>% 
+  select(site_code, year, n_treat_years, measure, RR, trt, map, drtseverity, PctAnnual, MAP, cv_ppt_inter, seasonality_index, MAT2, richness, deltaabund) %>% 
   na.omit()
 
 length(unique(RR2$site_code))
@@ -690,17 +690,17 @@ MissingDat<-dat3%>% #
   mutate(rep=paste(site_code, replicate, sep=";")) %>%
   filter(max_cover!=0&Family!="NULL") %>%
   # standardizing lifeform and lifespan information
-  mutate(local_lifeform = ifelse(local_lifeform %in% c("GRAMINOID","Grass", 'GRASS'),"Grass",
-  ifelse(local_lifeform%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",
- ifelse(local_lifeform %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR",
-  ifelse(local_lifeform %in% c("FORB", "LEGUME"), "Forb", local_lifeform)))),
+  mutate(functional_group = ifelse(functional_group %in% c("GRAMINOID","Grass", 'GRASS'),"Grass",
+  ifelse(functional_group%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",
+ ifelse(functional_group %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR",
+  ifelse(functional_group %in% c("FORB", "LEGUME"), "Forb", functional_group)))),
   local_lifespan = ifelse(local_lifespan %in% c("BIENNIAL","PERENNIAL"), "Perennial",ifelse(local_lifespan == "UNK","NULL",local_lifespan))) %>% # local_lifeform consolidation
-  filter(local_lifeform != "FERN") %>%
-  #filter(local_lifeform != "SUCCULENT") %>%
-  #filter(local_lifeform != "CACTUS"&local_lifeform!='NONVASCULAR') %>%
-  filter(local_lifeform == "NULL",
+  filter(functional_group != "FERN") %>%
+  #filter(functional_group != "SUCCULENT") %>%
+  #filter(functional_group != "CACTUS"&local_lifeform!='NONVASCULAR') %>%
+  filter(functional_group == "NULL",
          local_lifespan == "NULL") %>%
-  dplyr::select(site_code, Family, Taxon, local_lifeform, local_lifespan, ps_path, N.fixer) %>%
+  dplyr::select(site_code, Family, Taxon, functional_group, local_lifespan, ps_path, N.fixer) %>%
   unique
 # 
 # # write.csv(MissingDat, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\missingtraitdata.csv", row.names=F)
@@ -710,23 +710,23 @@ MissingDat<-dat3%>% #
 
 ##Dropping rare categories and merging in missing data
 datCat<-dat3%>% # 
-  dplyr::select(site_code, year, trt, block, plot, subplot, Family, Taxon, local_provenance, local_lifeform, local_lifespan, functional_group, N.fixer, ps_path, max_cover, n_treat_years, replicate) %>% 
+  dplyr::select(site_code, year, trt, block, plot, subplot, Family, Taxon, local_provenance, local_lifespan, functional_group, N.fixer, ps_path, max_cover, n_treat_years, replicate) %>% 
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
   filter(max_cover!=0&Family!="NULL") %>% 
   # standardizing lifeform and lifespan information
-  mutate(local_lifeform = ifelse(local_lifeform %in% c("GRAMINOID","Grass", 'GRASS'),"Grass", ifelse(local_lifeform%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",ifelse(local_lifeform %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR", ifelse(local_lifeform %in% c("FORB", "LEGUME"), "Forb", local_lifeform)))),#lifeform clean up
+  mutate(functional_group = ifelse(functional_group %in% c("GRAMINOID","Grass", 'GRASS'),"Grass", ifelse(functional_group%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",ifelse(functional_group %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR", ifelse(functional_group %in% c("FORB", "LEGUME"), "Forb", functional_group)))),#lifeform clean up
          local_lifespan = ifelse(local_lifespan %in% c("BIENNIAL","PERENNIAL"), "Perennial",ifelse(local_lifespan == "UNK","NULL", ifelse(local_lifespan=="ANNUAL", 'Annual', local_lifespan)))) %>% # lifespan consolidation
-  filter(local_lifeform != "FERN") %>%
-  filter(local_lifeform != "SUCCULENT") %>%
-  filter(local_lifeform != "CACTUS"&local_lifeform!='NONVASCULAR')%>%
-  filter(local_lifeform != "NULL",
+  filter(functional_group != "FERN") %>%
+  filter(functional_group != "SUCCULENT") %>%
+  filter(functional_group != "CACTUS"&functional_group!='NONVASCULAR')%>%
+  filter(functional_group != "NULL",
          local_lifespan != "NULL",
          local_lifespan!="INDETERMINATE",
          ps_path != "NULL",
          ps_path!='C3-C4 INTERMEDIATE') %>%
   mutate(N.fixer = ifelse(N.fixer == 0, "Non-N-fixer",
                           ifelse(N.fixer == 1, "N-fixer",NA))) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, n_treat_years, max_cover) %>% 
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, functional_group, local_lifespan, N.fixer, ps_path, n_treat_years, max_cover) %>% 
   filter(n_treat_years<5& n_treat_years>-1) 
 
 
@@ -744,19 +744,19 @@ length(unique(datCat$site_code))
 #pretreat cover
 pretrt_cover<-dat3 %>% 
   filter(n_treat_years==0) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, max_cover) %>% 
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, max_cover) %>% 
   rename(pretrt=max_cover)
 
 
 #what years of data do sites have? getting rid of sites with missing years of data
 yrsdata<-datCat %>% 
-  select(site_code, n_treat_years) %>%
+  dplyr::select(site_code, n_treat_years) %>%
   unique() %>% 
   filter(n_treat_years!=0) %>% 
   group_by(site_code) %>% 
   mutate(n=length(n_treat_years), max=max(n_treat_years)) %>% 
   filter(n==max) %>% 
-  select(site_code, max) %>% 
+  dplyr::select(site_code, max) %>% 
   filter(max>1) %>% 
   unique()
 
@@ -787,7 +787,7 @@ datblip2_three<-datCat %>%
   mutate(loss=ifelse(outcome=='loss', 1, 0)) %>% 
   left_join(pretrt_cover) %>% 
   filter(!is.na(pretrt)) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, loss, pretrt)
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, functional_group, local_lifespan, N.fixer, ps_path, loss, pretrt)
 
 datblip2_four<-datCat %>%
   right_join(four.years) %>% 
@@ -796,7 +796,7 @@ datblip2_four<-datCat %>%
   mutate(loss=ifelse(outcome=='loss', 1, 0)) %>% 
   left_join(pretrt_cover) %>% 
   filter(!is.na(pretrt)) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, loss, pretrt)
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, functional_group, local_lifespan, N.fixer, ps_path, loss, pretrt)
 
 datLoss<-datblip2_three %>% 
   bind_rows(datblip2_four)
@@ -808,7 +808,7 @@ length(unique(datLoss$site_code))
 # ###thinking about groupings
 #c3/c4 with functional type
 group1<-datblip2_three %>%
-  select(local_lifeform, N.fixer, Taxon) %>%
+  dplyr::select(functional_group, N.fixer, Taxon) %>%
   unique()
 # 
 # #n-fixer lifeform
@@ -826,14 +826,14 @@ group1<-datblip2_three %>%
 
 ####LOSSES
 #lifeform
-loss_lifeform <- glmer(loss ~ local_lifeform*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, trt=='Drought'))
+loss_lifeform <- glmer(loss ~ functional_group*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, trt=='Drought'))
 Anova(loss_lifeform)
 
-loss_lifeform <- glmer(loss ~ trt*local_lifeform*pretrt + (1|site_code), family = binomial(), data = datLoss)
+loss_lifeform <- glmer(loss ~ trt*functional_group*pretrt + (1|site_code), family = binomial(), data = datLoss)
 Anova(loss_lifeform)
 
 plotlifeform<-datLoss %>% 
-  mutate(loss2=ifelse(local_lifeform=="Forb"&loss==0, 0.04, ifelse(local_lifeform=='Grass'&loss==0, 0.02, ifelse(local_lifeform=="Grass"&loss==1, 0.98, ifelse(local_lifeform=="Woody"&loss==1, 0.96, loss)))))
+  mutate(loss2=ifelse(functional_group=="Forb"&loss==0, 0.04, ifelse(functional_group=='Grass'&loss==0, 0.02, ifelse(functional_group=="Grass"&loss==1, 0.98, ifelse(functional_group=="Woody"&loss==1, 0.96, loss)))))
 
 #lifespan
 loss_lifespan <- glmer(loss ~ trt*local_lifespan*pretrt + (1|site_code), family = binomial(), data = subset(datLoss))
@@ -846,10 +846,10 @@ plotlifespan<-datLoss %>%
   mutate(loss2=ifelse(local_lifespan=="Annual"&loss==0, 0.02, ifelse(local_lifespan=='Perennial'&loss==1, 0.98, loss)))
 
 #nfixation
-loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Forb"))
+loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Forb"))
 Anova(loss_Nfix)
 
-loss_Nfix <- glmer(loss ~ N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Forb"&trt=='Drought'))
+loss_Nfix <- glmer(loss ~ N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Forb"&trt=='Drought'))
 Anova(loss_Nfix)
 
 plotnfix<-datLoss %>% 
@@ -857,71 +857,71 @@ plotnfix<-datLoss %>%
 
 #photosynthetic pathway
 
-loss_ps <- glmer(loss ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Grass"))
+loss_ps <- glmer(loss ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Grass"))
 Anova(loss_ps)
 
-loss_ps <- glmer(loss ~ ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Grass"&trt=='Drought'))
+loss_ps <- glmer(loss ~ ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Grass"&trt=='Drought'))
 Anova(loss_ps)
 
 plotps<-datLoss %>% 
   mutate(loss2=ifelse(ps_path=="C3"&loss==0, 0.02, ifelse(ps_path=='C4'&loss==1, 0.98, loss)))
 
-####looking at broad fucntional categories. The model for all categories didn't converge, so I am focusing on annuals only.
-datLoss2<-datLoss %>% 
-  mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
-                    ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='N-fixer', 'N-fix. Forb',
-                           ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='Non-N-fixer', 'Non-N-fix. Forb',
-                                  ifelse(local_lifeform=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
-                                         ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C3', 'C3 Grass',
-                                                ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C4', 'C4 Grass',
-                                                       ifelse(local_lifeform=='Woody', 'Woody', 'ZZZ'))))))))
-
-# doing lifefrom/lifespan comparison 
-datLoss3<-datLoss %>% 
-  mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
-                    ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial', 'Peren. Forb',
-                    ifelse(local_lifeform=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
-                   ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial', 'Peren. Grass','ZZZ')))))
+# ####looking at broad fucntional categories. The model for all categories didn't converge, so I am focusing on annuals only.
+# datLoss2<-datLoss %>% 
+#   mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
+#                     ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='N-fixer', 'N-fix. Forb',
+#                            ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='Non-N-fixer', 'Non-N-fix. Forb',
+#                                   ifelse(local_lifeform=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
+#                                          ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C3', 'C3 Grass',
+#                                                 ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C4', 'C4 Grass',
+#                                                        ifelse(local_lifeform=='Woody', 'Woody', 'ZZZ'))))))))
 # 
-
-loss_cat <- glmer(loss ~ trt*cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2))
-Anova(loss_cat)
-
-loss_cat2 <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss3, trt=='Drought'&local_lifeform!='Woody'))
-Anova(loss_cat2)
-
-loss_Acat <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2, local_lifespan=='Annual'&local_lifeform!='Woody'&trt=='Drought'))
-#summary(loss_Acat)
-Anova(loss_Acat)
-
-plotcat<-datLoss2 %>% 
-  mutate(loss2=ifelse(cat=="Ann. Forb"&loss==0, 0.12, 
-               ifelse(cat=='C3 Grass'&loss==0, 0.08, 
-               ifelse(cat=='C3 Grass'&loss==1, 0.96, 
-               ifelse(cat=='C4 Grass'&loss==1, 0.94, 
-               ifelse(cat=='C4 Grass'&loss==0, 0.06, 
-               ifelse(cat=='N-fix. Forb'&loss==0, 0.04, 
-               ifelse(cat=='N-fix. Forb'&loss==1, 0.92, 
-               ifelse(cat=='Non-N-fix. Forb'&loss==0, 0.02, 
-               ifelse(cat=='Non-N-fix. Forb'&loss==1, 0.90,
-               ifelse(cat=='Woody'&loss==1, 0.88, 
-               ifelse(cat=='Ann. Grass'&loss==1, 0.98, 
-               ifelse(cat=='Ann. Grass'&loss==0, 0.10,loss)))))))))))))
+# # doing lifefrom/lifespan comparison
+# datLoss3<-datLoss %>%
+#   mutate(cat=ifelse(functional_group=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
+#                     ifelse(functional_group=='Forb'&local_lifespan=='Perennial', 'Peren. Forb',
+#                     ifelse(functional_group=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
+#                    ifelse(functional_group=='Grass'&local_lifespan=='Perennial', 'Peren. Grass','ZZZ')))))
+# #
+# 
+# loss_cat <- glmer(loss ~ trt*cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2))
+# Anova(loss_cat)
+# 
+# loss_cat2 <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss3, trt=='Drought'&functional_group!='Woody'))
+# Anova(loss_cat2)
+# 
+# loss_Acat <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2, local_lifespan=='Annual'&local_lifeform!='Woody'&trt=='Drought'))
+# #summary(loss_Acat)
+# Anova(loss_Acat)
+# 
+# plotcat<-datLoss2 %>%
+#   mutate(loss2=ifelse(cat=="Ann. Forb"&loss==0, 0.12,
+#                ifelse(cat=='C3 Grass'&loss==0, 0.08,
+#                ifelse(cat=='C3 Grass'&loss==1, 0.96,
+#                ifelse(cat=='C4 Grass'&loss==1, 0.94,
+#                ifelse(cat=='C4 Grass'&loss==0, 0.06,
+#                ifelse(cat=='N-fix. Forb'&loss==0, 0.04,
+#                ifelse(cat=='N-fix. Forb'&loss==1, 0.92,
+#                ifelse(cat=='Non-N-fix. Forb'&loss==0, 0.02,
+#                ifelse(cat=='Non-N-fix. Forb'&loss==1, 0.90,
+#                ifelse(cat=='Woody'&loss==1, 0.88,
+#                ifelse(cat=='Ann. Grass'&loss==1, 0.98,
+#                ifelse(cat=='Ann. Grass'&loss==0, 0.10,loss)))))))))))))
 
 ###checking pvalues
 
-pvalsTraits=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.00001, 0.046399 , 0.25425)) %>%
+pvalsTraits=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.00011, 0.2723 , 0.15187)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
 pvalsAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.000001, 0.00001, 0.00001)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
-pvalsTraitAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.9018    , 0.7635, 0.00834, 0.08777)) %>%
+pvalsTraitAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.8183, 0.4774, 0.005815, 0.06607)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
 ###Figure 4 for loss probabilities-------------
 LF.Loss<-
-  ggplot(data=subset(plotlifeform, trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifeform))+
+  ggplot(data=subset(plotlifeform, trt=='Drought'), aes(x=pretrt, y=loss2, color=functional_group))+
   geom_point()+
   scale_color_manual(name='', values=c('#E69F00','#56B4E9', '#000000'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha = 0.1)+
@@ -934,7 +934,7 @@ LF.Loss<-
 LF.Loss
 
 LS.loss<-
-  ggplot(data=subset(plotlifespan, local_lifeform!='Woody'&trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifespan))+
+  ggplot(data=subset(plotlifespan, functional_group!='Woody'&trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifespan))+
   geom_point()+
   scale_color_manual(name='', values=c('#009E73', '#F0C2E0'),labels=c('Annual', 'Perennial'))+
   ggtitle('B) Lifespan')+
@@ -947,7 +947,7 @@ LS.loss<-
 LS.loss
 
 NFix.Loss<-
-  ggplot(data=subset(plotnfix, local_lifeform=='Forb'&trt=='Drought'), aes(x=pretrt, y=loss2, color=N.fixer))+
+  ggplot(data=subset(plotnfix, functional_group=='Forb'&trt=='Drought'), aes(x=pretrt, y=loss2, color=N.fixer))+
   geom_point()+
   scale_color_manual(name='', values=c('#0072B2', '#CC79A7'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
@@ -956,11 +956,11 @@ NFix.Loss<-
   #xlab("Pre-treatment Abundance")+
   #ylab("Loss Probability")+
   labs(x=NULL, y=NULL)+
-  annotate('text', y=0.8, x= Inf, label='Trait ns\nAbund *\nTr. x Ab. ns', size=3, hjust=1.2)
+  annotate('text', y=0.8, x= Inf, label='Trait ns\nAbund *\nTr. x Ab. *', size=3, hjust=1.2)
 NFix.Loss
 # 
 ps.Loss<-
-  ggplot(data=subset(plotps, local_lifeform=="Grass"&trt=='Drought'), aes(x=pretrt, y=loss2, color=ps_path))+
+  ggplot(data=subset(plotps, functional_group=="Grass"&trt=='Drought'), aes(x=pretrt, y=loss2, color=ps_path))+
   geom_point()+
   scale_color_manual(name='', values=c('#D55E00', '#999999'))+
   ggtitle('d) Grass Photosynthetic Pathway')+
