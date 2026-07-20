@@ -7,6 +7,7 @@
 ###Feb 2024 updating to include new dominance analyses
 ####Dec 2024, new data using 4 years now.
 ####Nov 2025, finalizing analyses - removed grass from multiple regression.
+#####July 2006, UGH, redoing with most up to date dataset.
 
 library(tidyverse)
 library(codyn)
@@ -18,6 +19,7 @@ library(gridExtra)
 library(emmeans)
 library(car)
 library(ggpubr)
+library(scales)
 
 theme_set(theme_bw(12))
 
@@ -25,9 +27,10 @@ setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 
 
 # reading in and getting data ---------------------------------------------
-
-dat<-read.csv("cover_ppt_2024-12-19.csv") %>% 
-  mutate(replicate=paste(block, plot, subplot, sep="_"))
+#was using 2024-12-19
+dat<-read.csv("cover_ppt_2026-03-27.csv") %>% 
+  mutate(replicate=paste(block, plot, subplot, sep="_")) |> 
+  select(-cover_survey_comments)
 
 #dropping datasets without pretreatment data
 drop_no_pretrt<-dat %>% 
@@ -42,10 +45,10 @@ dat2<-dat %>%
   filter(n_treat_years!=0.5&n_treat_years>-1)
 
 
-#having problems with sherman.pa, eea.br because they only have year 0 data, kranz.de is a forest site with 50% cover of only 2 species for each year.
+#having problems with sherman.pa, eea.br, tian.cn because they only have year 0 data, kranz.de is a forest site with 50% cover of only 2 species for each year.
 #brokenh.au didn't collect drought treatment data in years 2 and 3 so drop those years
 dat3<-dat2 %>% 
-  filter(site_code!="sherman.pa"&site_code!="eea.br"&site_code!='kranz.de') %>% 
+  filter(site_code!="sherman.pa"&site_code!="eea.br"&site_code!='kranz.de'&site_code!='tian.cn') %>% 
   mutate(drop=ifelse(site_code=="brokenh.au"&n_treat_years==2|site_code=='brokenh.au'&n_treat_years==3, 1, 0)) %>% 
   filter(drop!=1) %>% 
   select(-drop)
@@ -54,7 +57,7 @@ sites<-dat3 %>%
 select(site_code) %>%
   unique()
 # write.csv(sites, "community_comp\\sitelistMarhc2024.csv")
-unique(dat3$site_code)
+unique(dat3$site_code) #97 datasets
 
 nreps<-dat3 %>% 
   select(site_code, trt, replicate) %>% 
@@ -86,15 +89,14 @@ drt4yr<-dat3 %>%
   select(site_code) %>%
   unique()%>%
   mutate(p4=1)
-
 drtyears<-drt1yr %>% 
   full_join(drt2yr) %>% 
-  left_join(drt3yr) %>% 
-  left_join(drt4yr) %>% 
+  full_join(drt3yr) %>% 
+  full_join(drt4yr) %>% 
   mutate(totyrs=p+p2+p3+p4) %>% 
   filter(totyrs==4)
 
-# #five sites are not repeated over years, and only have one year of data.
+# #seven sites are not repeated over years, and only have one year of data.
 # oneyr<-dat2 %>%
 #   select(site_code, n_treat_years) %>%
 #   unique() %>%
@@ -113,9 +115,9 @@ drt<-dat3 %>%
   select(-ppt.1, -ppt.2, -ppt.3, -ppt.4) %>% 
   filter(n_treat_years<5)
 
-site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_Dec24.csv")
+site_types<-read.csv("community_comp\\Prc_LifeHistory_Controls_July2026.csv")
 
-precipcv<-read.csv("climate\\climate_mean_annual_by_site_v3.csv") %>% 
+precipcv<-read.csv("climate\\climate_mean_annual_by_site_v4.csv") %>% 
   mutate(MAT2=ifelse(site_code=="docker.au", 14, ifelse(site_code=='lygraold.no',7.4, ifelse(site_code=='lygraint.no', 7.4, MAT))))
 
 
@@ -275,27 +277,27 @@ ggplot(data=deltarac4yrs2, aes(x=as.factor(n_treat_years), y=gains, color=trt))+
 
 #there are NAs for change in abundnace of the dominant species. This occurs when the species was not in the plot in the pre-treatment year, and not in the plot in the treatment year, there is 0 change in abundance, but the speices just wasn't there, so really it is not applicable. Keep as NA
 
-unique(deltarac4yrs2$site_code)
+unique(deltarac4yrs2$site_code) #97 datasets
 
 detlarac4yrs_allyears<-deltarac4yrs2 %>% 
   right_join(drtyears)
 unique(detlarac4yrs_allyears$site_code)
 
-#write.csv(deltarac4yrs2, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_Jan25.csv", row.names=F)
-#write.csv(detlarac4yrs_allyears, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_Jan25_allyears.csv", row.names=F)
+#write.csv(deltarac4yrs2, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_July26.csv", row.names=F)
+#write.csv(detlarac4yrs_allyears, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\CommunityData_DrtbyTime_forSAS_withdom2_July26_allyears.csv", row.names=F)
 
 
 #adjust P-values for treat effect
 #these values are from SAS
 #updated Jan 15 2025
-pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.0001, 0.2716,  0.0135, 0.0091, 0.0001, 0.0018)) %>%
+pvalsTRT=data.frame(measure=c('richness_change', 'evenness_change', 'rank_change', 'gains', 'losses', 'deltaabund'), pvalue=c(0.0001, 0.2216,  0.0134, 0.0040, 0.0001, 0.0002)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
-pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.9772, 0.2063, 0.0020, 0.9431, 0.9925, 0.0615)) %>%
-  mutate(padj=p.adjust(pvalue, method="BY"))
-
-pvalsYR=data.frame(measure=c('even', 'rank', 'gain', 'loss', 'abund', 'rich'), pvalue=c(0.001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0395)) %>% 
+pvalsYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.0265, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001)) %>% 
   mutate(padj=p.adjust(pvalue, method="BY", 6))
+
+pvalsTRTYR=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss', 'abund'), pvalue=c(0.9342, 0.1771, 0.0014, 0.9780, 0.9128, 0.0019)) %>%
+  mutate(padj=p.adjust(pvalue, method="BY"))
 
 p.adjust(0.001, method="fdr", 6)
 
@@ -350,9 +352,9 @@ labs=c(gains="Sp. Gains", losses='Species Losses', richness_change="Richness Cha
 pgains<-
 ggplot(data = subset(deltaracs_long_by_year, measure=='gains'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=0.265, color='black', size=3, label="C")+
-  annotate("text", x=2, y=0.295, color='black', size=3, label="B")+
-  annotate("text", x=3, y=0.31, color='black', size=3, label="A")+
+  annotate("text", x=1, y=0.273, color='black', size=3, label="C")+
+  annotate("text", x=2, y=0.29, color='black', size=3, label="B")+
+  annotate("text", x=3, y=0.315, color='black', size=3, label="A")+
   annotate("text", x=4, y=0.29, color='black', size=3, label="A")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
@@ -368,10 +370,10 @@ pgains
 plosses<-
   ggplot(data = subset(deltaracs_long_by_year, measure=='losses'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=0.33, color='black', size=3, label="C")+
-  annotate("text", x=2, y=0.35, color='black', size=3, label="B")+
-  annotate("text", x=3, y=0.37, color='black', size=3, label="B")+
-  annotate("text", x=4, y=0.39, color='black', size=3, label="A")+
+  annotate("text", x=1, y=0.31, color='black', size=3, label="C")+
+  annotate("text", x=2, y=0.33, color='black', size=3, label="B")+
+  annotate("text", x=3, y=0.35, color='black', size=3, label="B")+
+  annotate("text", x=4, y=0.37, color='black', size=3, label="A")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
@@ -400,8 +402,8 @@ prichness
 peven<-
   ggplot(data = subset(deltaracs_long_by_year, measure=='evenness_change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=0.045, color='black', size=3, label="B")+
-  annotate("text", x=2, y=0.077, color='black', size=3, label="A")+
+  annotate("text", x=1, y=0.04, color='black', size=3, label="B")+
+  annotate("text", x=2, y=0.07, color='black', size=3, label="A")+
   annotate("text", x=3, y=0.03, color='black', size=3, label="B")+
   annotate("text", x=4, y=0.03, color='black', size=3, label="B")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
@@ -419,12 +421,12 @@ preorder<-
   scale_color_manual(values=c("darkgreen","darkorange"), name='Teatment') + 
   annotate("text", x=0.9, y=0.21, color='black', size=3, label="d")+
   annotate("text", x=1.1, y=0.21, color='black', size=3, label="d")+
-  annotate("text", x=1.9, y=0.23, color='black', size=3, label="c")+
-  annotate("text", x=2.1, y=0.23, color='black', size=3, label="c")+
+  annotate("text", x=1.9, y=0.225, color='black', size=3, label="c")+
+  annotate("text", x=2.1, y=0.225, color='black', size=3, label="c")+
   annotate("text", x=2.9, y=0.24, color='black', size=3, label="c")+
-  annotate("text", x=3.1, y=0.25, color='black', size=3, label="b")+
+  annotate("text", x=3.1, y=0.245, color='black', size=3, label="b")+
   annotate("text", x=3.9, y=0.235, color='black', size=3, label="c")+
-  annotate("text", x=4.1, y=0.255, color='black', size=3, label="d")+
+  annotate("text", x=4.1, y=0.25, color='black', size=3, label="a")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
@@ -439,10 +441,14 @@ preorder
 pdom<-
   ggplot(data = subset(deltaracs_long_by_year, measure=='change'), aes(x=as.factor(n_treat_years), y=mean, color = trt))+
   scale_color_manual(values=c("darkgreen","darkorange"), name='Treatment') + 
-  annotate("text", x=1, y=-3, color='black', size=3, label="B")+
-  annotate("text", x=2, y=-4, color='black', size=3, label="A")+
-  annotate("text", x=3, y=-5, color='black', size=3, label="A")+
-  annotate("text", x=4, y=-4, color='black', size=3, label="A")+
+  annotate("text", x=0.9, y=-4, color='black', size=3, label="a")+
+  annotate("text", x=1.1, y=-5.7, color='black', size=3, label="ab")+
+  annotate("text", x=1.9, y=-5, color='black', size=3, label="b")+
+  annotate("text", x=2.1, y=-7, color='black', size=3, label="c")+
+  annotate("text", x=2.9, y=-4.5, color='black', size=3, label="a")+
+  annotate("text", x=3.1, y=-10, color='black', size=3, label="d")+
+  annotate("text", x=3.9, y=-4.5, color='black', size=3, label="ab")+
+  annotate("text", x=4.1, y=-10, color='black', size=3, label="cd")+
   annotate("text", x=5, y=Inf, color='black', size=8, vjust=1.5, label="*")+
   geom_point(aes(color = trt), size = 3, position = position_dodge(width = 0.3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, color = trt),
@@ -474,7 +480,7 @@ Fig2<-
 
 Fig2
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig2_Jan25.jpg", plot=Fig2, units = "in", width=9, height=5)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig2_July26.jpg", plot=Fig2, units = "in", width=9, height=5)
 
 ###comparison graph with only sites that have all four years of data
 #Overall change averaged over all years
@@ -551,21 +557,27 @@ RR2<-RRall %>%
   left_join(precipcv, by="site_code") %>% 
   left_join(siterichness) %>% 
   left_join(sitedomchange) %>% 
-  select(site_code, year, n_treat_years, measure, RR, trt, map, drtseverity, PctAnnual, PctGrass, MAP, cv_ppt_inter, seasonality_index, MAT2, richness, deltaabund) %>% 
+  select(site_code, year, n_treat_years, measure, RR, trt, map, drtseverity, PctAnnual, MAP, cv_ppt_inter, seasonality_index, MAT2, richness, deltaabund) %>% 
   na.omit()
 
 length(unique(RR2$site_code))
 
-#write.csv(RR2, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\communityData_DrtSeverity_forSAS_withDom_Jan25.csv', row.names=F)
+#write.csv(RR2, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\Analyses in SAS\\communityData_DrtSeverity_forSAS_withDom_July26.csv', row.names=F)
 str(RR2)
 
 ####doing this is SAS now
 
-ggplot(data=subset(RR2, measure=='losses'), aes(x=drtseverity, y=RR))+
+Drtsevfig<-ggplot(data=subset(RR2, measure=='losses'), aes(x=drtseverity, y=RR))+
   geom_point()+
   geom_smooth(method='lm', color='black')+
   xlab('Drought Severity')+
-  ylab('Drought-Control\nDifference in Sp. Losses')
+  geom_hline(yintercept = 0)+
+  scale_y_continuous(labels = label_number(accuracy = 0.1))+
+  theme(panel.grid = element_blank(), axis.title.y = element_blank())+
+  ggtitle("A)")+
+  facet_wrap(~measure, labeller=labeller(measure=labs))
+
+Drtsevfig
 
 # ###going for each year
 # summary(lm(RR~drtseverity, data=subset(RR2, n_treat_years==1&measure=="losses")))
@@ -593,16 +605,8 @@ ggplot(data=subset(RR2, measure=='losses'), aes(x=drtseverity, y=RR))+
 # summary(lm(RR~drtseverity, data=subset(RR2, n_treat_years==3&measure=="evenness_change")))
 # summary(lm(RR~drtseverity, data=subset(RR2, n_treat_years==4&measure=="evenness_change")))
 
-#####not doing this b/c nothing is significant in SAS so why bother
-library(nlme)
 
-mod <- lme(RR~drtseverity, random = ~1|site_code, data = subset(RR2, measure=='losses'))
-summary(mod)
-
-ggplot(data=subset(RR2, measure=="losses"), aes(x=drtseverity, y=RR))+
-  geom_point()
-
-pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.868, 0.710, 0.637, 1.0, 0.021)) %>% 
+pvalsDrtSev=data.frame(measure=c('rich', 'even', 'rank', 'gain', 'loss'), pvalue=c(0.1405, 0.2350, 0.1872, 0.8031, 0.0012)) %>% 
   mutate(padj=p.adjust(pvalue, method="BY"))
 
 
@@ -666,15 +670,22 @@ toplotlm<-RRRac_average %>%
 plotlm<-ggplot(data=toplotlm, aes(x=MAP, y=RR))+
   geom_point()+
   geom_smooth(method="lm", color="black", alpha=0.1)+
-  ylab("Drought-Control Differences")+
   geom_hline(yintercept = 0)+
   xlab('MAP (mm)')+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  facet_grid(~measure, scales='free', labeller = labeller(measure=labs))
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank())+
+  facet_wrap(~measure, scales='free', labeller = labeller(measure=labs), nrow=2)+
+  ggtitle("B)")
 
 plotlm
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\multipleregresson.jpg", plot=plotlm, units="in", width=5, height=3)
+combined_grob_2<-ggarrange(Drtsevfig, plotlm, ncol=1, heights = c(1.2,1.8))
+
+Fig3<-
+annotate_figure(combined_grob_2,
+                left = text_grob("Drought-Control Differences", rot = 90, size = 14))
+
+Fig3
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Fig3.jpg", plot=Fig3, units="in", width=3, height=6)
 
 
 # Analysis of trait and abundance based losses ----------------------------
@@ -684,17 +695,17 @@ MissingDat<-dat3%>% #
   mutate(rep=paste(site_code, replicate, sep=";")) %>%
   filter(max_cover!=0&Family!="NULL") %>%
   # standardizing lifeform and lifespan information
-  mutate(local_lifeform = ifelse(local_lifeform %in% c("GRAMINOID","Grass", 'GRASS'),"Grass",
-  ifelse(local_lifeform%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",
- ifelse(local_lifeform %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR",
-  ifelse(local_lifeform %in% c("FORB", "LEGUME"), "Forb", local_lifeform)))),
+  mutate(functional_group = ifelse(functional_group %in% c("GRAMINOID","Grass", 'GRASS'),"Grass",
+  ifelse(functional_group%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",
+ ifelse(functional_group %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR",
+  ifelse(functional_group %in% c("FORB", "LEGUME"), "Forb", functional_group)))),
   local_lifespan = ifelse(local_lifespan %in% c("BIENNIAL","PERENNIAL"), "Perennial",ifelse(local_lifespan == "UNK","NULL",local_lifespan))) %>% # local_lifeform consolidation
-  filter(local_lifeform != "FERN") %>%
-  #filter(local_lifeform != "SUCCULENT") %>%
-  #filter(local_lifeform != "CACTUS"&local_lifeform!='NONVASCULAR') %>%
-  filter(local_lifeform == "NULL",
+  filter(functional_group != "FERN") %>%
+  #filter(functional_group != "SUCCULENT") %>%
+  #filter(functional_group != "CACTUS"&local_lifeform!='NONVASCULAR') %>%
+  filter(functional_group == "NULL",
          local_lifespan == "NULL") %>%
-  dplyr::select(site_code, Family, Taxon, local_lifeform, local_lifespan, ps_path, N.fixer) %>%
+  dplyr::select(site_code, Family, Taxon, functional_group, local_lifespan, ps_path, N.fixer) %>%
   unique
 # 
 # # write.csv(MissingDat, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\missingtraitdata.csv", row.names=F)
@@ -704,53 +715,43 @@ MissingDat<-dat3%>% #
 
 ##Dropping rare categories and merging in missing data
 datCat<-dat3%>% # 
-  dplyr::select(site_code, year, trt, block, plot, subplot, Family, Taxon, local_provenance, local_lifeform, local_lifespan, functional_group, N.fixer, ps_path, max_cover, n_treat_years, replicate) %>% 
+  dplyr::select(site_code, year, trt, block, plot, subplot, Family, Taxon, local_provenance, local_lifespan, functional_group, N.fixer, ps_path, max_cover, n_treat_years, replicate) %>% 
   mutate(rep=paste(site_code, replicate, sep=";")) %>% 
   filter(max_cover!=0&Family!="NULL") %>% 
   # standardizing lifeform and lifespan information
-  mutate(local_lifeform = ifelse(local_lifeform %in% c("GRAMINOID","Grass", 'GRASS'),"Grass", ifelse(local_lifeform%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",ifelse(local_lifeform %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR", ifelse(local_lifeform %in% c("FORB", "LEGUME"), "Forb", local_lifeform)))),#lifeform clean up
+  mutate(functional_group = ifelse(functional_group %in% c("GRAMINOID",'GRASS'),"Grass", ifelse(functional_group%in% c("VINE","TREE","WOODY","SHRUB","SUBSHRUB"),"Woody",ifelse(functional_group %in% c("BRYOPHYTE","MOSS","CLUBMOSS","LICHEN","FUNGI"),"NONVASCULAR", ifelse(functional_group %in% c("FORB", "LEGUME"), "Forb", functional_group)))),#lifeform clean up
          local_lifespan = ifelse(local_lifespan %in% c("BIENNIAL","PERENNIAL"), "Perennial",ifelse(local_lifespan == "UNK","NULL", ifelse(local_lifespan=="ANNUAL", 'Annual', local_lifespan)))) %>% # lifespan consolidation
-  filter(local_lifeform != "FERN") %>%
-  filter(local_lifeform != "SUCCULENT") %>%
-  filter(local_lifeform != "CACTUS"&local_lifeform!='NONVASCULAR')%>%
-  filter(local_lifeform != "NULL",
+  filter(functional_group != "FERN") %>%
+ filter(functional_group != "CACTUS"&functional_group!='NONVASCULAR')%>%
+  filter(functional_group != "NULL",
          local_lifespan != "NULL",
          local_lifespan!="INDETERMINATE",
          ps_path != "NULL",
          ps_path!='C3-C4 INTERMEDIATE') %>%
   mutate(N.fixer = ifelse(N.fixer == 0, "Non-N-fixer",
                           ifelse(N.fixer == 1, "N-fixer",NA))) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, n_treat_years, max_cover) %>% 
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, functional_group, local_lifespan, N.fixer, ps_path, n_treat_years, max_cover) %>% 
   filter(n_treat_years<5& n_treat_years>-1) 
 
 
 length(unique(datCat$site_code)) 
 
-# ###who is getting lost?
-# test<-datCat %>% 
-#   dplyr::select(site_code, Taxon, local_lifeform, local_lifespan, ps_path) %>%
-#   unique() %>% 
-#   filter(is.na(ps_path))
-# 
-# write.csv(test, "C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\missingPS.csv", row.names=F)
-
-
 #pretreat cover
 pretrt_cover<-dat3 %>% 
   filter(n_treat_years==0) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, max_cover) %>% 
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, max_cover) %>% 
   rename(pretrt=max_cover)
 
 
 #what years of data do sites have? getting rid of sites with missing years of data
 yrsdata<-datCat %>% 
-  select(site_code, n_treat_years) %>%
+  dplyr::select(site_code, n_treat_years) %>%
   unique() %>% 
   filter(n_treat_years!=0) %>% 
   group_by(site_code) %>% 
   mutate(n=length(n_treat_years), max=max(n_treat_years)) %>% 
   filter(n==max) %>% 
-  select(site_code, max) %>% 
+  dplyr::select(site_code, max) %>% 
   filter(max>1) %>% 
   unique()
 
@@ -781,7 +782,7 @@ datblip2_three<-datCat %>%
   mutate(loss=ifelse(outcome=='loss', 1, 0)) %>% 
   left_join(pretrt_cover) %>% 
   filter(!is.na(pretrt)) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, loss, pretrt)
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, functional_group, local_lifespan, N.fixer, ps_path, loss, pretrt)
 
 datblip2_four<-datCat %>%
   right_join(four.years) %>% 
@@ -790,7 +791,7 @@ datblip2_four<-datCat %>%
   mutate(loss=ifelse(outcome=='loss', 1, 0)) %>% 
   left_join(pretrt_cover) %>% 
   filter(!is.na(pretrt)) %>% 
-  select(site_code, trt, block, plot, subplot, Taxon, local_lifeform, local_lifespan, N.fixer, ps_path, loss, pretrt)
+  dplyr::select(site_code, trt, block, plot, subplot, Taxon, functional_group, local_lifespan, N.fixer, ps_path, loss, pretrt)
 
 datLoss<-datblip2_three %>% 
   bind_rows(datblip2_four)
@@ -800,34 +801,31 @@ length(unique(datLoss$site_code))
   
 
 # ###thinking about groupings
-# #c3/c4 with functional type
-# group1<-datblip2 %>% 
-#   group_by(local_lifeform, N.fixer, ps_path, local_lifespan) %>% 
-#   summarise(n=length(pretrt))
-# 
-# #n-fixer lifeform
-# group2<-datblip2 %>% 
-#   filter(outcome=='gain') %>% 
-#   group_by(local_lifeform, N.fixer, ps_path, local_lifespan) %>% 
-#   summarise(n=length(pretrt))
-# 
-# group3<-datblip2 %>% 
-#   group_by(local_lifeform, local_lifespan) %>% 
-#   summarize(n=length(pretrt))
+#c3/c4 with functional type
+group3<-datLoss %>%
+  group_by(functional_group, ps_path) %>%
+  summarize(n=length(pretrt))
+
+#n-fixer lifeform
+group2<-datLoss %>%
+  filter(outcome=='gain') %>%
+  group_by(local_lifeform, N.fixer, ps_path, local_lifespan) %>%
+  summarise(n=length(pretrt))
+
 
 
 #Using binomial logistic regression to look for the effect of pre-treatment abundance, drought treatment and functional trait
 
 ####LOSSES
 #lifeform
-loss_lifeform <- glmer(loss ~ local_lifeform*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, trt=='Drought'))
+loss_lifeform <- glmer(loss ~ functional_group*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, trt=='Drought'))
 Anova(loss_lifeform)
 
-loss_lifeform <- glmer(loss ~ trt*local_lifeform*pretrt + (1|site_code), family = binomial(), data = datLoss)
+loss_lifeform <- glmer(loss ~ trt*functional_group*pretrt + (1|site_code), family = binomial(), data = datLoss)
 Anova(loss_lifeform)
 
 plotlifeform<-datLoss %>% 
-  mutate(loss2=ifelse(local_lifeform=="Forb"&loss==0, 0.04, ifelse(local_lifeform=='Grass'&loss==0, 0.02, ifelse(local_lifeform=="Grass"&loss==1, 0.98, ifelse(local_lifeform=="Woody"&loss==1, 0.96, loss)))))
+  mutate(loss2=ifelse(functional_group=="Forb"&loss==0, 0.04, ifelse(functional_group=='Grass'&loss==0, 0.02, ifelse(functional_group=="Grass"&loss==1, 0.98, ifelse(functional_group=="Woody"&loss==1, 0.96, loss)))))
 
 #lifespan
 loss_lifespan <- glmer(loss ~ trt*local_lifespan*pretrt + (1|site_code), family = binomial(), data = subset(datLoss))
@@ -840,10 +838,10 @@ plotlifespan<-datLoss %>%
   mutate(loss2=ifelse(local_lifespan=="Annual"&loss==0, 0.02, ifelse(local_lifespan=='Perennial'&loss==1, 0.98, loss)))
 
 #nfixation
-loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Forb"))
+loss_Nfix <- glmer(loss ~ trt*N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Forb"))
 Anova(loss_Nfix)
 
-loss_Nfix <- glmer(loss ~ N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Forb"&trt=='Drought'))
+loss_Nfix <- glmer(loss ~ N.fixer*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Forb"&trt=='Drought'))
 Anova(loss_Nfix)
 
 plotnfix<-datLoss %>% 
@@ -851,73 +849,73 @@ plotnfix<-datLoss %>%
 
 #photosynthetic pathway
 
-loss_ps <- glmer(loss ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Grass"))
+loss_ps <- glmer(loss ~ trt*ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Grass"))
 Anova(loss_ps)
 
-loss_ps <- glmer(loss ~ ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, local_lifeform=="Grass"&trt=='Drought'))
+loss_ps <- glmer(loss ~ ps_path*pretrt + (1|site_code), family = binomial(), data = subset(datLoss, functional_group=="Grass"&trt=='Drought'))
 Anova(loss_ps)
 
 plotps<-datLoss %>% 
   mutate(loss2=ifelse(ps_path=="C3"&loss==0, 0.02, ifelse(ps_path=='C4'&loss==1, 0.98, loss)))
 
-####looking at broad fucntional categories. The model for all categories didn't converge, so I am focusing on annuals only.
-datLoss2<-datLoss %>% 
-  mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
-                    ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='N-fixer', 'N-fix. Forb',
-                           ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='Non-N-fixer', 'Non-N-fix. Forb',
-                                  ifelse(local_lifeform=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
-                                         ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C3', 'C3 Grass',
-                                                ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C4', 'C4 Grass',
-                                                       ifelse(local_lifeform=='Woody', 'Woody', 'ZZZ'))))))))
-
-# doing lifefrom/lifespan comparison 
-datLoss3<-datLoss %>% 
-  mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
-                    ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial', 'Peren. Forb',
-                    ifelse(local_lifeform=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
-                   ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial', 'Peren. Grass','ZZZ')))))
+# ####looking at broad fucntional categories. The model for all categories didn't converge, so I am focusing on annuals only.
+# datLoss2<-datLoss %>% 
+#   mutate(cat=ifelse(local_lifeform=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
+#                     ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='N-fixer', 'N-fix. Forb',
+#                            ifelse(local_lifeform=='Forb'&local_lifespan=='Perennial'&N.fixer=='Non-N-fixer', 'Non-N-fix. Forb',
+#                                   ifelse(local_lifeform=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
+#                                          ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C3', 'C3 Grass',
+#                                                 ifelse(local_lifeform=='Grass'&local_lifespan=='Perennial'&ps_path=='C4', 'C4 Grass',
+#                                                        ifelse(local_lifeform=='Woody', 'Woody', 'ZZZ'))))))))
 # 
-
-loss_cat <- glmer(loss ~ trt*cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2))
-Anova(loss_cat)
-
-loss_cat2 <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss3, trt=='Drought'&local_lifeform!='Woody'))
-Anova(loss_cat2)
-
-loss_Acat <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2, local_lifespan=='Annual'&local_lifeform!='Woody'&trt=='Drought'))
-#summary(loss_Acat)
-Anova(loss_Acat)
-
-plotcat<-datLoss2 %>% 
-  mutate(loss2=ifelse(cat=="Ann. Forb"&loss==0, 0.12, 
-               ifelse(cat=='C3 Grass'&loss==0, 0.08, 
-               ifelse(cat=='C3 Grass'&loss==1, 0.96, 
-               ifelse(cat=='C4 Grass'&loss==1, 0.94, 
-               ifelse(cat=='C4 Grass'&loss==0, 0.06, 
-               ifelse(cat=='N-fix. Forb'&loss==0, 0.04, 
-               ifelse(cat=='N-fix. Forb'&loss==1, 0.92, 
-               ifelse(cat=='Non-N-fix. Forb'&loss==0, 0.02, 
-               ifelse(cat=='Non-N-fix. Forb'&loss==1, 0.90,
-               ifelse(cat=='Woody'&loss==1, 0.88, 
-               ifelse(cat=='Ann. Grass'&loss==1, 0.98, 
-               ifelse(cat=='Ann. Grass'&loss==0, 0.10,loss)))))))))))))
+# # doing lifefrom/lifespan comparison
+# datLoss3<-datLoss %>%
+#   mutate(cat=ifelse(functional_group=='Forb'&local_lifespan=='Annual', 'Ann. Forb',
+#                     ifelse(functional_group=='Forb'&local_lifespan=='Perennial', 'Peren. Forb',
+#                     ifelse(functional_group=='Grass'&local_lifespan=='Annual', 'Ann. Grass',
+#                    ifelse(functional_group=='Grass'&local_lifespan=='Perennial', 'Peren. Grass','ZZZ')))))
+# #
+# 
+# loss_cat <- glmer(loss ~ trt*cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2))
+# Anova(loss_cat)
+# 
+# loss_cat2 <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss3, trt=='Drought'&functional_group!='Woody'))
+# Anova(loss_cat2)
+# 
+# loss_Acat <- glmer(loss ~ cat*pretrt + (1|site_code), family = binomial(), data = subset(datLoss2, local_lifespan=='Annual'&local_lifeform!='Woody'&trt=='Drought'))
+# #summary(loss_Acat)
+# Anova(loss_Acat)
+# 
+# plotcat<-datLoss2 %>%
+#   mutate(loss2=ifelse(cat=="Ann. Forb"&loss==0, 0.12,
+#                ifelse(cat=='C3 Grass'&loss==0, 0.08,
+#                ifelse(cat=='C3 Grass'&loss==1, 0.96,
+#                ifelse(cat=='C4 Grass'&loss==1, 0.94,
+#                ifelse(cat=='C4 Grass'&loss==0, 0.06,
+#                ifelse(cat=='N-fix. Forb'&loss==0, 0.04,
+#                ifelse(cat=='N-fix. Forb'&loss==1, 0.92,
+#                ifelse(cat=='Non-N-fix. Forb'&loss==0, 0.02,
+#                ifelse(cat=='Non-N-fix. Forb'&loss==1, 0.90,
+#                ifelse(cat=='Woody'&loss==1, 0.88,
+#                ifelse(cat=='Ann. Grass'&loss==1, 0.98,
+#                ifelse(cat=='Ann. Grass'&loss==0, 0.10,loss)))))))))))))
 
 ###checking pvalues
 
-pvalsTraits=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.00001, 0.046399 , 0.25425)) %>%
+pvalsTraits=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.00011, 0.2723 , 0.15187)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
 pvalsAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.00001, 0.000001, 0.00001, 0.00001)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
-pvalsTraitAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.9018    , 0.7635, 0.00834, 0.08777)) %>%
+pvalsTraitAbund=data.frame(measure=c('form', 'span', 'N', 'PS'), pvalue=c(0.8183, 0.4774, 0.005815, 0.06607)) %>%
   mutate(padj=p.adjust(pvalue, method="BY"))
 
 ###Figure 4 for loss probabilities-------------
 LF.Loss<-
-  ggplot(data=subset(plotlifeform, trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifeform))+
+  ggplot(data=subset(plotlifeform, trt=='Drought'), aes(x=pretrt, y=loss2, color=functional_group))+
   geom_point()+
-  scale_color_manual(name='', values=c('purple','green4', 'black'))+
+  scale_color_manual(name='', values=c('#E69F00','#56B4E9', '#000000'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha = 0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
   ggtitle('A) Lifeform')+
@@ -928,9 +926,9 @@ LF.Loss<-
 LF.Loss
 
 LS.loss<-
-  ggplot(data=subset(plotlifespan, local_lifeform!='Woody'&trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifespan))+
+  ggplot(data=subset(plotlifespan, functional_group!='Woody'&trt=='Drought'), aes(x=pretrt, y=loss2, color=local_lifespan))+
   geom_point()+
-  scale_color_manual(name='', values=c('cyan', 'skyblue4'),labels=c('Annual', 'Perennial'))+
+  scale_color_manual(name='', values=c('#009E73', '#F0C2E0'),labels=c('Annual', 'Perennial'))+
   ggtitle('B) Lifespan')+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
@@ -941,23 +939,23 @@ LS.loss<-
 LS.loss
 
 NFix.Loss<-
-  ggplot(data=subset(plotnfix, local_lifeform!='Grass'&trt=='Drought'), aes(x=pretrt, y=loss2, color=N.fixer))+
+  ggplot(data=subset(plotnfix, functional_group=='Forb'&trt=='Drought'), aes(x=pretrt, y=loss2, color=N.fixer))+
   geom_point()+
-  scale_color_manual(name='', values=c('orange', 'orange4'))+
+  scale_color_manual(name='', values=c('#0072B2', '#CC79A7'))+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
-  ggtitle('C) Nitrogen Fixation')+
+  ggtitle('C) Forb Nitrogen Fixation')+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top', plot.title = element_text(size=12))+
   #xlab("Pre-treatment Abundance")+
   #ylab("Loss Probability")+
   labs(x=NULL, y=NULL)+
-  annotate('text', y=0.8, x= Inf, label='Trait ns\nAbund *\nTr. x Ab. ns', size=3, hjust=1.2)
+  annotate('text', y=0.8, x= Inf, label='Trait ns\nAbund *\nTr. x Ab. *', size=3, hjust=1.2)
 NFix.Loss
 # 
 ps.Loss<-
-  ggplot(data=subset(plotps, local_lifeform=="Grass"&trt=='Drought'), aes(x=pretrt, y=loss2, color=ps_path))+
+  ggplot(data=subset(plotps, functional_group=="Grass"&trt=='Drought'), aes(x=pretrt, y=loss2, color=ps_path))+
   geom_point()+
-  scale_color_manual(name='', values=c('darkorchid1', 'darkorchid4'))+
-  ggtitle('d) Photosynthetic Pathway')+
+  scale_color_manual(name='', values=c('#D55E00', '#999999'))+
+  ggtitle('D) Grass Photosynthetic Pathway')+
   geom_smooth(aes(y=loss), method = 'glm', method.args=list(family='binomial'), alpha=0.1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = 'top',plot.title = element_text(size=12))+
   #xlab("Pre-treatment Abundance")+
@@ -1006,7 +1004,7 @@ lossfig<-
 lossfig
 
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfigDec25.jpg", plot=lossfig, units="in", width=11.5, height=4)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\lossfigJuly26.jpg", plot=lossfig, units="in", width=11.8, height=4)
 
 # Appendix Figures 2 and 3 ---------------------------
 ###pairs funtion to make panels
@@ -1084,8 +1082,8 @@ map <- ggplot() +
   geom_point(data = sites2, mapping = aes(x = longitud, y = latitud),
              pch = 21, 
              color = "black", 
-             size = 2, 
-             fill='darkgray') + 
+             size = 1.5, 
+             fill='black') + 
   scale_fill_paletteer_d(`"dutchmasters::milkmaid"`) +
   geom_jitter(position = "jitter") +
   theme_bw(base_size = 16) +
@@ -1135,7 +1133,7 @@ drtsev<-drt %>%
 hist4 <- ggplot() +
   geom_histogram(data = drtsev, binwidth = 0.1, mapping = aes(x = drtseverity), fill = "black", color = "antiquewhite") +
   theme_bw(base_size = 12) +
-  ylim(0, 60) +
+  ylim(0, 80) +
   labs(x = "Drought Severity", y = "")+
   scale_x_continuous(breaks = c(0, -0.5, -1))+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
@@ -1144,7 +1142,7 @@ hist4
 ggplot(data = drtsev, aes(x = drtseverity))+
   geom_histogram(binwidth = 0.1)
 
-mean(drtsev$drtseverity)
+mean(drtsev$drtseverity, na.rm=T)
 
 # Combine into one figure
 Fig1<- grid.arrange(map, hist1, hist2, hist3, hist4, nrow = 2, 
@@ -1161,7 +1159,9 @@ ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\MA
 RRRich<- as.data.table(RRall)[measure == "richness_change", ]
 RRLoss <- as.data.table(RRall)[measure == "losses", ]
 RRgains <- as.data.table(RRall)[measure == "gains", ]
-habitat <- unique(dat[, c(2,31)]) %>% 
+habitat <- dat |> 
+  select(site_code, habitat.type) |> 
+  unique() |> 
   mutate(habitat=ifelse(habitat.type %in% c('Forest', 'Forest understory'), 'Shrubland', habitat.type))
 
 # Separately for losses, gains and richness change
@@ -1253,7 +1253,13 @@ stitches_gains$metric <- "Species Gains"
 stitches_loss$metric <- "Species Losses"
 stitches_all <- rbind(stitches_Rich, stitches_gains)
 stitches_all <- rbind(stitches_all, stitches_loss)
-stitches_sites <- stitches_sites[, c(1:16)]
+
+order<-stitches_Rich |> 
+  select(site_code, mean) |> 
+  rename(richmean=mean)
+stitches_sites <- stitches_all |> 
+  left_join(order)
+  
 # stitches_sites <- stitches_sites %>%
 #   group_by(site_code) %>%
 #   summarise(mean_sev = mean(drtseverity.x), across()) %>%
@@ -1261,15 +1267,16 @@ stitches_sites <- stitches_sites[, c(1:16)]
 #   group_by(metric.x) %>%
 #   distinct(site_code, .keep_all = TRUE)
 
-stitches_sites$Sig.x[is.na(stitches_sites$Sig.x)] <- "FALSE"
+stitches_sites$Sig[is.na(stitches_sites$Sig)] <- "FALSE"
 
-SuppFig2 <-ggplot(stitches_sites, aes(x = mean.x, y=reorder(site_code, -mean.y))) +
-  facet_grid(~metric.x) +
+SuppFig2 <-ggplot(stitches_sites, aes(x = mean, y=reorder(site_code, -richmean))) +
+  facet_grid(~metric) +
+  geom_point(aes(color = habitat), size = 2) +
   geom_vline(xintercept=0,size=0.5,lty=2)+
-  geom_segment(aes(x=mean.x-CI.x,y=reorder(site_code, -mean.y),
-                   xend=mean.x+CI.x,yend=reorder(site_code, -mean.y), color = habitat.x,
-                   linetype = reorder(Sig.x, mean.x)),linewidth = 1, size=0.25)+
-  geom_point(aes(color = habitat.x), size = 2) +
+  geom_segment(aes(x=mean-CI,y=reorder(site_code, -mean),
+                   xend=mean+CI,yend=reorder(site_code, -mean), color = habitat,
+                   linetype = reorder(Sig, mean)),linewidth = 1, size=0.25)+
+  
   scale_color_manual(name="IDE Sites (n=88)",
                      values=c("mediumseagreen","rosybrown4"))+
   labs(x = "Difference (Drought - Control)", y="",
@@ -1278,13 +1285,7 @@ SuppFig2 <-ggplot(stitches_sites, aes(x = mean.x, y=reorder(site_code, -mean.y))
 
 SuppFig2
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Stitcher.jpeg", plot=SuppFig2, units="in", width=9, height=10)
-
-##mean changes over time for both treatments
-meanchange<-richchange %>% 
-  group_by(trt) %>% 
-  summarise(m=mean(RC), s=sd(RC), n=length(RC)) %>% 
-  mutate(se=s/sqrt(n))
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\Stitcher_July26.jpeg", plot=SuppFig2, units="in", width=9, height=10.5)
 
 ####getting numbers for poster
 trt<-dat3 %>% 
@@ -1316,7 +1317,7 @@ rich2<-rich %>%
   right_join(sites)
 
 mean(rich2$mean)
-sd(rich2$mean)/sqrt(88)
+sd(rich2$mean)/sqrt(97)
 median(rich2$mean)
 Mode <- function(x) {
   ux <- unique(x)
@@ -1329,9 +1330,9 @@ hist<-ggplot(data=rich2, aes(x=mean))+
   ylab('Count')+
   xlab('Change in Richness\n(last year of drought - pre drought)')+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
-  annotate('text', x=Inf, y=Inf, vjust=1.2, hjust=1.2, label='mean = -0.76\nmedian = -0.42\nmode = 0  ')
+  annotate('text', x=Inf, y=Inf, vjust=1.2, hjust=1.2, label='mean = -0.44\nmedian = -0.33\nmode = 0  ')
 
-ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\rich_histogram.jpeg", plot=hist, units="in", width=5, height=4)
+ggsave("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\Papers\\Community-comp_change\\rich_histogram_july26.jpeg", plot=hist, units="in", width=5, height=4)
 
 #stuff for an appendix
 # Calculate plot richness in year 0
@@ -1345,33 +1346,33 @@ plotrichness<-community_structure(df=rich_0, abundance.var = 'max_cover', replic
   summarize(mrich=mean(richness))
 # Table for trajectory analyses -------------------------------------------
 
-#table of trajectory analyes
-yr1<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_1_post_trajectory_summary.csv') %>% 
-  mutate(yr=1)
-yr2<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_2_post_trajectory_summary.csv') %>% 
-  mutate(yr=2)
-yr3<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_3_post_trajectory_summary.csv') %>% 
-  mutate(yr=3)
-yr4<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_4_post_trajectory_summary.csv') %>% 
-  mutate(yr=4)
-
-fortable<-yr1 %>% 
-  bind_rows(yr2, yr3, yr4) %>% 
-  group_by(site) %>% 
-  mutate(max=max(yr)) %>% 
-  filter(yr==max) %>% 
-  ungroup() %>% 
-  mutate(padj=p.adjust(P_Value, method="BH")) %>% 
-  dplyr::select(site, analysis_period, diff, Z_Score, P_Value,padj, analysis_period) %>% 
-  mutate(ZScore=round(Z_Score, 3), 
-         PVAdj=round(padj, 3))
-
-missing<-sites %>% 
-  left_join(fortable, join_by('site_code'=="site")) %>% 
-  left_join(sites2) %>% 
-  select(site_code, site_name, continent, country, analysis_period, diff, ZScore, P_Value, PVAdj)
-
-write.csv(missing, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper_dec25.csv', row.names = F)
+# #table of trajectory analyes
+# yr1<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_1_post_trajectory_summary.csv') %>% 
+#   mutate(yr=1)
+# yr2<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_2_post_trajectory_summary.csv') %>% 
+#   mutate(yr=2)
+# yr3<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_3_post_trajectory_summary.csv') %>% 
+#   mutate(yr=3)
+# yr4<-read.csv('C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\papers\\Community-comp_change\\pre_vs_year_4_post_trajectory_summary.csv') %>% 
+#   mutate(yr=4)
+# 
+# fortable<-yr1 %>% 
+#   bind_rows(yr2, yr3, yr4) %>% 
+#   group_by(site) %>% 
+#   mutate(max=max(yr)) %>% 
+#   filter(yr==max) %>% 
+#   ungroup() %>% 
+#   mutate(padj=p.adjust(P_Value, method="BY")) %>% 
+#   dplyr::select(site, analysis_period, diff, Z_Score, P_Value,padj, analysis_period) %>% 
+#   mutate(ZScore=round(Z_Score, 3), 
+#          PVAdj=round(padj, 3))
+# 
+# missing<-sites %>% 
+#   left_join(fortable, join_by('site_code'=="site")) %>% 
+#   left_join(sites2) %>% 
+#   select(site_code, site_name, continent, country, analysis_period, diff, ZScore, P_Value, PVAdj)
+# 
+# write.csv(missing, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper_July26.csv', row.names = F)
 
 
 #####doing permanova analyses
@@ -1409,7 +1410,13 @@ for (i in 1:length(sc)){
 
 permanova<-permanova %>% 
   rename(pval="Pr(>F)") %>% 
-  mutate(pajd=p.adjust(pval, method = 'BH'))
+  mutate(pajd=p.adjust(pval, method = 'BY'))
+
+export<-permanova |> 
+  left_join(sites2) |> 
+  select(site_code, site_name, continent, country, n_treat_year, `F`, pval, pajd)
+
+write.csv(export, 'C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed\\community_comp\\trajectory\\March 2024\\table for paper_July26_permanova.csv', row.names = F)
 
 #what are happenning at these 10 sites that have change, in terms of these metrics
 #make fig 2 for the 10 sites.

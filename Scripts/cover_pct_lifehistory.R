@@ -8,9 +8,10 @@ library(tidyverse)
 setwd("C:\\Users\\mavolio2\\Dropbox\\IDE (1)\\data_processed")
 setwd("E:Dropbox\\IDE (1)\\data_processed")
 
-dat<-read.csv("cover_ppt_2024-12-16.csv") %>% 
+dat<-read.csv("cover_ppt_2026-03-27.csv") %>% 
+  select(-cover_survey_comments) |> 
   mutate(replicate=paste(block, plot, subplot, sep="::"),
-         lifeform2=ifelse(local_lifeform=="GRAMINOID"|local_lifeform=="Grass", "GRASS", local_lifeform))
+         lifeform2=ifelse(functional_group=="GRAMINOID"|functional_group=="Grass", "GRASS", functional_group))
 
 
 # Calculating by plots in year 0 only -------------------------------------
@@ -34,7 +35,7 @@ pctLifeForm<-dat2 %>%
   group_by(site_code, replicate, lifeform2) %>% 
   summarize(sum=sum(max_cover)) %>% 
   pivot_wider(names_from = lifeform2, values_from = sum, values_fill = 0) %>% 
-  pivot_longer(FORB:MOSS, names_to = "lifeform2", values_to="sum") %>% 
+  pivot_longer(FORB:PALM, names_to = "lifeform2", values_to="sum") %>% 
   filter(lifeform2=="GRASS") %>% 
   left_join(totalcover) %>% 
   mutate(PGrass=(sum/tot)*100) %>% 
@@ -43,7 +44,7 @@ pctLifeForm<-dat2 %>%
 
 test<-dat2 %>% 
   filter(lifeform2=="Grass") %>% 
-  select(site_code, Taxon, local_lifeform, local_lifespan, local_provenance, N.fixer, ps_path, functional_group) %>% 
+  select(site_code, Taxon, functional_group, local_lifespan, local_provenance, N.fixer, ps_path, functional_group) %>% 
   unique()
 
 pctLifehistory<-dat2 %>% 
@@ -59,7 +60,7 @@ pctLifehistory<-dat2 %>%
   summarize(PctAnnual=mean(PAnn)) %>% 
   full_join(pctLifeForm)
 
-write.csv(pctLifehistory, "community_comp\\Prc_LifeHistory_Oct2023.csv", row.names=F)
+write.csv(pctLifehistory, "community_comp\\Prc_LifeHistory_July2026.csv", row.names=F)
 
 
 # Calculating for controls over all years ---------------------------------
@@ -84,7 +85,7 @@ pctLifeForm_contorl<-datControl %>%
   group_by(site_code, replicate, lifeform2) %>% 
   summarize(sum=sum(max_cover)) %>% 
   pivot_wider(names_from = lifeform2, values_from = sum, values_fill = 0) %>% 
-  pivot_longer(FORB:MOSS, names_to = "lifeform2", values_to="sum") %>% 
+  pivot_longer(FORB:PALM, names_to = "lifeform2", values_to="sum") %>% 
   filter(lifeform2=="GRASS") %>% 
   left_join(totalcover_control) %>% 
   mutate(PGrass=(sum/tot)*100) %>% 
@@ -103,7 +104,7 @@ pctLifehistory_control<-datControl %>%
   summarize(PctAnnual=mean(PAnn)) %>% 
   full_join(pctLifeForm_contorl)
 
-write.csv(pctLifehistory_control, "community_comp\\Prc_LifeHistory_Controls_Dec24.csv", row.names=F)
+write.csv(pctLifehistory_control, "community_comp\\Prc_LifeHistory_Controls_July2026.csv", row.names=F)
 
 
 
