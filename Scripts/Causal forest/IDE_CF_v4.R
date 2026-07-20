@@ -543,41 +543,98 @@ ggsave(
 )
 
 # Explaining all CATEs globally
-ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
-shap_values <- shapviz(ks)
+# Number of bootstrap iterations (start low for speed, increase for publication)
+n_boot <- 20 # change to higher (100?)
 
-shap_imp <- sv_importance(shap_values, kind = "bar", plot = FALSE)
+library(future)
+library(furrr)
+parallel::detectCores()
+# Set up parallel backend — uses all available cores minus 1
+plan(multisession, workers = parallel::detectCores() - 1)
 
-#shap_df <- shap_imp$data %>%
-#  dplyr::select(variable, value = importance) %>%
-#  mutate(
-#    moderator = recode(variable, !!!var_key)
-#  ) %>%
-#  filter(!is.na(moderator))
-
-shap_df <- shap_imp$data %>%
-  mutate(
-    moderator = recode(feature, !!!var_key)
-  ) %>%
-  filter(!is.na(moderator)) %>%
-  dplyr::rename(
-    variable = feature
+# Bootstrap SHAP values in parallel
+shap_boot <- furrr::future_map_dfr(1:n_boot, function(b) {
+  
+  boot_idx <- sample(1:nrow(X), replace = TRUE)
+  X_boot   <- X[boot_idx, ]
+  
+  ks_boot <- tryCatch(
+    kernelshap(eval.forest, X = X_boot, pred_fun = pred_fun),
+    error = function(e) NULL
   )
+  
+  if (is.null(ks_boot)) return(NULL)
+  
+  shap_boot_vals <- shapviz(ks_boot)
+  
+  purrr::map_dfr(colnames(X), function(v) {
+    shap_mat <- shap_boot_vals$S
+    tibble(
+      variable = v,
+      x        = X_boot[[v]],
+      shap     = shap_mat[, v],
+      boot     = b
+    )
+  })
+}, .options = furrr_options(seed = 100))
 
-p_shap <- ggplot(shap_df, aes(x = reorder(moderator, value), y = value)) +
-  geom_col(fill = "grey40") +
-  coord_flip() +
-  labs(x = NULL, y = "SHAP importance value") +
-  theme_base()
+# When done, return to sequential processing
+plan(sequential)
 
+# Summarize bootstrap distribution across a grid for each variable
+shap_ci <- shap_boot %>%
+  group_by(variable) %>%
+  group_split() %>%
+  purrr::map_dfr(function(df) {
+    
+    # Create grid across observed range
+    grid_vals <- seq(
+      min(df$x, na.rm = TRUE),
+      max(df$x, na.rm = TRUE),
+      length.out = 50
+    )
+    
+    # Bin observations to grid points
+    df %>%
+      mutate(x_bin = grid_vals[findInterval(x, grid_vals, all.inside = TRUE)]) %>%
+      group_by(variable, x_bin, boot) %>%
+      dplyr::summarize(shap_mean = mean(shap, na.rm = TRUE), .groups = "drop") %>%
+      group_by(variable, x_bin) %>%
+      dplyr::summarize(
+        estimate = mean(shap_mean),
+        se       = sd(shap_mean),
+        lower    = estimate - se,
+        upper    = estimate + se,
+        .groups  = "drop"
+      ) %>%
+      rename(x = x_bin)
+  }) %>%
+  mutate(label = recode(variable, !!!var_key))
 
+# Plot SHAP dependence with confidence bands
+shap_dep_plots <- shap_ci %>%
+  group_by(variable) %>%
+  group_split() %>%
+  purrr::map(function(df) {
+    ggplot(df, aes(x = x, y = estimate)) +
+      geom_ribbon(aes(ymin = lower, ymax = upper),
+                  fill = "grey70", alpha = 0.4) +
+      geom_line(linewidth = 0.7, colour = "grey20") +
+      geom_hline(yintercept = 0, linetype = "dashed",
+                 colour = "grey50", linewidth = 0.4) +
+      labs(
+        x     = unique(df$label),
+        y     = "SHAP value",
+        title = NULL
+      ) +
+      theme(
+        panel.background = element_rect(fill = "white", colour = "grey50"),
+        axis.title       = element_text(size = 8),
+        axis.text        = element_text(size = 7)
+      )
+  })
 
-sv_dependence(shap_values, v = names(X)[1:10], color_var = NULL, jitter_width = 0.001) +
-  plot_layout(ncol = 5) &
-  ylim(c(-6, 6))&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
-  theme(strip.text = element_blank())
-
+wrap_plots(shap_dep_plots, ncol = 5)
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shappredictions_kitchensink.pdf",
         plot = last_plot(),
