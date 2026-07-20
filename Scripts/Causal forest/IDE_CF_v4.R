@@ -546,40 +546,37 @@ ggsave(
 # Number of bootstrap iterations (start low for speed, increase for publication)
 n_boot <- 20 # change to higher (100?)
 
-library(future)
-library(furrr)
-parallel::detectCores()
-# Set up parallel backend — uses all available cores minus 1
-plan(multisession, workers = parallel::detectCores() - 1)
+library(parallel)
 
-# Bootstrap SHAP values in parallel
-shap_boot <- furrr::future_map_dfr(1:n_boot, function(b) {
-  
+# Set up cluster
+cl <- makeCluster(parallel::detectCores() - 1)
+clusterExport(cl, c("X", "eval.forest", "pred_fun", "var_key"))
+clusterEvalQ(cl, {
+  library(kernelshap)
+  library(shapviz)
+  library(tidyverse)
+})
+
+# Run bootstrap in parallel
+shap_boot <- parLapply(cl, 1:n_boot, function(b) {
   boot_idx <- sample(1:nrow(X), replace = TRUE)
   X_boot   <- X[boot_idx, ]
-  
-  ks_boot <- tryCatch(
+  ks_boot  <- tryCatch(
     kernelshap(eval.forest, X = X_boot, pred_fun = pred_fun),
     error = function(e) NULL
   )
-  
   if (is.null(ks_boot)) return(NULL)
-  
   shap_boot_vals <- shapviz(ks_boot)
-  
   purrr::map_dfr(colnames(X), function(v) {
     shap_mat <- shap_boot_vals$S
-    tibble(
-      variable = v,
-      x        = X_boot[[v]],
-      shap     = shap_mat[, v],
-      boot     = b
-    )
+    tibble(variable = v, x = X_boot[[v]], shap = shap_mat[, v], boot = b)
   })
-}, .options = furrr_options(seed = 100))
+})
 
-# When done, return to sequential processing
-plan(sequential)
+stopCluster(cl)
+
+# Bind results
+shap_boot <- bind_rows(shap_boot)
 
 # Summarize bootstrap distribution across a grid for each variable
 shap_ci <- shap_boot %>%
