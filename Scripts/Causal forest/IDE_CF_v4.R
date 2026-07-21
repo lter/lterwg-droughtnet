@@ -548,16 +548,27 @@ n_boot <- 20 # change to higher (100?)
 
 library(parallel)
 
-# Set up cluster
+# Stop any existing cluster first
+try(stopCluster(cl), silent = TRUE)
+
+# Rebuild cluster
 cl <- makeCluster(parallel::detectCores() - 1)
-clusterExport(cl, c("X", "eval.forest", "pred_fun", "var_key"))
+
+# Export everything the workers will need
+clusterExport(cl, c("X", "eval.forest", "pred_fun", "n_boot"))
+
+# Load packages on each worker
 clusterEvalQ(cl, {
   library(kernelshap)
   library(shapviz)
   library(tidyverse)
+  library(grf)
 })
 
-# Run bootstrap in parallel
+# Test that workers are working before running bootstrap
+clusterEvalQ(cl, "hello")
+
+# Now run bootstrap
 shap_boot <- parLapply(cl, 1:n_boot, function(b) {
   boot_idx <- sample(1:nrow(X), replace = TRUE)
   X_boot   <- X[boot_idx, ]
@@ -575,9 +586,7 @@ shap_boot <- parLapply(cl, 1:n_boot, function(b) {
 
 stopCluster(cl)
 
-# Bind results
 shap_boot <- bind_rows(shap_boot)
-
 # Summarize bootstrap distribution across a grid for each variable
 shap_ci <- shap_boot %>%
   group_by(variable) %>%
