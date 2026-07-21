@@ -544,7 +544,7 @@ ggsave(
 
 # Explaining all CATEs globally
 # Number of bootstrap iterations (start low for speed, increase for publication)
-n_boot <- 20 # change to higher (100?)
+n_boot <- 3 # change to higher (100?)
 
 library(parallel)
 
@@ -552,7 +552,7 @@ library(parallel)
 try(stopCluster(cl), silent = TRUE)
 
 # Rebuild cluster
-cl <- makeCluster(parallel::detectCores() - 1)
+cl <- makeCluster(parallel::detectCores() - 2)
 
 # Export everything the workers will need
 clusterExport(cl, c("X", "eval.forest", "pred_fun", "n_boot"))
