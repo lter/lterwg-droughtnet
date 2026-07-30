@@ -854,6 +854,29 @@ ggplot(pd_df, aes(
 sv_importance(shap_values, kind = "bee")
 
 
+
+
+
+keep <- !is.na(X$ave.evenness)
+X_clean <- X[keep, ]
+by_var <- as.numeric(X_clean$ave.evenness > 0.12)
+
+pd <- partial_dep(
+  eval.forest,
+  v = "MAP",
+  X = X_clean,
+  BY = by_var,
+  by_size = 2L,
+  pred_fun = pred_fun
+)
+
+pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low evenness (0-0.3)", "High evenness (0.3-1)"))
+
+plot(pd) &
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
+  theme(strip.text = element_text())
+
+
 #############################################
 ###########mixed effects regressions
 
