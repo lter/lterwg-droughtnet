@@ -40,6 +40,10 @@ anpp.mean <- data.anpp%>%
   ddply(.(site_code, year),function(x)data.frame(mass = mean(x$mass)))%>% #summarizes controls for each year
   ddply(.(site_code),function(x)data.frame(mean.mass = mean(x$mass), n_years = length(x$mass)))#summarizes controls across years
 
+prop <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/community_comp/Prc_LifeHistory_Controls_Oct2023.csv")
+
+site_richness <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/site_ave_richness.csv")
+
 
 
 #Only using sites with >= 2 reps for drought and >=1 rep for control
@@ -375,7 +379,9 @@ eval.forest <- causal_forest(X, Y, W,
                              clusters      = as.factor(te1$site_code),
                              sample.weights = site_counts,
                              num.trees     = 2000,
-                             tune.parameters = "all")#change to 10,000 for publication 2000
+                             tune.parameters = c("sample.fraction", "mtry",
+                                                 "min.node.size", "alpha",
+                                                 "imbalance.penalty"))#change to 10,000 for publication 2000
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
@@ -417,7 +423,7 @@ plot(rate)
 paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
 test_calibration(eval.forest) #A coefficient of 1 for mean.forest.prediction suggests that the mean forest prediction is correct and a coefficient of 1 for differential.forest.prediction suggests that the forest has captured heterogeneity in the underlying signal.
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TOC_kitchensink.pdf",
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TOC_top.pdf",
         plot = get_last_plot(),
         device = "pdf",
         path = NULL,
@@ -459,7 +465,7 @@ wrap_plots(pdps, guides = "collect", ncol = 5) &
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink.pdf",
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_top.pdf",
         plot = last_plot(),
         device = "pdf",
         path = NULL,
@@ -536,7 +542,7 @@ pdp_plots <- pdp_data %>%
 wrap_plots(pdp_plots, ncol = 5)
 
 ggsave(
-  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink1.pdf",
+  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_top1.pdf",
   plot   = last_plot(),
   device = "pdf",
   width  = 13, height = 6, units = "in", dpi = 600
@@ -642,7 +648,7 @@ shap_dep_plots <- shap_ci %>%
 
 wrap_plots(shap_dep_plots, ncol = 5)
 
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shappredictions_kitchensink.pdf",
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shappredictions_top.pdf",
         plot = last_plot(),
         device = "pdf",
         path = NULL,
@@ -1584,4 +1590,146 @@ ggsave(
   width = 15,
   height = 4,
   dpi = 600
+)
+
+
+##################################
+########real kitchen sink
+
+######################################
+#######Moderators: kitchen sink approach
+te1 <- te%>%
+  left_join(climate, by = "site_code")%>%
+  left_join(prop, by = "site_code")%>%
+  left_join(soil, by = "site_code")%>%
+  left_join(site_richness, by = "site_code")%>%
+  left_join(sand.df, by = "site_code")%>%
+  left_join(comm, by = "site_code")
+
+
+
+Y <- te1$ANPP
+W <- te1%>%
+  ungroup()%>%
+  mutate(trt_num = ifelse(trt=="Control", 0, 1))%>%
+  pull(trt_num)
+#W <- dist.anpp$relprecip.1
+#X <- dist.anpp%>%
+#  ungroup()%>%
+#  dplyr::select(relprecip.1,relprecip.2,relprecip.3,relprecip.4)
+X <- te1%>%
+  ungroup()%>%
+  dplyr::select(ppt_max_event, ppt_mean_event, days_half_ppt, daily_ppt_d, n_wet_days, avg_dryspell_length, ppt_95th_percentile_size, MAP, cv_ppt_intra, cv_ppt_inter, yearly_ppt_d, seasonality_index, aridity_index, r_monthly_t_p, MAT, PctAnnual, PctGrass,
+                ph, no3, p, k, zn, fe, mn, cu, silt, clay, c, n, c_n, mean_sr, sand_0_5cm, sand_0_15cm, sand_0_30cm, sand_0_60cm, sand_0_60cm_weighted, soc_0_5cm, soc_0_15cm, soc_0_30cm, soc_0_60cm, soc_0_60cm_weighted, n_0_5cm, n_0_15cm, n_0_30cm, n_0_60cm, n_0_60cm_weighted, percent_graminoid, percent_c4, ave.richness, ave.evenness) #put just the moderators you're testing here
+
+
+
+
+# Compute per-row weights: each site gets total weight of 1
+site_counts <- te1 %>%
+  add_count(site_code, name = "site_n") %>%
+  mutate(w = 1 / site_n) %>%
+  pull(w)
+
+eval.forest <- causal_forest(X, Y, W,
+                             clusters      = as.factor(te1$site_code),
+                             sample.weights = site_counts,
+                             num.trees     = 2000,
+                             tune.num.trees = 10000,
+                             tune.parameters = c("sample.fraction", "mtry",
+                                                 "min.node.size", "alpha",
+                                                 "imbalance.penalty"))#change to 10,000 for publication 2000
+
+average_treatment_effect(eval.forest)
+#  estimate    std.err 
+#-27.745905   5.352455 
+
+#________________
+# Fit a separate model for baseline ANPP (outcome nuisance)
+Y.hat <- predict(regression_forest(X, Y, num.trees = 2000))$predictions
+
+# Fit a separate model for treatment propensity
+W.hat <- predict(regression_forest(X, W, num.trees = 2000))$predictions
+
+# Now pass these into causal forest
+eval.forest <- causal_forest(X, Y, W,
+                             Y.hat = Y.hat,
+                             W.hat = W.hat,
+                             clusters = as.factor(te1$site_code),
+                             sample.weights = site_counts,
+                             num.trees = 10000,
+                             min.node.size  = 10#,
+                             #tune.parameters = "all"
+)
+#___________________
+
+
+
+
+
+
+
+varimp <- variable_importance(eval.forest)
+ranked.vars <- order(varimp, decreasing = TRUE)
+colnames(X)[ranked.vars[1:10]]
+#"sand_0_60cm_weighted" "percent_graminoid"   "ave.richness"         "seasonality_index"    "soc_0_60cm_weighted"  "ave.evenness"    "cv_ppt_inter"         "MAP"                 "n_0_15cm"             "aridity_index"        
+
+rate <- rank_average_treatment_effect(eval.forest,
+                                      predict(eval.forest, X)$predictions)
+plot(rate)
+paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
+test_calibration(eval.forest) #A coefficient of 1 for mean.forest.prediction suggests that the mean forest prediction is correct and a coefficient of 1 for differential.forest.prediction suggests that the forest has captured heterogeneity in the underlying signal.
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TOC_kitchensink.pdf",
+        plot = get_last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 4,
+        height = 3,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
+
+varimp_df <- tibble(
+  variable = names(imp),
+  value = as.numeric(imp)
+) %>%
+  mutate(
+    moderator = recode(variable, !!!var_key)
+  ) %>%
+  filter(!is.na(moderator))
+
+p_varimp <- ggplot(varimp_df, aes(x = reorder(moderator, value), y = value)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "Split-based variable importance") +
+  theme_base()
+
+
+pred_fun <- function(object, newdata, ...) {
+  predict(object, newdata, ...)$predictions
+}
+pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
+)))
+wrap_plots(pdps, guides = "collect", ncol = 5) &
+  ylim(c(-33,-22)) &
+  ylab("Treatment effect of drought on ANPP (g/m2)")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 13,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
 )
