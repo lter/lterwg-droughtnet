@@ -27,7 +27,8 @@ data.anpp <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/anpp_ppt_2026-0
   mutate(n_treat_years = ifelse(site_code == "allmendo.ch" & n_treat_days == 197, 1, n_treat_years))%>%
   mutate(n_treat_years = ifelse(site_code == "allmendb.ch" & n_treat_days == 197, 1, n_treat_years))%>%
   mutate(n_treat_years = ifelse(site_code == "torla.es" & n_treat_days == 195, 1, n_treat_years))%>%
-  subset(n_treat_years >=1 & n_treat_years <= 4)
+  subset(n_treat_years >=1 & n_treat_years <= 4
+  )
 
 length(unique(data.anpp$site_code)) #121
 
@@ -163,15 +164,6 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/treatment_ef
 
 ###############################
 #######################################################################
-###Causal forest for moderators
-##FIRST JUST THE TOP 5 RATED MODERATORS
-
-##Top 5-rankd moderators from survey
-#map
-#Seasonality
-#       Richness
-#species composition(pre-treatment) 
-#soil texture
 
 #First step, merge in moderators
 climate <- read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/climate/climate_mean_annual_by_site_v4.csv")
@@ -198,7 +190,7 @@ te1 <- te%>%
   #left_join(site_richness, by = "site_code")%>%
   left_join(sand.df, by = "site_code")%>%
   left_join(comm, by = "site_code")#%>%
-  #left_join(drt.sev, by = c("site_code", "n_treat_years"))
+#left_join(drt.sev, by = c("site_code", "n_treat_years"))
 
 
 
@@ -223,123 +215,6 @@ length(unique(subset(te1, n > -1)$site_code))
 length(unique(subset(te1, cv_ppt_inter > -1)$site_code))
 length(unique(subset(te1, aridity_index > -1)$site_code))
 length(unique(subset(te1, soc_0_60cm_weighted > -1)$site_code))
-
-
-
-#eval.forest <- causal_forest(X, Y, W, clusters = as.factor(te1$site_code),
-#                             num.trees = 10000)
-#tau.hat.eval <- predict(eval.forest, X)$predictions
-
-#average_treatment_effect(eval.forest)
-#  estimate    std.err 
-#-27.745905   5.352455 
-
-#varimp <- variable_importance(eval.forest)
-#ranked.vars <- order(varimp, decreasing = TRUE)
-#colnames(X)[ranked.vars[1:5]]
-##"sand_0_60cm_weighted" "seasonality_index" "ave.richness"         "ave.evenness"  "MAP"               
-
-#rate <- rank_average_treatment_effect(eval.forest,
-#                                      predict(eval.forest, X)$predictions)
-#as.ggplot(~plot(rate))
-#paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
-
-
-#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TOC.pdf",
-#        plot = get_last_plot(),
-#        device = "pdf",
-#        path = NULL,
-#        scale = 1,
-#        width = 4,
-#        height = 3,
-#        units = c("in"),
-#        dpi = 600,
-#        limitsize = TRUE
-#)
-
-
-#imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
-
-#ggplot(rownames_to_column(data.frame(imp))%>%dplyr::mutate(rowname = dplyr::recode(rowname, MAP = "Mean annual precipitation", sand_mean = "Mean sand content", seasonality_index = "Seasonality", mean_sr = "Species richness", Domcover = "Cover of dominant species"))
-#       ,aes(fct_reorder(rowname,imp),imp))+
-#  geom_bar(stat="identity")+
-#  coord_flip()+
-#  ylab("Variable Importance")+
-#  xlab("")+
-#  theme_base()
-
-#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderators_variable-importance.pdf",
-#        plot = last_plot(),
-#        device = "pdf",
-#        path = NULL,
-#        scale = 1,
-#        width = 6,
-#        height = 3,
-#        units = c("in"),
-#        dpi = 600,
-#        limitsize = TRUE
-#)
-
-
-#pred_fun <- function(object, newdata, ...) {
-#  predict(object, newdata, ...)$predictions
-#}
-#pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
-#)))
-
-#wrap_plots(pdps, guides = "collect", ncol = 3) &
-#  ylim(c(-36,-23)) &
-#  ylab("Treatment effect")&
-#  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
-
-
-#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions.pdf",
-#        plot = last_plot(),
-#        device = "pdf",
-#        path = NULL,
-#        scale = 1,
-#        width = 8,
-#        height = 6,
-#        units = c("in"),
-#        dpi = 600,
-#        limitsize = TRUE
-#)
-
-
-# Explaining all CATEs globally
-#ks <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)  
-#shap_values <- shapviz(ks)
-#sv_importance(shap_values)&
-#  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
-
-#ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shap.pdf",
-#        plot = last_plot(),
-#        device = "pdf",
-#        path = NULL,
-#        scale = 1,
-#        width = 5,
-#        height = 4,
-#        units = c("in"),
-#        dpi = 600,
-#        limitsize = TRUE
-#)
-
-
-#sv_dependence(shap_values, v = names(X)[1:5], color_var = NULL, jitter_width = 0.01) +
-#  plot_layout(ncol = 3)# &
-  #ylim(c(-20, 6))
-
-#H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
-#plot(H)
-#sv_importance(shap_values, kind = "bee")
-
-
-
-
-#plot_list <- lapply(names(X)[1:5], shap.plot.dependence, data_long = prep)
-
-
-
 
 
 ######################################
@@ -378,44 +253,17 @@ site_counts <- te1 %>%
 eval.forest <- causal_forest(X, Y, W,
                              clusters      = as.factor(te1$site_code),
                              sample.weights = site_counts,
-                             num.trees     = 2000,
-                             tune.parameters = c("sample.fraction", "mtry",
-                                                 "min.node.size", "alpha",
-                                                 "imbalance.penalty"))#change to 10,000 for publication 2000
+                             num.trees     = 2000)#change to 10,000 for publication 2000
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
-#-27.745905   5.352455 
-
-#________________
-# Fit a separate model for baseline ANPP (outcome nuisance)
-Y.hat <- predict(regression_forest(X, Y, num.trees = 2000))$predictions
-
-# Fit a separate model for treatment propensity
-W.hat <- predict(regression_forest(X, W, num.trees = 2000))$predictions
-
-# Now pass these into causal forest
-eval.forest <- causal_forest(X, Y, W,
-                             Y.hat = Y.hat,
-                             W.hat = W.hat,
-                             clusters = as.factor(te1$site_code),
-                             sample.weights = site_counts,
-                             num.trees = 10000,
-                             min.node.size  = 10#,
-                             #tune.parameters = "all"
-                             )
-#___________________
-
-
-
-
-
+#-25.175261   5.146604  
 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X)[ranked.vars[1:10]]
-#"sand_0_60cm_weighted" "percent_graminoid"   "ave.richness"         "seasonality_index"    "soc_0_60cm_weighted"  "ave.evenness"    "cv_ppt_inter"         "MAP"                 "n_0_15cm"             "aridity_index"        
+# "sand_0_60cm_weighted" "seasonality_index"    "soc_0_60cm_weighted"  "percent_graminoid"   "ave.evenness"         "n"                    "ave.richness"         "MAP"                 "cv_ppt_inter"         "aridity_index"        
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
@@ -548,105 +396,71 @@ ggsave(
   width  = 13, height = 6, units = "in", dpi = 600
 )
 
-# Explaining all CATEs globally
-# Number of bootstrap iterations (start low for speed, increase for publication)
-n_boot <- 3 # change to higher (100?)
 
-library(parallel)
 
-# Stop any existing cluster first
-try(stopCluster(cl), silent = TRUE)
-
-# Rebuild cluster
-cl <- makeCluster(parallel::detectCores() - 2)
-
-# Export everything the workers will need
-clusterExport(cl, c("X", "eval.forest", "pred_fun", "n_boot"))
-
-# Load packages on each worker
-clusterEvalQ(cl, {
-  library(kernelshap)
-  library(shapviz)
-  library(tidyverse)
-  library(grf)
-})
-
-# Test that workers are working before running bootstrap
-clusterEvalQ(cl, "hello")
-
-# Now run bootstrap
-shap_boot <- parLapply(cl, 1:n_boot, function(b) {
-  boot_idx <- sample(1:nrow(X), replace = TRUE)
-  X_boot   <- X[boot_idx, ]
-  ks_boot  <- tryCatch(
-    kernelshap(eval.forest, X = X_boot, pred_fun = pred_fun),
-    error = function(e) NULL
-  )
-  if (is.null(ks_boot)) return(NULL)
-  shap_boot_vals <- shapviz(ks_boot)
-  purrr::map_dfr(colnames(X), function(v) {
-    shap_mat <- shap_boot_vals$S
-    tibble(variable = v, x = X_boot[[v]], shap = shap_mat[, v], boot = b)
-  })
-})
-
-stopCluster(cl)
-
-shap_boot <- bind_rows(shap_boot)
-# Summarize bootstrap distribution across a grid for each variable
-shap_ci <- shap_boot %>%
-  group_by(variable) %>%
-  group_split() %>%
-  purrr::map_dfr(function(df) {
+pdp_with_spread <- function(forest, focal_var, X, n_grid = 50) {
+  
+  grid_vals <- seq(min(X[[focal_var]], na.rm = TRUE),
+                   max(X[[focal_var]], na.rm = TRUE),
+                   length.out = n_grid)
+  
+  purrr::map_dfr(grid_vals, function(g) {
+    # Take the real data, overwrite ONLY the focal column with g
+    nd <- X
+    nd[[focal_var]] <- g
+    cate <- predict(forest, newdata = nd)$predictions   # one CATE per site-row
     
-    # Create grid across observed range
-    grid_vals <- seq(
-      min(df$x, na.rm = TRUE),
-      max(df$x, na.rm = TRUE),
-      length.out = 50
+    tibble(
+      x        = g,
+      estimate = mean(cate),                    # marginal PDP line
+      lower    = quantile(cate, 0.10, names = FALSE),
+      upper    = quantile(cate, 0.90, names = FALSE),
+      q25      = quantile(cate, 0.25, names = FALSE),
+      q75      = quantile(cate, 0.75, names = FALSE),
+      variable = focal_var
     )
-    
-    # Bin observations to grid points
-    df %>%
-      mutate(x_bin = grid_vals[findInterval(x, grid_vals, all.inside = TRUE)]) %>%
-      group_by(variable, x_bin, boot) %>%
-      dplyr::summarize(shap_mean = mean(shap, na.rm = TRUE), .groups = "drop") %>%
-      group_by(variable, x_bin) %>%
-      dplyr::summarize(
-        estimate = mean(shap_mean),
-        se       = sd(shap_mean),
-        lower    = estimate - se,
-        upper    = estimate + se,
-        .groups  = "drop"
-      ) %>%
-      rename(x = x_bin)
-  }) %>%
+  })
+}
+
+pdp_spread_data <- purrr::map_dfr(colnames(X), pdp_with_spread,
+                                  forest = eval.forest, X = X) %>%
   mutate(label = recode(variable, !!!var_key))
 
-# Plot SHAP dependence with confidence bands
-shap_dep_plots <- shap_ci %>%
-  group_by(variable) %>%
-  group_split() %>%
+
+pdp_spread_plots <- pdp_spread_data %>%
+  group_by(variable) %>% group_split() %>%
   purrr::map(function(df) {
     ggplot(df, aes(x = x, y = estimate)) +
-      geom_ribbon(aes(ymin = lower, ymax = upper),
-                  fill = "grey70", alpha = 0.4) +
-      geom_line(linewidth = 0.7, colour = "grey20") +
-      geom_hline(yintercept = 0, linetype = "dashed",
-                 colour = "grey50", linewidth = 0.4) +
-      labs(
-        x     = unique(df$label),
-        y     = "SHAP value",
-        title = NULL
-      ) +
-      theme(
-        panel.background = element_rect(fill = "white", colour = "grey50"),
-        axis.title       = element_text(size = 8),
-        axis.text        = element_text(size = 7)
-      )
+      geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95", alpha = 0.5) +
+      geom_ribbon(aes(ymin = q25,   ymax = q75),   fill = "grey75", alpha = 0.5) +
+      geom_line(linewidth = 0.7, colour = "grey15") +
+      geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+      labs(x = unique(df$label),
+           y = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)") +
+      theme(panel.background = element_rect(fill = "white", colour = "grey50"),
+            axis.title = element_text(size = 8), axis.text = element_text(size = 7))
   })
 
-wrap_plots(shap_dep_plots, ncol = 5)
+wrap_plots(pdp_spread_plots, ncol = 5)
+
+
+ggsave(
+  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_topquantiles.pdf",
+  plot   = last_plot(),
+  device = "pdf",
+  width  = 13, height = 6, units = "in", dpi = 600
+)
+
+
+pred_fun <- function(object, newdata, ...) {
+  predict(object, newdata, ...)$predictions
+}
+pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
+)))
+wrap_plots(pdps, guides = "collect", ncol = 5) &
+  ylim(c(-33,-22)) &
+  ylab("Treatment effect of drought on ANPP (g/m2)")&
+  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shappredictions_top.pdf",
         plot = last_plot(),
@@ -857,7 +671,7 @@ ggplot(pd_df, aes(
     panel.background = element_rect(fill = "white", colour = "grey50")
   )
 
-sv_importance(shap_values, kind = "bee")
+#sv_importance(shap_values, kind = "bee")
 
 
 
@@ -1135,6 +949,8 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_GA
 # subsampling with half the data per tree
 # # vars to try per split: min(ceiling(sqrt(ncol(X)) + 20), ncol(X))
 
+mtry_val <- min(ceiling(sqrt(ncol(X)) + 20), ncol(X))
+
 # s-learner
 sl.data = cbind(Y, W, X)
 sl.predvars = colnames(sl.data)[-1]
@@ -1142,7 +958,7 @@ sl.form = as.formula(paste0("Y ~ ", paste(sl.predvars, collapse=" + ")))
 sl.mod = ranger(sl.form,
                 data=sl.data, 
                 num.trees=2000, #change to 10,000 for publication
-                mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                mtry=mtry_val,
                 replace=F,
                 sample.fraction=0.5)
 
@@ -1150,7 +966,7 @@ sl.mod = ranger(sl.form,
 # once with treatment = 1, once with treatment = 0, and subtract.
 
 sl_te_pred = function(mod, newX) {
-  tmp.data = cbind(W=rep(1, length(Y)), newX)
+  tmp.data = cbind(W=rep(1, nrow(newX)), newX)
   treated_preds = predict(mod, data=tmp.data)$predictions
   tmp.data[,"W"] = 0
   ctrl_preds = predict(mod, data=tmp.data)$predictions
@@ -1188,13 +1004,13 @@ tl.form = as.formula(paste0("Y ~ ", paste(tl.predvars, collapse=" + ")))
 tl.mod.trt = ranger(tl.form,
                     data=tl.data[W==1,], 
                     num.trees=2000, #change to 10,000 for publication
-                    mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                    mtry=mtry_val,
                     replace=F,
                     sample.fraction=0.5)
 tl.mod.ctrl = ranger(tl.form,
                      data=tl.data[W==0,], 
                      num.trees=2000, #change to 10,000 for publication
-                     mtry=min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                     mtry=mtry_val,
                      replace=F,
                      sample.fraction=0.5)
 
@@ -1231,17 +1047,124 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_t-
         limitsize = TRUE
 )
 
+
+# ── Bootstrapped confidence bands for S- and T-learner PDPs ──────────────────
+# The ranger learners don't provide IJ variance like grf does, so uncertainty
+# is obtained by refitting each learner on bootstrap resamples, recomputing the
+# PDP curve (focal var varied, all others fixed at column means), and taking the
+# mean and 2.5/97.5 percentiles across bootstraps at each grid point.
+# NOTE: these bands are bootstrap-based, NOT infinitesimal jackknife like the
+# causal forest bands. State this distinction in the figure caption.
+
+n_boot_learner <- 50   # fast check; increase (e.g. 200) for publication
+
+# Generic bootstrap PDP for a learner. refit_fun(idx) returns a fitted model
+# (or list of models); te_pred_fun(model, newX) returns treatment-effect preds.
+boot_pdp_learner <- function(refit_fun, te_pred_fun, X, focal_vars,
+                             n_boot = 50, n_grid = 50) {
+  
+  X_means <- as.data.frame(as.list(colMeans(X, na.rm = TRUE)))
+  
+  purrr::map_dfr(1:n_boot, function(b) {
+    idx   <- sample(seq_len(nrow(X)), replace = TRUE)
+    mod_b <- refit_fun(idx)
+    
+    purrr::map_dfr(focal_vars, function(v) {
+      grid_vals <- seq(min(X[[v]], na.rm = TRUE),
+                       max(X[[v]], na.rm = TRUE), length.out = n_grid)
+      nd <- X_means[rep(1L, n_grid), ]
+      nd[[v]] <- grid_vals
+      tibble(variable = v, x = grid_vals,
+             te = te_pred_fun(mod_b, nd), boot = b)
+    })
+  }) %>%
+    group_by(variable, x) %>%
+    dplyr::summarize(
+      estimate = mean(te),
+      lower    = quantile(te, 0.025, names = FALSE),
+      upper    = quantile(te, 0.975, names = FALSE),
+      .groups  = "drop"
+    ) %>%
+    mutate(label = recode(variable, !!!var_key))
+}
+
+# Refit closures reusing the exact ranger settings from above
+sl_refit <- function(idx) {
+  d <- cbind(Y = Y[idx], W = W[idx], X[idx, ])
+  ranger(sl.form, data = d, num.trees = 2000, mtry = mtry_val,
+         replace = FALSE, sample.fraction = 0.5)
+}
+
+tl_refit <- function(idx) {
+  d  <- cbind(Y = Y[idx], X[idx, ])
+  wb <- W[idx]
+  list(
+    tmod = ranger(tl.form, data = d[wb == 1, ], num.trees = 2000,
+                  mtry = mtry_val, replace = FALSE, sample.fraction = 0.5),
+    cmod = ranger(tl.form, data = d[wb == 0, ], num.trees = 2000,
+                  mtry = mtry_val, replace = FALSE, sample.fraction = 0.5)
+  )
+}
+
+# Bootstrap bands for ALL 10 moderators
+sl_ci <- boot_pdp_learner(sl_refit, sl_te_pred, X, colnames(X),
+                          n_boot = n_boot_learner)
+tl_ci <- boot_pdp_learner(tl_refit, tl_te_pred, X, colnames(X),
+                          n_boot = n_boot_learner)
+
+# Helper to build the banded standalone panels
+make_learner_plots <- function(ci_df, ylims) {
+  ci_df %>%
+    mutate(variable = factor(variable, levels = colnames(X))) %>%
+    group_by(variable) %>% group_split() %>%
+    purrr::map(function(df) {
+      ggplot(df, aes(x = x, y = estimate)) +
+        geom_ribbon(aes(ymin = lower, ymax = upper),
+                    fill = "grey70", alpha = 0.4) +
+        geom_line(linewidth = 0.7, colour = "grey20") +
+        geom_hline(yintercept = 0, linetype = "dashed",
+                   colour = "grey50", linewidth = 0.4) +
+        labs(x = unique(df$label), y = "Treatment effect") +
+        coord_cartesian(ylim = ylims) +
+        theme(panel.background = element_rect(fill = "white", colour = "grey50"),
+              axis.title = element_text(size = 8),
+              axis.text  = element_text(size = 7))
+    })
+}
+
+# S-learner PDPs with bootstrap CI
+wrap_plots(make_learner_plots(sl_ci, c(-22, 9)), ncol = 5)
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_s-learner_CI.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+# T-learner PDPs with bootstrap CI
+wrap_plots(make_learner_plots(tl_ci, c(-190, 90)), ncol = 5)
+
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_t-learner_CI.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 14,
+        height = 6,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
+
+
+
 # Compare across CF, S-learner, T-learner
-#mod_lab1 <- wrap_elements(panel = textGrob("Causal Forest", rot = 90))
-#mod_lab2 <- wrap_elements(panel = textGrob("S-Learner", rot = 90))
-#mod_lab3 <- wrap_elements(panel = textGrob("T-Learner", rot = 90))
-
-#p_all <- (mod_lab1 | pdps[[1]] | pdps[[2]] | pdps[[3]] | pdps[[4]] | pdps[[5]]) / 
-#  (mod_lab2 | pdps.s.learner[[1]] | pdps.s.learner[[2]] | pdps.s.learner[[3]] | pdps.s.learner[[4]] | pdps.s.learner[[5]]) / 
-#  (mod_lab3 | pdps.t.learner[[1]] | pdps.t.learner[[2]] | pdps.t.learner[[3]] | pdps.t.learner[[4]] | pdps.t.learner[[5]]) + 
-#  plot_layout(widths = c(0.1, rep(0.18, times=5))) # Adjust the first value to control label width
-
-#print(p_all)
 
 
 #####
@@ -1317,9 +1240,9 @@ tl_pd <- purrr::map_dfr(
 )
 
 #lme_pd <- purrr::map_dfr(focal_vars, function(v) {
-  
+
 #  f <- as.formula(paste("trt_minus_con ~", v))
-  
+
 #  m <- lme(
 #    fixed = f,
 #    random = ~ 1 | site_code,
@@ -1327,18 +1250,18 @@ tl_pd <- purrr::map_dfr(
 #    method = "REML",
 #    na.action = na.omit
 #  )
-  
+
 #  xseq <- seq(
 #    min(te3[[v]], na.rm = TRUE),
 #    max(te3[[v]], na.rm = TRUE),
 #    length.out = 100
 #  )
-  
+
 #  newdat <- data.frame(xseq)
 #  names(newdat) <- v
-  
+
 #  newdat$y <- predict(m, newdata = newdat, level = 0)
-  
+
 #  newdat |>
 #    dplyr::rename(x = !!v) |>
 #    dplyr::mutate(
@@ -1348,19 +1271,19 @@ tl_pd <- purrr::map_dfr(
 #})
 
 #gam_pd <- purrr::map_dfr(focal_vars, function(v) {
-  
+
 #  dat <- te3 |>
 #    dplyr::select(trt_minus_con, site_code, all_of(v)) |>
 #    dplyr::filter(!is.na(.data[[v]]))
-  
+
 #  dat$site_code <- factor(dat$site_code)
-  
-  # skip variables with too few unique values
+
+# skip variables with too few unique values
 #  if (dplyr::n_distinct(dat[[v]]) < 4) {
 #    message("Skipping ", v, " (too few unique values)")
 #    return(NULL)
 #  }
-  
+
 #  m <- gam(
 #    as.formula(paste0(
 #      "trt_minus_con ~ s(", v, ", k = 5) + s(site_code, bs = 're')"
@@ -1368,23 +1291,23 @@ tl_pd <- purrr::map_dfr(
 #    data = dat,
 #    method = "REML"
 #  )
-  
-  # prediction grid
+
+# prediction grid
 #  xseq <- seq(
 #    min(dat[[v]], na.rm = TRUE),
 #    max(dat[[v]], na.rm = TRUE),
 #    length.out = 200
 #  )
-  
+
 #  newdat <- data.frame(
 #    site_code = dat$site_code[1],  # hold RE constant
 #    xval = xseq
 #  )
 #  names(newdat)[2] <- v
-  
-  # ✅ marginal prediction (always defined)
+
+# ✅ marginal prediction (always defined)
 #  newdat$y <- predict(m, newdata = newdat, type = "response")
-  
+
 #  newdat |>
 #    dplyr::rename(x = !!v) |>
 #    dplyr::mutate(
@@ -1398,8 +1321,8 @@ pd_all <- dplyr::bind_rows(
   cf_pd,
   sl_pd,
   tl_pd#,
-#  lme_pd,
-#  gam_pd
+  #  lme_pd,
+  #  gam_pd
 ) |>
   dplyr::mutate(
     variable = factor(variable, levels = focal_vars),
@@ -1409,8 +1332,8 @@ pd_all <- dplyr::bind_rows(
         "Causal forest",
         "RF S-learner",
         "RF T-learner"#,
-#        "Linear model",
-#        "GAM"
+        #        "Linear model",
+        #        "GAM"
       )
     )
   )
@@ -1505,94 +1428,6 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/partial_depe
 )
 
 
-
-
-####
-#Compare soilgrid N with site collected N
-
-temp <- te3%>%
-  ungroup()%>%
-  dplyr::select(site_code, n, n_0_60cm_weighted, n_0_5cm, n_0_15cm, n_0_30cm)%>%
-        unique()%>%
-        na.omit()
-
-mod <- lm(n~n_0_60cm_weighted,data = temp)
-summary(mod) #it's not a great fit
-
-mod <- lm(n~n_0_5cm,data = temp)
-summary(mod) #this is actually pretty decent
-
-mod <- lm(n~n_0_15cm,data = temp)
-summary(mod) #this is even better
-
-mod <- lm(n~n_0_30cm,data = temp)
-summary(mod) #this is even better
-
-ggplot(temp, aes(n_0_15cm,n))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-
-########
-#visual summary of survey results
-df <- tibble::tibble(
-  moderator = unname(var_key),
-  count = c(12, 12, 8, 7, 6, 5, 4, 3, 2, 2)
-)
-
-survey_df <- df %>%
-  mutate(moderator = factor(moderator, levels = unname(var_key)))
-
-p_survey <- ggplot(survey_df, aes(x = reorder(moderator, count), y = count)) +
-  geom_col(fill = "grey40") +
-  coord_flip() +
-  labs(x = NULL, y = "Survey count") +
-  theme_base(base_size = 12)
-
-
-order_levels <- survey_df %>%
-  arrange(desc(count)) %>%
-  pull(moderator)
-
-survey_df$moderator <- factor(survey_df$moderator, levels = order_levels)
-varimp_df$moderator <- factor(varimp_df$moderator, levels = order_levels)
-shap_df$moderator   <- factor(shap_df$moderator, levels = order_levels)
-
-p_survey <- ggplot(survey_df, aes(moderator, count)) +
-  geom_col(fill = "grey40") +
-  coord_flip() +
-  labs(x = NULL, y = "Survey count") +
-  theme_base()
-
-p_varimp <- ggplot(varimp_df, aes(moderator, value)) +
-  geom_col(fill = "grey40") +
-  coord_flip() +
-  labs(x = NULL, y = "Split-based variable importance") +
-  theme_base()
-
-p_shap <- ggplot(shap_df, aes(moderator, value)) +
-  geom_col(fill = "grey40") +
-  coord_flip() +
-  labs(x = NULL, y = "SHAP importance value") +
-  theme_base()
-
-library(patchwork)
-
-final_plot <- p_survey + p_varimp + p_shap +
-  plot_layout(ncol = 3) +
-  plot_annotation(tag_levels = "A")
-
-final_plot
-
-ggsave(
-  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_combined.pdf",
-  final_plot,
-  width = 15,
-  height = 4,
-  dpi = 600
-)
-
-
 ##################################
 ########real kitchen sink
 
@@ -1634,45 +1469,19 @@ site_counts <- te1 %>%
 eval.forest <- causal_forest(X, Y, W,
                              clusters      = as.factor(te1$site_code),
                              sample.weights = site_counts,
-                             num.trees     = 2000,
-                             tune.num.trees = 10000,
-                             tune.parameters = c("sample.fraction", "mtry",
-                                                 "min.node.size", "alpha",
-                                                 "imbalance.penalty"))#change to 10,000 for publication 2000
+                             num.trees     = 2000)#change to 10,000 for publication 2000
 
 average_treatment_effect(eval.forest)
 #  estimate    std.err 
-#-27.745905   5.352455 
-
-#________________
-# Fit a separate model for baseline ANPP (outcome nuisance)
-Y.hat <- predict(regression_forest(X, Y, num.trees = 2000))$predictions
-
-# Fit a separate model for treatment propensity
-W.hat <- predict(regression_forest(X, W, num.trees = 2000))$predictions
-
-# Now pass these into causal forest
-eval.forest <- causal_forest(X, Y, W,
-                             Y.hat = Y.hat,
-                             W.hat = W.hat,
-                             clusters = as.factor(te1$site_code),
-                             sample.weights = site_counts,
-                             num.trees = 10000,
-                             min.node.size  = 10#,
-                             #tune.parameters = "all"
-)
-#___________________
-
-
-
-
+#-25.175261   5.146604  
 
 
 
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
+top10_vars <- colnames(X)[ranked.vars[1:10]]
 colnames(X)[ranked.vars[1:10]]
-#"sand_0_60cm_weighted" "percent_graminoid"   "ave.richness"         "seasonality_index"    "soc_0_60cm_weighted"  "ave.evenness"    "cv_ppt_inter"         "MAP"                 "n_0_15cm"             "aridity_index"        
+#[1] "PctGrass"          "PctAnnual"         "cv_ppt_intra"      "sand_0_15cm"       "sand_0_5cm"        "r_monthly_t_p"     "mean_sr"           "seasonality_index" "daily_ppt_d"       "ave.evenness"        
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
@@ -1714,10 +1523,10 @@ p_varimp <- ggplot(varimp_df, aes(x = reorder(moderator, value), y = value)) +
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
-pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
+pdps <- lapply(top10_vars, function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
 wrap_plots(pdps, guides = "collect", ncol = 5) &
-  ylim(c(-33,-22)) &
+  ylim(c(-28,-20)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
@@ -1732,4 +1541,130 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
         units = c("in"),
         dpi = 600,
         limitsize = TRUE
+)
+
+
+# ── Partial dependence plots with SE CI ──────────────────────────────────────
+# Strategy: vary focal variable across its observed range; fix all other
+# covariates at their column means.  predict(..., estimate.variance = TRUE)
+# returns the IJ variance for each individual CATE, so SE = sqrt(var) is exact.
+pdp_with_ci <- function(forest, focal_var, X, n_grid = 50) {
+  
+  grid_vals <- seq(
+    min(X[[focal_var]], na.rm = TRUE),
+    max(X[[focal_var]], na.rm = TRUE),
+    length.out = n_grid
+  )
+  
+  # Use colMeans() instead of summarise(across(...))
+  X_means <- as.data.frame(as.list(colMeans(X, na.rm = TRUE)))
+  
+  newdata <- X_means[rep(1L, n_grid), ]
+  newdata[[focal_var]] <- grid_vals
+  
+  preds <- predict(forest, newdata = newdata, estimate.variance = TRUE)
+  
+  tibble(
+    x        = grid_vals,
+    estimate = preds$predictions,
+    se       = sqrt(preds$variance.estimates),
+    lower    = estimate - se,
+    upper    = estimate + se,
+    variable = focal_var
+  )
+}
+
+# Run for every moderator and bind into one data frame
+pdp_data <- purrr::map_dfr(top10_vars, pdp_with_ci,
+                           forest = eval.forest, X = X)
+
+# Attach human-readable labels
+pdp_data <- pdp_data %>%
+  mutate(label = recode(variable, !!!var_key))
+
+# One plot per moderator
+pdp_plots <- pdp_data %>%
+  group_by(variable) %>%
+  group_split() %>%
+  purrr::map(function(df) {
+    ggplot(df, aes(x = x, y = estimate)) +
+      geom_ribbon(aes(ymin = lower, ymax = upper),
+                  fill = "grey70", alpha = 0.4) +
+      geom_line(linewidth = 0.7, colour = "grey20") +
+      geom_hline(yintercept = 0, linetype = "dashed",
+                 colour = "grey50", linewidth = 0.4) +
+      labs(
+        x     = unique(df$label),
+        y     = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)",
+        title = NULL
+      ) +
+      coord_cartesian(ylim = c(-35, 0)) +
+      theme(
+        panel.background = element_rect(fill = "white", colour = "grey50"),
+        axis.title       = element_text(size = 8),
+        axis.text        = element_text(size = 7)
+      )
+  })
+
+wrap_plots(pdp_plots, ncol = 5)
+
+ggsave(
+  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink1.pdf",
+  plot   = last_plot(),
+  device = "pdf",
+  width  = 13, height = 6, units = "in", dpi = 600
+)
+
+
+
+pdp_with_spread <- function(forest, focal_var, X, n_grid = 50) {
+  
+  grid_vals <- seq(min(X[[focal_var]], na.rm = TRUE),
+                   max(X[[focal_var]], na.rm = TRUE),
+                   length.out = n_grid)
+  
+  purrr::map_dfr(grid_vals, function(g) {
+    # Take the real data, overwrite ONLY the focal column with g
+    nd <- X
+    nd[[focal_var]] <- g
+    cate <- predict(forest, newdata = nd)$predictions   # one CATE per site-row
+    
+    tibble(
+      x        = g,
+      estimate = mean(cate),                    # marginal PDP line
+      lower    = quantile(cate, 0.10, names = FALSE),
+      upper    = quantile(cate, 0.90, names = FALSE),
+      q25      = quantile(cate, 0.25, names = FALSE),
+      q75      = quantile(cate, 0.75, names = FALSE),
+      variable = focal_var
+    )
+  })
+}
+
+pdp_spread_data <- purrr::map_dfr(top10_vars, pdp_with_spread,
+                                  forest = eval.forest, X = X) %>%
+  mutate(label = recode(variable, !!!var_key))
+
+
+pdp_spread_plots <- pdp_spread_data %>%
+  group_by(variable) %>% group_split() %>%
+  purrr::map(function(df) {
+    ggplot(df, aes(x = x, y = estimate)) +
+      geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95", alpha = 0.5) +
+      geom_ribbon(aes(ymin = q25,   ymax = q75),   fill = "grey75", alpha = 0.5) +
+      geom_line(linewidth = 0.7, colour = "grey15") +
+      geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+      labs(x = unique(df$label),
+           y = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)") +
+      theme(panel.background = element_rect(fill = "white", colour = "grey50"),
+            axis.title = element_text(size = 8), axis.text = element_text(size = 7))
+  })
+
+wrap_plots(pdp_spread_plots, ncol = 5)
+
+ggsave(
+  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensinkquantiles.pdf",
+  plot   = last_plot(),
+  device = "pdf",
+  width  = 13, height = 6, units = "in", dpi = 600
 )
