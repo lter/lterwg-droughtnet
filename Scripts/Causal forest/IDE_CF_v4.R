@@ -431,7 +431,7 @@ pdp_spread_plots <- pdp_spread_data %>%
   group_by(variable) %>% group_split() %>%
   purrr::map(function(df) {
     ggplot(df, aes(x = x, y = estimate)) +
-      geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95", alpha = 0.5) +
+      geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey90", alpha = 0.5) +
       geom_ribbon(aes(ymin = q25,   ymax = q75),   fill = "grey75", alpha = 0.5) +
       geom_line(linewidth = 0.7, colour = "grey15") +
       geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
@@ -677,25 +677,37 @@ ggplot(pd_df, aes(
 
 
 
-keep <- !is.na(X$ave.evenness)
+keep <- !is.na(X$MAP)
 X_clean <- X[keep, ]
-by_var <- as.numeric(X_clean$ave.evenness > 0.12)
+by_var <- as.numeric(X_clean$MAP > 1500)
 
 pd <- partial_dep(
   eval.forest,
-  v = "MAP",
+  v = "ave.evenness",
   X = X_clean,
   BY = by_var,
   by_size = 2L,
   pred_fun = pred_fun
 )
 
-pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low evenness (0-0.3)", "High evenness (0.3-1)"))
+pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low MAP (< 1,500 mm)", "High MAP (> 1,500 mm)"))
 
 plot(pd) &
+  scale_color_manual(values = c("#E69F00", "#0072B2")) &
   theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
   theme(strip.text = element_text())
 
+ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_example3.pdf",
+        plot = last_plot(),
+        device = "pdf",
+        path = NULL,
+        scale = 1,
+        width = 6,
+        height = 4,
+        units = c("in"),
+        dpi = 600,
+        limitsize = TRUE
+)
 
 #############################################
 ###########mixed effects regressions
@@ -1650,7 +1662,7 @@ pdp_spread_plots <- pdp_spread_data %>%
   group_by(variable) %>% group_split() %>%
   purrr::map(function(df) {
     ggplot(df, aes(x = x, y = estimate)) +
-      geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey95", alpha = 0.5) +
+      geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey90", alpha = 0.5) +
       geom_ribbon(aes(ymin = q25,   ymax = q75),   fill = "grey75", alpha = 0.5) +
       geom_line(linewidth = 0.7, colour = "grey15") +
       geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
