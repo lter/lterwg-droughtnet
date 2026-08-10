@@ -90,7 +90,7 @@ num.treat.years <- ddply(num.treat.years,.(site_code),
 
 data.anpp1%>%
   left_join(read.csv("C:/Users/ohler/Dropbox/IDE/data_processed/Site_Elev-Disturb.csv"), by = "site_code")%>%
-  dplyr::select(site_name,site_code)%>%
+  dplyr::select(site_name,site_code, habitat.type.x, latitud, longitud, country)%>%
   unique()%>%
   write.csv("C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/site_list.csv")
 
@@ -99,7 +99,7 @@ data.anpp1%>%
 # ----------------------------------
 var_key <- c(
   MAP = "Mean annual precipitation (MAP)",
-  sand_0_60cm_weighted = "Soil texture",
+  sand_0_60cm_weighted = "Soil texture (% sand)",
   percent_graminoid = "Functional group composition",
   seasonality_index = "Seasonality",
   ave.evenness = "Species composition",
@@ -107,7 +107,21 @@ var_key <- c(
   ave.richness = "Species richness",
   cv_ppt_inter = "Interannual precipitation variability",
   aridity_index = "Aridity",
-  soc_0_60cm_weighted = "Soil organic matter"
+  soc_0_60cm_weighted = "Soil organic carbon (g/kg)"
+)
+
+# Variable order by survey nomination count (Table S2, high to low)
+survey_order <- c(
+  "MAP",
+  "sand_0_60cm_weighted",
+  "percent_graminoid",
+  "seasonality_index",
+  "ave.evenness",
+  "n",
+  "ave.richness",
+  "cv_ppt_inter",
+  "aridity_index",
+  "soc_0_60cm_weighted"
 )
 
 ############################
@@ -305,7 +319,7 @@ p_varimp <- ggplot(varimp_df, aes(x = reorder(moderator, value), y = value)) +
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
-pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
+pdps <- lapply(survey_order, function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
 wrap_plots(pdps, guides = "collect", ncol = 5) &
   ylim(c(-33,-22)) &
@@ -356,7 +370,7 @@ pdp_with_ci <- function(forest, focal_var, X, n_grid = 50) {
 }
 
 # Run for every moderator and bind into one data frame
-pdp_data <- purrr::map_dfr(colnames(X), pdp_with_ci,
+pdp_data <- purrr::map_dfr(survey_order, pdp_with_ci,
                            forest = eval.forest, X = X)
 
 # Attach human-readable labels
@@ -422,7 +436,7 @@ pdp_with_spread <- function(forest, focal_var, X, n_grid = 50) {
   })
 }
 
-pdp_spread_data <- purrr::map_dfr(colnames(X), pdp_with_spread,
+pdp_spread_data <- purrr::map_dfr(survey_order, pdp_with_spread,
                                   forest = eval.forest, X = X) %>%
   mutate(label = recode(variable, !!!var_key))
 
@@ -455,7 +469,7 @@ ggsave(
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
-pdps <- lapply(colnames(X), function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
+pdps <- lapply(survey_order, function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
 wrap_plots(pdps, guides = "collect", ncol = 5) &
   ylim(c(-33,-22)) &
@@ -988,7 +1002,7 @@ sl_te_pred = function(mod, newX) {
 # ATE - sign same, but magnitudes very different than CF
 mean(sl_te_pred(sl.mod, X))
 
-pdps.s.learner <- lapply(colnames(X), function(v) plot(partial_dep(sl.mod, v=v, X = X, pred_fun = sl_te_pred)))
+pdps.s.learner <- lapply(survey_order, function(v) plot(partial_dep(sl.mod, v=v, X = X, pred_fun = sl_te_pred)))
 
 wrap_plots(pdps.s.learner, guides = "collect", ncol = 5) &
   ylim(c(-22,9)) &
@@ -1039,7 +1053,7 @@ tl_te_pred = function(mod, newX) {
 mean(tl_te_pred(tl.mod, X))
 
 
-pdps.t.learner <- lapply(colnames(X), function(v) plot(partial_dep(tl.mod, v=v, X = X, pred_fun = tl_te_pred)))
+pdps.t.learner <- lapply(survey_order, function(v) plot(partial_dep(tl.mod, v=v, X = X, pred_fun = tl_te_pred)))
 
 wrap_plots(pdps.t.learner, guides = "collect", ncol = 5) &
   ylim(c(-190,90)) &
@@ -1119,15 +1133,15 @@ tl_refit <- function(idx) {
 }
 
 # Bootstrap bands for ALL 10 moderators
-sl_ci <- boot_pdp_learner(sl_refit, sl_te_pred, X, colnames(X),
+sl_ci <- boot_pdp_learner(sl_refit, sl_te_pred, X, survey_order,
                           n_boot = n_boot_learner)
-tl_ci <- boot_pdp_learner(tl_refit, tl_te_pred, X, colnames(X),
+tl_ci <- boot_pdp_learner(tl_refit, tl_te_pred, X, survey_order,
                           n_boot = n_boot_learner)
 
 # Helper to build the banded standalone panels
 make_learner_plots <- function(ci_df, ylims) {
   ci_df %>%
-    mutate(variable = factor(variable, levels = colnames(X))) %>%
+    mutate(variable = factor(variable, levels = survey_order)) %>%
     group_by(variable) %>% group_split() %>%
     purrr::map(function(df) {
       ggplot(df, aes(x = x, y = estimate)) +
