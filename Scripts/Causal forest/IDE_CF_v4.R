@@ -99,29 +99,29 @@ data.anpp1%>%
 # ----------------------------------
 var_key <- c(
   MAP = "Mean annual precipitation (MAP)",
-  sand_0_60cm_weighted = "Soil texture (% sand)",
+  sand_0_60cm = "Soil texture (% sand)",
   percent_graminoid = "Functional group composition",
   seasonality_index = "Seasonality",
   ave.evenness = "Species composition",
-  n = "Soil nutrients",
+  n_0_15cm = "Soil nutrients",
   ave.richness = "Species richness",
   cv_ppt_inter = "Interannual precipitation variability",
   aridity_index = "Aridity",
-  soc_0_60cm_weighted = "Soil organic carbon (g/kg)"
+  soc_0_15cm = "Soil organic carbon (g/kg)"
 )
 
 # Variable order by survey nomination count (Table S2, high to low)
 survey_order <- c(
   "MAP",
-  "sand_0_60cm_weighted",
+  "sand_0_60cm",
   "percent_graminoid",
   "seasonality_index",
   "ave.evenness",
-  "n",
+  "n_0_15cm",
   "ave.richness",
   "cv_ppt_inter",
   "aridity_index",
-  "soc_0_60cm_weighted"
+  "soc_0_15cm"
 )
 
 ############################
@@ -223,12 +223,12 @@ length(unique(subset(te1, MAP > 0)$site_code))
 length(unique(subset(te1, seasonality_index > 0)$site_code))
 length(unique(subset(te1, ave.richness > -1)$site_code))
 length(unique(subset(te1, ave.evenness > -1)$site_code))
-length(unique(subset(te1, sand_0_60cm_weighted > -1)$site_code))
+length(unique(subset(te1, sand_0_60cm > -1)$site_code))
 length(unique(subset(te1, percent_graminoid > -1)$site_code))
 length(unique(subset(te1, n > -1)$site_code))
 length(unique(subset(te1, cv_ppt_inter > -1)$site_code))
 length(unique(subset(te1, aridity_index > -1)$site_code))
-length(unique(subset(te1, soc_0_60cm_weighted > -1)$site_code))
+length(unique(subset(te1, soc_0_60cm > -1)$site_code))
 
 
 ######################################
@@ -254,9 +254,9 @@ W <- te1%>%
   pull(trt_num)
 X <- te1%>%
   ungroup()%>%
-  dplyr::select( MAP,seasonality_index,ave.richness,ave.evenness,sand_0_60cm_weighted,aridity_index,cv_ppt_inter,percent_graminoid,n, 
-                 #n_0_15cm,
-                 soc_0_60cm_weighted)#drtsev.1) #put just the moderators you're testing here
+  dplyr::select( MAP,seasonality_index,ave.richness,ave.evenness,sand_0_60cm,aridity_index,cv_ppt_inter,percent_graminoid,#n, 
+                 n_0_15cm,
+                 soc_0_15cm)#drtsev.1) #put just the moderators you're testing here
 
 # Compute per-row weights: each site gets total weight of 1
 site_counts <- te1 %>%
@@ -277,7 +277,7 @@ average_treatment_effect(eval.forest)
 varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 colnames(X)[ranked.vars[1:10]]
-# "sand_0_60cm_weighted" "seasonality_index"    "soc_0_60cm_weighted"  "percent_graminoid"   "ave.evenness"         "n"                    "ave.richness"         "MAP"                 "cv_ppt_inter"         "aridity_index"        
+# "sand_0_60cm"       "seasonality_index" "percent_graminoid" "soc_0_15cm"        "ave.evenness"     "ave.richness"      "MAP"               "n_0_15cm"          "cv_ppt_inter"      "aridity_index"       
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
@@ -298,7 +298,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_TO
 )
 
 
-imp <- sort(setNames(variable_importance(eval.forest), colnames(X)))
+imp <- sort(setNames(variable_importance(eval.forest), survey_order))
 
 varimp_df <- tibble(
   variable = names(imp),
@@ -322,7 +322,7 @@ pred_fun <- function(object, newdata, ...) {
 pdps <- lapply(survey_order, function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
 wrap_plots(pdps, guides = "collect", ncol = 5) &
-  ylim(c(-33,-22)) &
+  ylim(c(-32,-20)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
@@ -472,7 +472,7 @@ pred_fun <- function(object, newdata, ...) {
 pdps <- lapply(survey_order, function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
 )))
 wrap_plots(pdps, guides = "collect", ncol = 5) &
-  ylim(c(-33,-22)) &
+  ylim(c(-32,-20)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
   theme(panel.background = element_rect(fill = "white", colour = "grey50"))
 
@@ -571,20 +571,20 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_
 
 
 
-keep <- !is.na(X$soc_0_60cm_weighted)
+keep <- !is.na(X$soc_0_15cm)
 X_clean <- X[keep, ]
-by_var <- as.numeric(X_clean$soc_0_60cm_weighted > 30)
+by_var <- as.numeric(X_clean$soc_0_15cm > 25)
 
 pd <- partial_dep(
   eval.forest,
-  v = "MAP",
+  v = "ave.evenness",
   X = X_clean,
   BY = by_var,
   by_size = 2L,
   pred_fun = pred_fun
 )
 
-pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low SOC (0-30)", "High SOC (30+)"))
+pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low SOC (0-15)", "High SOC (25+)"))
 
 plot(pd) &
   theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
@@ -605,124 +605,6 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_
 
 
 
-by_var <- ifelse(is.na(X$percent_graminoid), NA, as.numeric(X$percent_graminoid > 0.3))
-table(by_var, useNA = "always")  # confirm you get 0s, 1s, and NAs
-
-pd <- partial_dep(
-  eval.forest,
-  v = "seasonality_index",
-  X = X,
-  BY = by_var,
-  by_size = 2L,
-  pred_fun = pred_fun
-) 
-
-
-
-keep <- !is.na(X$percent_graminoid)
-X_clean <- X[keep, ]
-by_var <- as.numeric(X_clean$percent_graminoid > 0.3)
-
-pd <- partial_dep(
-  eval.forest,
-  v = "seasonality_index",
-  X = X_clean,
-  BY = by_var,
-  by_size = 2L,
-  pred_fun = pred_fun
-)
-
-pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low graminoid (0-0.3)", "High graminoid (0.3-1)"))
-
-plot(pd) &
-  theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
-  theme(strip.text = element_text())
-
-
-#partial_dep(eval.forest, v = "seasonality_index", X = X, BY = "percent_graminoid", by_size = 2L, 
-#            by_breaks =  c(0.0000,0.2, 0.9743), pred_fun = pred_fun) |> 
-#  plot()&
-#  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
-#  theme(strip.text = element_blank())
-
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_example2.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 6,
-        height = 4,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
-
-
-
-pd <- partial_dep(
-  eval.forest,
-  v = c("percent_graminoid", "soc_0_60cm_weighted"),
-  X = X,
-  pred_fun = pred_fun,
-  grid_size = 250   # increase for smoother surface
-)
-
-pd_df <- pd$data
-ggplot(pd_df, aes(
-  x = percent_graminoid,
-  y = soc_0_60cm_weighted,
-  fill = y   # or yhat depending on output
-)) +
-  geom_tile() +
-  scale_fill_viridis_c() +
-  theme_minimal() +
-  labs(
-    x = "Percent Graminoid",
-    y = "SOC (0–60 cm)",
-    fill = "Predicted"
-  ) +
-  theme(
-    panel.background = element_rect(fill = "white", colour = "grey50")
-  )
-
-#sv_importance(shap_values, kind = "bee")
-
-
-
-
-
-keep <- !is.na(X$MAP)
-X_clean <- X[keep, ]
-by_var <- as.numeric(X_clean$MAP > 1500)
-
-pd <- partial_dep(
-  eval.forest,
-  v = "ave.evenness",
-  X = X_clean,
-  BY = by_var,
-  by_size = 2L,
-  pred_fun = pred_fun
-)
-
-pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low MAP (< 1,500 mm)", "High MAP (> 1,500 mm)"))
-
-plot(pd) &
-  scale_color_manual(values = c("#E69F00", "#0072B2")) &
-  theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
-  theme(strip.text = element_text())
-
-ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/interaction_example3.pdf",
-        plot = last_plot(),
-        device = "pdf",
-        path = NULL,
-        scale = 1,
-        width = 6,
-        height = 4,
-        units = c("in"),
-        dpi = 600,
-        limitsize = TRUE
-)
-
 #############################################
 ###########mixed effects regressions
 
@@ -737,7 +619,7 @@ te3 <- te1%>%
   left_join(te2, by = c("site_code", "n_treat_years"))
 
 
-vars <- c("MAP","seasonality_index","ave.richness","ave.evenness","sand_0_60cm_weighted","aridity_index","cv_ppt_inter","percent_graminoid","n","soc_0_60cm_weighted")
+vars <- c("MAP","seasonality_index","ave.richness","ave.evenness","sand_0_60cm","aridity_index","cv_ppt_inter","percent_graminoid","n_0_15cm","soc_0_15cm")
 
 
 plots <- lapply(vars, function(v) {
@@ -1202,7 +1084,7 @@ focal_vars <- c(
 )
 
 var_labels <- c(
-  sand_0_60cm_weighted = "Sand content (0–60 cm)",
+  sand_0_60cm = "Sand content (0–60 cm)",
   ave.richness        = "Species richness",
   seasonality_index   = "Seasonality"
 )
@@ -1419,7 +1301,7 @@ plot_one_variable <- function(dat, var, lab) {
 
 p_sand <- plot_one_variable(
   pd_all,
-  "sand_0_60cm_weighted",
+  "sand_0_60cm",
   "Sand content (0–60 cm)"
 )
 
@@ -1481,7 +1363,7 @@ W <- te1%>%
 X <- te1%>%
   ungroup()%>%
   dplyr::select(ppt_max_event, ppt_mean_event, days_half_ppt, daily_ppt_d, n_wet_days, avg_dryspell_length, ppt_95th_percentile_size, MAP, cv_ppt_intra, cv_ppt_inter, yearly_ppt_d, seasonality_index, aridity_index, r_monthly_t_p, MAT, PctAnnual, PctGrass,
-                ph, no3, p, k, zn, fe, mn, cu, silt, clay, c, n, c_n, mean_sr, sand_0_5cm, sand_0_15cm, sand_0_30cm, sand_0_60cm, sand_0_60cm_weighted, soc_0_5cm, soc_0_15cm, soc_0_30cm, soc_0_60cm, soc_0_60cm_weighted, n_0_5cm, n_0_15cm, n_0_30cm, n_0_60cm, n_0_60cm_weighted, percent_graminoid, percent_c4, ave.richness, ave.evenness) #put just the moderators you're testing here
+                ph, no3, p, k, zn, fe, mn, cu, silt, clay, c, n, c_n, mean_sr, sand_0_5cm, sand_0_15cm, sand_0_30cm, sand_0_60cm, soc_0_5cm, soc_0_15cm, soc_0_30cm, soc_0_60cm, soc_0_60cm_weighted, n_0_5cm, n_0_15cm, n_0_30cm, n_0_60cm, percent_graminoid, percent_c4, ave.richness, ave.evenness) #put just the moderators you're testing here
 
 
 
@@ -1507,7 +1389,7 @@ varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 top10_vars <- colnames(X)[ranked.vars[1:10]]
 colnames(X)[ranked.vars[1:10]]
-#[1] "PctGrass"          "PctAnnual"         "cv_ppt_intra"      "sand_0_15cm"       "sand_0_5cm"        "r_monthly_t_p"     "mean_sr"           "seasonality_index" "daily_ppt_d"       "ave.evenness"        
+# "PctGrass"          "PctAnnual"         "sand_0_5cm"        "cv_ppt_intra"      "sand_0_15cm"      "r_monthly_t_p"     "daily_ppt_d"       "mean_sr"           "percent_graminoid" "seasonality_index"       
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
