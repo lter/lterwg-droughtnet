@@ -390,28 +390,6 @@ ggsave(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
