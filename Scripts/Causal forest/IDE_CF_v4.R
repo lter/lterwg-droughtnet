@@ -316,6 +316,102 @@ p_varimp <- ggplot(varimp_df, aes(x = reorder(moderator, value), y = value)) +
   theme_base()
 
 
+# ── Figure 2: Survey counts × split-based importance × SHAP importance ──────
+
+# Unweighted survey nomination counts for each top-10 moderator
+# (from Table S2 / Delphi round 2 results)
+survey_counts <- tibble(
+  variable = c("MAP", "sand_0_60cm", "percent_graminoid", "seasonality_index",
+               "ave.evenness", "n_0_15cm", "ave.richness", "cv_ppt_inter",
+               "aridity_index", "soc_0_15cm"),
+  survey_count = c(12, 12, 5, 7, 6, 5, 4, 3, 2, 2)
+) %>%
+  mutate(moderator = recode(variable, !!!var_key))
+
+# Compute SHAP values for the top-10 moderator causal forest
+ks_top10 <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)
+shap_top10 <- shapviz(ks_top10)
+
+shap_imp_df <- tibble(
+  variable = colnames(shap_top10$S),
+  shap_value = colMeans(abs(shap_top10$S))
+) %>%
+  mutate(moderator = recode(variable, !!!var_key))
+
+# ── Shared ordering across all three panels ──────────────────────────────
+# Order by split-based importance (varimp_df), consistent with Figure 2
+# convention: same variable order in all panels for direct comparison.
+moderator_order <- survey_counts %>%
+  arrange(survey_count) %>%
+  pull(moderator)
+
+survey_counts <- survey_counts %>%
+  mutate(moderator = factor(moderator, levels = moderator_order))
+
+varimp_df <- varimp_df %>%
+  mutate(moderator = factor(moderator, levels = moderator_order))
+
+shap_imp_df <- shap_imp_df %>%
+  mutate(moderator = factor(moderator, levels = moderator_order))
+
+# ── Panel A: Survey count ─────────────────────────────────────────────────
+p_survey <- ggplot(survey_counts, aes(x = moderator, y = survey_count)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "Survey count") +
+  theme_base()
+
+# ── Panel B: Split-based variable importance ────────────────────────────
+p_varimp2 <- ggplot(varimp_df, aes(x = moderator, y = value)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "Split-based variable importance") +
+  theme_base() +
+  theme(axis.text.y = element_blank())   # hide repeated labels
+
+# ── Panel C: SHAP importance value ──────────────────────────────────────
+p_shap <- ggplot(shap_imp_df, aes(x = moderator, y = shap_value)) +
+  geom_col(fill = "grey40") +
+  coord_flip() +
+  labs(x = NULL, y = "SHAP importance value") +
+  theme_base() +
+  theme(axis.text.y = element_blank())   # hide repeated labels
+
+# ── Combine into Figure 2 ───────────────────────────────────────────────
+(p_survey | p_varimp2 | p_shap) +
+  plot_annotation(tag_levels = "A")
+
+ggsave(
+  "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/variable_importance_three_panel.pdf",
+  plot   = last_plot(),
+  device = "pdf",
+  width  = 10, height = 4, units = "in", dpi = 600
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
