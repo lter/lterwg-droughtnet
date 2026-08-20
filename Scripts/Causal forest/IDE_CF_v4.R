@@ -329,6 +329,9 @@ survey_counts <- tibble(
   mutate(moderator = recode(variable, !!!var_key))
 
 # Compute SHAP values for the top-10 moderator causal forest
+pred_fun <- function(object, newdata, ...) {
+  predict(object, newdata, ...)$predictions
+}
 ks_top10 <- kernelshap(eval.forest, X = X, pred_fun = pred_fun)
 shap_top10 <- shapviz(ks_top10)
 
@@ -389,16 +392,58 @@ ggsave(
 )
 
 
+# ── Spearman rank correlations among the three importance metrics ─────────
+# Compares expert survey nominations, split-based importance, and mean |SHAP|
 
-pred_fun <- function(object, newdata, ...) {
-  predict(object, newdata, ...)$predictions
-}
-pdps <- lapply(survey_order, function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
-)))
+rank_comparison <- survey_counts %>%
+  dplyr::select(variable, survey_count) %>%
+  left_join(varimp_df %>% dplyr::select(variable, split_importance = value),
+            by = "variable") %>%
+  left_join(shap_imp_df %>% dplyr::select(variable, shap_value),
+            by = "variable")
+
+# Spearman correlations (pairwise)
+cor_survey_split <- cor.test(rank_comparison$survey_count,
+                             rank_comparison$split_importance,
+                             method = "spearman", exact = TRUE)
+
+cor_survey_shap <- cor.test(rank_comparison$survey_count,
+                            rank_comparison$shap_value,
+                            method = "spearman", exact = TRUE)
+
+cor_split_shap <- cor.test(rank_comparison$split_importance,
+                           rank_comparison$shap_value,
+                           method = "spearman", exact = TRUE)
+
+# Print a clean summary
+tibble(
+  comparison = c("Survey vs. split-based importance",
+                 "Survey vs. SHAP",
+                 "Split-based importance vs. SHAP"),
+  rho    = c(cor_survey_split$estimate,
+             cor_survey_shap$estimate,
+             cor_split_shap$estimate),
+  p_value = c(cor_survey_split$p.value,
+              cor_survey_shap$p.value,
+              cor_split_shap$p.value)
+) %>%
+  mutate(rho = round(rho, 2), p_value = round(p_value, 3))
+
+
+
+pdps <- lapply(survey_order, function(v) {
+  p <- plot(partial_dep(eval.forest, v = v, X = X, pred_fun = pred_fun))
+  for (i in seq_along(p$layers)) {
+    if (!is.null(p$layers[[i]]$aes_params$colour)) {
+      p$layers[[i]]$aes_params$colour <- "black"
+    }
+  }
+  p
+})
 wrap_plots(pdps, guides = "collect", ncol = 5) &
   ylim(c(-32,-20)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+  theme(panel.background = element_rect(fill = "white", color = "grey50"))
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_top.pdf",
@@ -459,9 +504,9 @@ pdp_plots <- pdp_data %>%
     ggplot(df, aes(x = x, y = estimate)) +
       geom_ribbon(aes(ymin = lower, ymax = upper),
                   fill = "grey70", alpha = 0.4) +
-      geom_line(linewidth = 0.7, colour = "grey20") +
+      geom_line(linewidth = 0.7, color = "grey20") +
       geom_hline(yintercept = 0, linetype = "dashed",
-                 colour = "grey50", linewidth = 0.4) +
+                 color = "grey50", linewidth = 0.4) +
       labs(
         x     = unique(df$label),
         y     = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)",
@@ -469,7 +514,7 @@ pdp_plots <- pdp_data %>%
       ) +
       coord_cartesian(ylim = c(-35, 0)) +
       theme(
-        panel.background = element_rect(fill = "white", colour = "grey50"),
+        panel.background = element_rect(fill = "white", color = "grey50"),
         axis.title       = element_text(size = 8),
         axis.text        = element_text(size = 7)
       )
@@ -521,11 +566,11 @@ pdp_spread_plots <- pdp_spread_data %>%
     ggplot(df, aes(x = x, y = estimate)) +
       geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey90", alpha = 0.5) +
       geom_ribbon(aes(ymin = q25,   ymax = q75),   fill = "grey75", alpha = 0.5) +
-      geom_line(linewidth = 0.7, colour = "grey15") +
-      geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+      geom_line(linewidth = 0.7, color = "grey15") +
+      geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
       labs(x = unique(df$label),
            y = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)") +
-      theme(panel.background = element_rect(fill = "white", colour = "grey50"),
+      theme(panel.background = element_rect(fill = "white", color = "grey50"),
             axis.title = element_text(size = 8), axis.text = element_text(size = 7))
   })
 
@@ -548,7 +593,7 @@ pdps <- lapply(survey_order, function(v) plot(partial_dep(eval.forest, v=v, X = 
 wrap_plots(pdps, guides = "collect", ncol = 5) &
   ylim(c(-32,-20)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+  theme(panel.background = element_rect(fill = "white", color = "grey50"))
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_shappredictions_top.pdf",
         plot = last_plot(),
@@ -567,7 +612,7 @@ ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_tr
 #visualize overall interaction strength (left) - how much prediction variability comes from interactions with that varible
 H <- hstats(eval.forest, X = X, pred_fun = pred_fun, verbose = FALSE)
 plot(H, fill = "black")&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))&
+  theme(panel.background = element_rect(fill = "white", color = "grey50"))&
   theme(strip.text = element_blank())
 
 h2 <- H[["h2_pairwise"]]
@@ -661,7 +706,7 @@ pd <- partial_dep(
 pd$data$Group <- factor(pd$data$Group, levels = c(0, 1), labels = c("Low SOC (0-15)", "High SOC (25+)"))
 
 plot(pd) &
-  theme(panel.background = element_rect(fill = "white", colour = "grey50")) &
+  theme(panel.background = element_rect(fill = "white", color = "grey50")) &
   theme(strip.text = element_text())
 
 
@@ -958,12 +1003,22 @@ sl_te_pred = function(mod, newX) {
 # ATE - sign same, but magnitudes very different than CF
 mean(sl_te_pred(sl.mod, X))
 
-pdps.s.learner <- lapply(survey_order, function(v) plot(partial_dep(sl.mod, v=v, X = X, pred_fun = sl_te_pred)))
+#pdps.s.learner <- lapply(survey_order, function(v) plot(partial_dep(sl.mod, v=v, X = X, pred_fun = sl_te_pred)))
+
+pdps.s.learner <- lapply(survey_order, function(v) {
+  p <- plot(partial_dep(sl.mod, v=v, X = X, pred_fun = sl_te_pred))
+  for (i in seq_along(p$layers)) {
+    if (!is.null(p$layers[[i]]$aes_params$colour)) {
+      p$layers[[i]]$aes_params$colour <- "black"
+    }
+  }
+  p
+})
 
 wrap_plots(pdps.s.learner, guides = "collect", ncol = 5) &
   ylim(c(-22,9)) &
   ylab("Treatment effect")&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+  theme(panel.background = element_rect(fill = "white", color = "grey50"))
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_s-learner.pdf",
@@ -1009,12 +1064,22 @@ tl_te_pred = function(mod, newX) {
 mean(tl_te_pred(tl.mod, X))
 
 
-pdps.t.learner <- lapply(survey_order, function(v) plot(partial_dep(tl.mod, v=v, X = X, pred_fun = tl_te_pred)))
+#pdps.t.learner <- lapply(survey_order, function(v) plot(partial_dep(tl.mod, v=v, X = X, pred_fun = tl_te_pred)))
+
+pdps.t.learner <- lapply(survey_order, function(v) {
+  p <- plot(partial_dep(tl.mod, v=v, X = X, pred_fun = tl_te_pred))
+  for (i in seq_along(p$layers)) {
+    if (!is.null(p$layers[[i]]$aes_params$colour)) {
+      p$layers[[i]]$aes_params$colour <- "black"
+    }
+  }
+  p
+})
 
 wrap_plots(pdps.t.learner, guides = "collect", ncol = 5) &
   ylim(c(-190,90)) &
   ylab("Treatment effect")&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+  theme(panel.background = element_rect(fill = "white", color = "grey50"))
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_t-learner.pdf",
@@ -1103,12 +1168,12 @@ make_learner_plots <- function(ci_df, ylims) {
       ggplot(df, aes(x = x, y = estimate)) +
         geom_ribbon(aes(ymin = lower, ymax = upper),
                     fill = "grey70", alpha = 0.4) +
-        geom_line(linewidth = 0.7, colour = "grey20") +
+        geom_line(linewidth = 0.7, color = "grey20") +
         geom_hline(yintercept = 0, linetype = "dashed",
-                   colour = "grey50", linewidth = 0.4) +
+                   color = "grey50", linewidth = 0.4) +
         labs(x = unique(df$label), y = "Treatment effect") +
         coord_cartesian(ylim = ylims) +
-        theme(panel.background = element_rect(fill = "white", colour = "grey50"),
+        theme(panel.background = element_rect(fill = "white", color = "grey50"),
               axis.title = element_text(size = 8),
               axis.text  = element_text(size = 7))
     })
@@ -1333,7 +1398,7 @@ ggplot(pd_all, aes(x = x, y = y)) +
   ylim(-50,0)+ #RF T-learner species richness goes way lower than this limit
   theme_base() +
   theme(
-    panel.background = element_rect(fill = "white", colour = "grey50"),
+    panel.background = element_rect(fill = "white", color = "grey50"),
     strip.background = element_blank(),
     strip.text.y = element_text(angle = 0, size = 10),
     strip.text.x = element_text(size = 10)
@@ -1358,7 +1423,7 @@ plot_one_variable <- function(dat, var, lab) {
     ylim(-50,0)+#RF T-learner species richness goes way lower than this limit
     theme_base() +
     theme(
-      panel.background = element_rect(fill = "white", colour = "grey50"),
+      panel.background = element_rect(fill = "white", color = "grey50"),
       strip.background = element_blank(),
       strip.text.x = element_text(size = 10)
     )
@@ -1505,12 +1570,20 @@ p_varimp <- ggplot(varimp_df, aes(x = reorder(moderator, value), y = value)) +
 pred_fun <- function(object, newdata, ...) {
   predict(object, newdata, ...)$predictions
 }
-pdps <- lapply(top10_vars, function(v) plot(partial_dep(eval.forest, v=v, X = X, pred_fun = pred_fun
-)))
+pdps <- lapply(top10_vars, function(v) {
+  p <- plot(partial_dep(eval.forest, v = v, X = X, pred_fun = pred_fun))
+  for (i in seq_along(p$layers)) {
+    if (!is.null(p$layers[[i]]$aes_params$colour)) {
+      p$layers[[i]]$aes_params$colour <- "black"
+    }
+  }
+  p
+})
+
 wrap_plots(pdps, guides = "collect", ncol = 5) &
   ylim(c(-28,-20)) &
   ylab("Treatment effect of drought on ANPP (g/m2)")&
-  theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+  theme(panel.background = element_rect(fill = "white", color = "grey50"))
 
 
 ggsave( "C:/Users/ohler/Dropbox/Tim+Laura/IDE causal forest/figures/moderator_treatmenteffects_predictions_kitchensink.pdf",
@@ -1572,9 +1645,9 @@ pdp_plots <- pdp_data %>%
     ggplot(df, aes(x = x, y = estimate)) +
       geom_ribbon(aes(ymin = lower, ymax = upper),
                   fill = "grey70", alpha = 0.4) +
-      geom_line(linewidth = 0.7, colour = "grey20") +
+      geom_line(linewidth = 0.7, color = "grey20") +
       geom_hline(yintercept = 0, linetype = "dashed",
-                 colour = "grey50", linewidth = 0.4) +
+                 color = "grey50", linewidth = 0.4) +
       labs(
         x     = unique(df$label),
         y     = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)",
@@ -1582,7 +1655,7 @@ pdp_plots <- pdp_data %>%
       ) +
       coord_cartesian(ylim = c(-35, 0)) +
       theme(
-        panel.background = element_rect(fill = "white", colour = "grey50"),
+        panel.background = element_rect(fill = "white", color = "grey50"),
         axis.title       = element_text(size = 8),
         axis.text        = element_text(size = 7)
       )
@@ -1634,11 +1707,11 @@ pdp_spread_plots <- pdp_spread_data %>%
     ggplot(df, aes(x = x, y = estimate)) +
       geom_ribbon(aes(ymin = lower, ymax = upper), fill = "grey90", alpha = 0.5) +
       geom_ribbon(aes(ymin = q25,   ymax = q75),   fill = "grey75", alpha = 0.5) +
-      geom_line(linewidth = 0.7, colour = "grey15") +
-      geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+      geom_line(linewidth = 0.7, color = "grey15") +
+      geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
       labs(x = unique(df$label),
            y = "Treatment effect of drought\non ANPP (g m\u207b\u00b2)") +
-      theme(panel.background = element_rect(fill = "white", colour = "grey50"),
+      theme(panel.background = element_rect(fill = "white", color = "grey50"),
             axis.title = element_text(size = 8), axis.text = element_text(size = 7))
   })
 
