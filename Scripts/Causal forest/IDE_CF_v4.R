@@ -1528,7 +1528,7 @@ varimp <- variable_importance(eval.forest)
 ranked.vars <- order(varimp, decreasing = TRUE)
 top10_vars <- colnames(X)[ranked.vars[1:10]]
 colnames(X)[ranked.vars[1:10]]
-# "PctGrass"          "PctAnnual"         "sand_0_5cm"        "cv_ppt_intra"      "sand_0_15cm"      "r_monthly_t_p"     "daily_ppt_d"       "mean_sr"           "percent_graminoid" "seasonality_index"       
+#"PctGrass"   "PctAnnual" "cv_ppt_intra" "sand_0_15cm"  "sand_0_5cm" "r_monthly_t_p"  "daily_ppt_d"   "mean_sr" "ppt_95th_percentile_size" "sand_0_30cm"
 
 rate <- rank_average_treatment_effect(eval.forest,
                                       predict(eval.forest, X)$predictions)
